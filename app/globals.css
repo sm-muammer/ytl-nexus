@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/*
+ * Baseline tokens only. The full Adaptive Nexus token system (colour roles,
+ * type scale, motion, light and dark surfaces) replaces this in Task 2.
+ * Brand values come from the YTL Communications logo guideline.
+ */
+@theme {
+  --color-ytl-blue: #00b4f0;
+  --color-ytl-black: #3c3c3c;
+  --color-ytl-grey: #bcbcbc;
+
+  --color-canvas: #0b0d10;
+  --color-ink: #f2f4f7;
+  --color-muted: #a3aab5;
+  --color-line: #232830;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}

@@ -1,0 +1,48 @@
+# Dependencies
+/node_modules
+
+# Next.js build output
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# Tests and reports
+/coverage
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
+
+# Local-only reference material and the legacy Yes source (ported in Task 15, removed in Task 22)
+/reference/
+/yes-website-redesign/
+
+# Secrets and key material: never commit these
+.env*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+id_rsa*
+id_ecdsa*
+id_ed25519*
+
+# Backups and archives (SQL migrations are source code and stay tracked)
+*.sql.gz
+*.dump
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+/backups/
+
+# Tooling noise
+.DS_Store
+npm-debug.log*
+.vercel
+.superpowers/

@@ -1,0 +1,9 @@
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is required. macOS: brew install gitleaks. Other systems: see CONTRIBUTING.md." >&2
+  exit 1
+fi
+
+gitleaks git --pre-commit --staged --redact --no-banner
+npx lint-staged
+npm run typecheck
+npm run test
