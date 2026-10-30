@@ -14,10 +14,9 @@
 
 ## Owner actions waiting
 
-1. Rename the workspace folder: quit Kiro, rename `/Users/muammer/ai/projects/all_kiro` to `ytl-nexus` in Finder, reopen it in Kiro. Git and the GitHub remote keep working after the rename.
-2. Ask Logesh whether exact Oracle MySQL is required or MariaDB (MySQL-compatible) is fine. The answer decides whether Task 5 adds the optional MySQL 8 container.
-3. Before Task 2: request the official YTL and Yes media kit and any photos you want to use from Logesh or YTL Corporate Communications.
-4. Optional: after Task 2 confirms nothing else is needed, empty `~/.Trash/ytl-nexus-cleanup-2026-10-30` (see the deletion log).
+1. Ask Logesh whether exact Oracle MySQL is required or MariaDB (MySQL-compatible) is fine. The answer decides whether Task 5 adds the optional MySQL 8 container.
+2. Before Task 2: request the official YTL and Yes media kit and any photos you want to use from Logesh or YTL Corporate Communications.
+3. Optional: after Task 2 confirms nothing else is needed, empty `~/.Trash/ytl-nexus-cleanup-2026-10-30` (see the deletion log).
 
 ## Task log
 
@@ -28,22 +27,25 @@
 - Tooling: Prettier with the Tailwind plugin, Vitest with Testing Library and jsdom, Playwright with `@axe-core/playwright`, Husky with lint-staged and a gitleaks pre-commit hook.
 - Branded placeholder home page with skip link; unit tests (3) and end-to-end smoke tests (3, including axe WCAG 2.2 AA) pass.
 - GitHub Actions workflow `.github/workflows/ci.yml`: gitleaks over full history; format, lint, typecheck, unit tests, build; end-to-end smoke tests.
-- Documentation: `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `.kiro/steering/ytl-nexus.md`, `docs/README.md`, `docs/spec/` (overview, design, 14 module specs, implementation plan), `docs/architecture/overview.md`, ADR 0001 and ADR 0002.
-- Private repository `sm-muammer/ytl-nexus` created and pushed.
+- Documentation: `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `.kiro/steering/ytl-nexus.md`, the five canonical guides in `docs/`, detailed module specs and implementation plan in `docs/spec/`, and ADRs in `docs/architecture/decisions/`.
+- Documentation refined after the workspace rename: canonical entry points are now `docs/product.md`, `docs/tech.md`, `docs/structure.md`, `docs/design-language.md` and `docs/security.md`; detailed module contracts remain under `docs/spec/` and decisions under `docs/architecture/decisions/`.
+- One Kiro hook added: `.kiro/hooks/confirm-destructive-commands.json` asks for confirmation before destructive shell commands (activates on the next session start). SessionStart and save hooks were rejected because steering, Husky and CI already cover them.
 
 ## Decisions
 
-| ID    | Date       | Decision                                                                                        | Why                                                                                                                   |
-| ----- | ---------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| D-001 | 2026-10-30 | Node.js 24 LTS on the server and in CI ([ADR 0002](architecture/decisions/0002-node-24-lts.md)) | Server offers `nodejs:24`; Node 22 ends April 2027                                                                    |
-| D-002 | 2026-10-30 | `AGENTS.md` is the single rule set; `.kiro/steering/ytl-nexus.md` only adds Kiro credit rules   | Both load every turn; duplication costs credits and drifts                                                            |
-| D-003 | 2026-10-30 | Local deletions go to `~/.Trash/ytl-nexus-cleanup-2026-10-30` instead of permanent removal      | Reversible until the owner empties the Trash                                                                          |
-| D-004 | 2026-10-30 | `assets/source/` (4.4 MB of logo masters) is tracked in Git                                     | The team needs the originals after handover; approved for public use                                                  |
-| D-005 | 2026-10-30 | Husky sets the repository-local `core.hooksPath` through `npm run prepare`                      | Standard way to share hooks with the team                                                                             |
-| D-006 | 2026-10-30 | The `unrs-resolver` install script stays unapproved under npm's `allowScripts`                  | It only downloads a binding when the optional native package is missing; the native package installs normally         |
-| D-007 | 2026-10-30 | Specs are split into overview, design, module specs and the implementation plan (how and when)  | Each fact has one home; later sessions read only what their task needs                                                |
-| D-008 | 2026-10-30 | Fonts move to `next/font/local` or a font npm package in Task 2                                 | The server build should not depend on downloading Google Fonts                                                        |
-| D-009 | 2026-10-30 | Task 4 prefers the AppStream `php:8.3` stream over Remi                                         | Remi `remi-8.1` is currently enabled; AppStream is the distribution-supported path. Record the final choice in Task 4 |
+| ID    | Date       | Decision                                                                                                   | Why                                                                                                                                                                                                |
+| ----- | ---------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-001 | 2026-10-30 | Node.js 24 LTS on the server and in CI ([ADR 0002](architecture/decisions/0002-node-24-lts.md))            | Server offers `nodejs:24`; Node 22 ends April 2027                                                                                                                                                 |
+| D-002 | 2026-10-30 | `AGENTS.md` is the single rule set; `.kiro/steering/ytl-nexus.md` only adds Kiro credit rules              | Both load every turn; duplication costs credits and drifts                                                                                                                                         |
+| D-003 | 2026-10-30 | Local deletions go to `~/.Trash/ytl-nexus-cleanup-2026-10-30` instead of permanent removal                 | Reversible until the owner empties the Trash                                                                                                                                                       |
+| D-004 | 2026-10-30 | `assets/source/` (4.4 MB of logo masters) is tracked in Git                                                | The team needs the originals after handover; approved for public use                                                                                                                               |
+| D-005 | 2026-10-30 | Husky sets the repository-local `core.hooksPath` through `npm run prepare`                                 | Standard way to share hooks with the team                                                                                                                                                          |
+| D-006 | 2026-10-30 | The `unrs-resolver` install script stays unapproved under npm's `allowScripts`                             | It only downloads a binding when the optional native package is missing; the native package installs normally                                                                                      |
+| D-007 | 2026-10-30 | Specs are split into overview, design, module specs and the implementation plan (how and when)             | Each fact has one home; later sessions read only what their task needs                                                                                                                             |
+| D-008 | 2026-10-30 | Fonts move to `next/font/local` or a font npm package in Task 2                                            | The server build should not depend on downloading Google Fonts                                                                                                                                     |
+| D-009 | 2026-10-30 | Task 4 prefers the AppStream `php:8.3` stream over Remi                                                    | Remi `remi-8.1` is currently enabled; AppStream is the distribution-supported path. Record the final choice in Task 4                                                                              |
+| D-010 | 2026-10-30 | Five canonical reader guides: `product.md`, `tech.md`, `structure.md`, `design-language.md`, `security.md` | Stable entry points reduce search and keep detailed module contracts in `docs/spec/`                                                                                                               |
+| D-011 | 2026-10-30 | One Kiro hook: `confirm-destructive-commands` (PreToolUse on `execute_bash`)                               | Plain shell check, zero credits; prompts before `rm -rf`, disk, firewall, hostname, database-drop and force-push commands. Steering, Husky and CI already cover everything else, so no other hooks |
 
 ## Open issues
 
@@ -60,7 +62,7 @@
 
 **Owner's Mac (2026-10-30):** macOS 27.0.1 on arm64; Node.js 26.13.0; npm 11.20.0; git 2.56.0; Homebrew 7.0.11; GitHub CLI 2.103.3 signed in as `sm-muammer` with `repo` and `workflow` scopes; gitleaks 8.30.1 (installed in Task 1); Docker CLI present, daemon not running; Homebrew `mysql` 26.10; no Podman, MariaDB, poppler or Inkscape.
 
-**Server:** see [architecture overview, host facts](architecture/overview.md#6-host-facts-read-only-audit-2026-10-30). Module streams checked in Task 1: `nodejs` 18, 20, 22, 24; `php` 8.1–8.3 (AppStream) and Remi 7.4–8.6 with `remi-8.1` enabled.
+**Server:** see [technology, host facts](tech.md#6-host-facts-read-only-audit-2026-10-30). Module streams checked in Task 1: `nodejs` 18, 20, 22, 24; `php` 8.1–8.3 (AppStream) and Remi 7.4–8.6 with `remi-8.1` enabled.
 
 **CI pins:** `actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-artifact@v7`, gitleaks 8.30.1 (checksum-verified download).
 

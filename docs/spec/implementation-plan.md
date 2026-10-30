@@ -4,7 +4,7 @@
 > **Audience:** the agent or developer running a task, and the project owner tracking progress.
 > **Status:** approved by the owner on 2026-10-30. Progress is tracked in [`../PROGRESS.md`](../PROGRESS.md), not in this file.
 
-Requirements live in [`00-overview.md`](00-overview.md) and the module specs. Architecture and key design decisions live in [`../architecture/overview.md`](../architecture/overview.md). This file covers **how and when**.
+Requirements live in [`../product.md`](../product.md) and the module specs. Technology lives in [`../tech.md`](../tech.md), repository placement in [`../structure.md`](../structure.md), design rules in [`../design-language.md`](../design-language.md), and security controls in [`../security.md`](../security.md). This file covers **how and when**.
 
 ## 0. How to run a task
 
@@ -25,30 +25,30 @@ Requirements live in [`00-overview.md`](00-overview.md) and the module specs. Ar
 
 ## 1. Task list
 
-| #   | Task                                                          | Specs                                                                         | Model and effort                       |
-| --- | ------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------- |
-| 1   | Workspace, repository, specs and tooling baseline             | [00](00-overview.md)                                                          | Sonnet 5.5, Medium                     |
-| 2   | Brand asset pipeline and design tokens                        | [01](01-experience-and-design.md)                                             | Sonnet 5.5; Haiku 5.5 for the manifest |
-| 3   | App shell, route groups, adapters and motion system           | [01](01-experience-and-design.md), [22](22-nexus-tour-story-and-demo-mode.md) | Sonnet 5.5, Medium                     |
-| 4   | Server preparation, backup, wipe, hardening, first deployment | [architecture](../architecture/overview.md)                                   | Sonnet 5.5, **High**                   |
-| 5   | Database schema, migrations and seed data                     | [14](14-nexus-data.md)                                                        | Sonnet 5.5; Haiku 5.5 for seed data    |
-| 6   | Authentication, roles, audit and Control entry                | [10](10-identity-and-access.md)                                               | Sonnet 5.5, **High**                   |
-| 7   | Headless WordPress, Nexus Studio and Nexus Library            | [15](15-nexus-library-and-studio.md)                                          | Sonnet 5.5, Medium                     |
-| 8   | Monitoring pipeline and Nexus Command                         | [11](11-nexus-command.md)                                                     | Sonnet 5.5, Medium                     |
-| 9   | Operations agent, controlled actions and Nexus Status         | [12](12-nexus-status-and-operations.md)                                       | Sonnet 5.5, **High**                   |
-| 10  | Nexus Atlas                                                   | [13](13-nexus-atlas.md)                                                       | Sonnet 5.5, Medium                     |
-| 11  | Nexus Data                                                    | [14](14-nexus-data.md)                                                        | Haiku 5.5; Sonnet 5.5 review           |
-| 12  | Nexus Transfer (SFTPGo)                                       | [16](16-nexus-transfer.md)                                                    | Sonnet 5.5, **High**                   |
-| 13  | Nexus Mail                                                    | [17](17-nexus-mail.md)                                                        | Sonnet 5.5, **High**                   |
-| 14  | Nexus AI                                                      | [18](18-nexus-ai.md)                                                          | Sonnet 5.5, Medium                     |
-| 15  | Yes Experience                                                | [19](19-yes-experience.md)                                                    | Sonnet 5.5, Medium                     |
-| 16  | Nexus Continuity                                              | [20](20-nexus-continuity.md)                                                  | Haiku 5.5; Sonnet 5.5 review           |
-| 17  | Nexus Shield                                                  | [21](21-nexus-shield.md)                                                      | Sonnet 5.5, Low–Medium                 |
-| 18  | Nexus Tour, Project Story and demo mode                       | [22](22-nexus-tour-story-and-demo-mode.md)                                    | Sonnet 5.5; Haiku 5.5 for copy         |
-| 19  | Nexus Control completion and cross-module links               | [23](23-nexus-control.md)                                                     | Sonnet 5.5, Medium                     |
-| 20  | Quality, motion and 4K pass                                   | [01](01-experience-and-design.md)                                             | Sonnet 5.5, Medium                     |
-| 21  | Security hardening and final review                           | [10](10-identity-and-access.md), [architecture](../architecture/overview.md)  | Sonnet 5.5 High; GPT 5.6 Sol once      |
-| 22  | Documentation, handover and v1.0.0 release                    | [00](00-overview.md)                                                          | Haiku 5.5 draft; Sonnet 5.5 review     |
+| #   | Task                                                          | Specs                                                                       | Model and effort                       |
+| --- | ------------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------- |
+| 1   | Workspace, repository, specs and tooling baseline             | [product](../product.md)                                                    | Sonnet 5.5, Medium                     |
+| 2   | Brand asset pipeline and design tokens                        | [design](../design-language.md)                                             | Sonnet 5.5; Haiku 5.5 for the manifest |
+| 3   | App shell, route groups, adapters and motion system           | [design](../design-language.md), [22](22-nexus-tour-story-and-demo-mode.md) | Sonnet 5.5, Medium                     |
+| 4   | Server preparation, backup, wipe, hardening, first deployment | [technology](../tech.md)                                                    | Sonnet 5.5, **High**                   |
+| 5   | Database schema, migrations and seed data                     | [14](14-nexus-data.md)                                                      | Sonnet 5.5; Haiku 5.5 for seed data    |
+| 6   | Authentication, roles, audit and Control entry                | [10](10-identity-and-access.md)                                             | Sonnet 5.5, **High**                   |
+| 7   | Headless WordPress, Nexus Studio and Nexus Library            | [15](15-nexus-library-and-studio.md)                                        | Sonnet 5.5, Medium                     |
+| 8   | Monitoring pipeline and Nexus Command                         | [11](11-nexus-command.md)                                                   | Sonnet 5.5, Medium                     |
+| 9   | Operations agent, controlled actions and Nexus Status         | [12](12-nexus-status-and-operations.md)                                     | Sonnet 5.5, **High**                   |
+| 10  | Nexus Atlas                                                   | [13](13-nexus-atlas.md)                                                     | Sonnet 5.5, Medium                     |
+| 11  | Nexus Data                                                    | [14](14-nexus-data.md)                                                      | Haiku 5.5; Sonnet 5.5 review           |
+| 12  | Nexus Transfer (SFTPGo)                                       | [16](16-nexus-transfer.md)                                                  | Sonnet 5.5, **High**                   |
+| 13  | Nexus Mail                                                    | [17](17-nexus-mail.md)                                                      | Sonnet 5.5, **High**                   |
+| 14  | Nexus AI                                                      | [18](18-nexus-ai.md)                                                        | Sonnet 5.5, Medium                     |
+| 15  | Yes Experience                                                | [19](19-yes-experience.md)                                                  | Sonnet 5.5, Medium                     |
+| 16  | Nexus Continuity                                              | [20](20-nexus-continuity.md)                                                | Haiku 5.5; Sonnet 5.5 review           |
+| 17  | Nexus Shield                                                  | [21](21-nexus-shield.md)                                                    | Sonnet 5.5, Low–Medium                 |
+| 18  | Nexus Tour, Project Story and demo mode                       | [22](22-nexus-tour-story-and-demo-mode.md)                                  | Sonnet 5.5; Haiku 5.5 for copy         |
+| 19  | Nexus Control completion and cross-module links               | [23](23-nexus-control.md)                                                   | Sonnet 5.5, Medium                     |
+| 20  | Quality, motion and 4K pass                                   | [design](../design-language.md)                                             | Sonnet 5.5, Medium                     |
+| 21  | Security hardening and final review                           | [10](10-identity-and-access.md), [technology](../tech.md)                   | Sonnet 5.5 High; GPT 5.6 Sol once      |
+| 22  | Documentation, handover and v1.0.0 release                    | [product](../product.md)                                                    | Haiku 5.5 draft; Sonnet 5.5 review     |
 
 Checkpoints: Day 7 integrated demo; Day 10 all modules integrated; Days 11–14 hardening, polish, docs and handover.
 
@@ -63,11 +63,11 @@ Checkpoints: Day 7 integrated demo; Day 10 all modules integrated; Days 11–14 
   - `git init` at the workspace root. `.gitignore` covers `reference/`, `yes-website-redesign/`, `.next`, `node_modules`, `.env*`, key material and backups.
   - Scaffold a new Next.js 16.3.5 app (npm, TypeScript strict, Tailwind v4, ESLint flat config, Prettier). Add Vitest and Testing Library, Playwright and `@axe-core/playwright`, and a gitleaks pre-commit hook.
   - GitHub Actions: secret scan, format check, lint, typecheck, unit tests, build, end-to-end smoke tests.
-  - Write `docs/spec/00-overview.md` and the module specs, `AGENTS.md`, `.kiro/steering/ytl-nexus.md` and `docs/PROGRESS.md`.
+  - Write `docs/product.md` and the module specs, `AGENTS.md`, `.kiro/steering/ytl-nexus.md` and `docs/PROGRESS.md`.
   - Create the private GitHub repository `sm-muammer/ytl-nexus` and push.
 - **Tests:** lint, typecheck and unit tests pass locally and in CI; gitleaks is clean.
 - **Demo:** `npm run dev` shows a branded placeholder; the repository is on GitHub with green CI.
-- **You do:** confirm the GitHub account; ask Logesh whether exact Oracle MySQL is required or MariaDB is fine; after the session, quit Kiro, rename `all_kiro` to `ytl-nexus` in Finder, and reopen the folder in Kiro.
+- **You do:** confirm the GitHub account and ask Logesh whether exact Oracle MySQL is required or MariaDB is fine. The workspace was renamed to `ytl-nexus` after Task 1.
 
 ### Task 2: Brand asset pipeline and design tokens
 
@@ -111,7 +111,7 @@ Checkpoints: Day 7 integrated demo; Day 10 all modules integrated; Days 11–14 
   5. **Runtimes:** Node.js 24 via `dnf module` (ADR 0002). PHP 8.3 with fpm, mysqlnd, intl, mbstring, xml, gd, zip, opcache and sodium. The Remi repository is already enabled on the server (`php:remi-8.1`); prefer the AppStream `php:8.3` stream and record the choice. Enable EPEL if needed.
   6. **MariaDB and storage:** bind MariaDB to 127.0.0.1. Verify `sdb` has no partitions or signatures (`lsblk -f`, `wipefs -n`), format it as xfs and mount it at `/srv/nexus-transfer` via fstab with `nosuid,nodev,noexec`.
   7. **firewalld:** add the ssh service first, then 80, 443, 2022, 587 and 993. Before enabling, schedule an automatic `systemctl stop firewalld` in 5 minutes as a safety net; verify SSH from a new connection, then cancel the safety net.
-  8. **TLS and Apache:** internal CA plus a server certificate with the SANs from the architecture overview. Apache vhost for :443 with security headers, :80 redirect to HTTPS, `Options -Indexes`, proxy to 127.0.0.1:3000 with SSE settings. Disable the default welcome page.
+  8. **TLS and Apache:** internal CA plus a server certificate with the SANs from [`../tech.md`](../tech.md). Apache vhost for :443 with security headers, :80 redirect to HTTPS, `Options -Indexes`, proxy to 127.0.0.1:3000 with SSE settings. Disable the default welcome page.
   9. **Service and deploy:** create the `nexus` service user. Write `nexus-web.service` with sandboxing, graceful stop and `EnvironmentFile`. Write `deploy.sh` (builds on the server) and `rollback.sh` with automatic health-check rollback. Add `/api/health/live`. Set `output: 'standalone'`.
   10. **Benchmark prep:** record `lscpu` flags (AVX/AVX2) in `docs/PROGRESS.md` for Task 14. Record whether the server has outbound internet access for `npm`, `dnf` and model downloads.
   11. **Docs:** `docs/operations/deploy.md`, `rollback.md`, `server-baseline.md`, and `docs/handover/ca-install.md`.

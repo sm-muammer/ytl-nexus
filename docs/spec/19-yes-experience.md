@@ -40,4 +40,4 @@ Next.js 16.3.5, React 19.2.8, Tailwind v4. Pages: home, plans, coverage, support
 
 ## Related
 
-[01 Design](01-experience-and-design.md) · [18 AI, `yes-public` scope](18-nexus-ai.md)
+[Design language](../design-language.md) · [18 AI, `yes-public` scope](18-nexus-ai.md)

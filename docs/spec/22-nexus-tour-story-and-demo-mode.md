@@ -42,4 +42,4 @@ Nexus Tour is a guided, sanitized walk through every module. Project Story is th
 
 ## Related
 
-[00 Overview](00-overview.md) · [15 Library and Studio](15-nexus-library-and-studio.md)
+[Product](../product.md) · [15 Library and Studio](15-nexus-library-and-studio.md)

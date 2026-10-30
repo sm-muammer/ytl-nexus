@@ -1,7 +1,7 @@
-# Experience and design: Adaptive Nexus
+# YTL Nexus design language: Adaptive Nexus
 
 > **Purpose:** the visual, motion, accessibility and brand requirements every page must meet.
-> **Audience:** anyone building or reviewing UI. Built in Tasks 2 (tokens and assets), 3 (shell and motion) and 20 (quality pass), applied in every module task.
+> **Audience:** anyone building or reviewing UI. Canonical product scope: [`product.md`](product.md). Built in Tasks 2 (tokens and assets), 3 (shell and motion), and 20 (quality pass), then applied in every module task.
 
 ## 1. Direction
 
@@ -78,11 +78,11 @@ Source: `assets/source/ytl-communications/YTL Communications_Logo Guidelines.pdf
 
 ## 9. Nexus Mail layout
 
-Gmail-inspired three-pane information architecture without Gmail branding or exact styling: folder rail with a Compose button, search bar, message list, optional reading pane, compose drawer and keyboard shortcuts. On mobile the flow is folder, then list, then message. Details: [17 Nexus Mail](17-nexus-mail.md).
+Gmail-inspired three-pane information architecture without Gmail branding or exact styling: folder rail with a Compose button, search bar, message list, optional reading pane, compose drawer and keyboard shortcuts. On mobile the flow is folder, then list, then message. Details: [17 Nexus Mail](spec/17-nexus-mail.md).
 
 ## 10. Yes Experience
 
-Keeps its own cherry-blossom art direction and the official Yes colours inside the Nexus shell. Details: [19 Yes Experience](19-yes-experience.md).
+Keeps its own cherry-blossom art direction and the official Yes colours inside the Nexus shell. Details: [19 Yes Experience](spec/19-yes-experience.md).
 
 ## 11. Acceptance criteria
 

@@ -47,4 +47,4 @@ In-memory fixtures with the same shape; writes are disabled with a "Demo session
 
 ## Related
 
-[Architecture overview](../architecture/overview.md) · [20 Continuity](20-nexus-continuity.md)
+[Technology](../tech.md) · [20 Continuity](20-nexus-continuity.md)

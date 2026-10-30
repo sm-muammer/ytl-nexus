@@ -1,11 +1,11 @@
-# YTL Nexus architecture overview
+# YTL Nexus technology and architecture
 
 > **Purpose:** how YTL Nexus is built: components, trust boundaries, key design decisions, repository layout, and the facts they rest on.
-> **Audience:** builders, reviewers and the IT Infrastructure owners. Requirements are in [`../spec/00-overview.md`](../spec/00-overview.md); recorded decisions are in [`decisions/`](decisions/).
+> **Audience:** builders, reviewers and the IT Infrastructure owners. Product requirements are in [`product.md`](product.md); repository placement is in [`structure.md`](structure.md); security controls are in [`security.md`](security.md); recorded decisions are in [`architecture/decisions/`](architecture/decisions/).
 
 ## 1. Shape
 
-One Next.js application and a set of host services on a single Rocky Linux server (**Nexus Core 01**). Apache is the only public web entry point and routes by path. Every backing service listens on loopback or a Unix socket. See [ADR 0001](decisions/0001-modular-platform-on-one-host.md).
+One Next.js application and a set of host services on a single Rocky Linux server (**Nexus Core 01**). Apache is the only public web entry point and routes by path. Every backing service listens on loopback or a Unix socket. See [ADR 0001](architecture/decisions/0001-modular-platform-on-one-host.md).
 
 ```mermaid
 flowchart TB
@@ -64,44 +64,20 @@ flowchart TB
 ## 4. Key design decisions
 
 1. **Path routing on one hostname.** Apache excludes `/studio`, `/webmail` and `/files` (each served by Alias or its own proxy) and proxies everything else to Next.js. `ProxyPreserveHost On` and `X-Forwarded-Proto https`. SSE routes disable buffering (`flushpackets=on` plus `X-Accel-Buffering: no`). No extra DNS records are needed.
-2. **Auth.** Better Auth with MariaDB, admin plugin with custom roles and impersonation off, mandatory TOTP for Operator and Administrator, rate limiting, `nextCookies()` last. One `requireRole()` guard everywhere; `requireStepUp()` with a 10-minute window for `/control`. Cookies `Secure`, `HttpOnly`, `SameSite=Lax`. Every auth event and mutation is audited. Spec: [10](../spec/10-identity-and-access.md).
-3. **Operations agent instead of a sudo helper.** `nexus-ops` runs unprivileged on a Unix socket readable only by group `nexus-ops-clients`. Requests are HMAC-signed with a timestamp and nonce. The schema allows only `restart(unit)`, `logs(unit, lines ≤ 500)` and `health(check)` over a fixed unit allowlist; a polkit rule permits only those restarts. Logs are sanitized. Restarts are asynchronous so `nexus-web` can restart itself. Spec: [12](../spec/12-nexus-status-and-operations.md).
+2. **Auth.** Better Auth with MariaDB, admin plugin with custom roles and impersonation off, mandatory TOTP for Operator and Administrator, rate limiting, `nextCookies()` last. One `requireRole()` guard everywhere; `requireStepUp()` with a 10-minute window for `/control`. Cookies `Secure`, `HttpOnly`, `SameSite=Lax`. Every auth event and mutation is audited. Spec: [10](spec/10-identity-and-access.md).
+3. **Operations agent instead of a sudo helper.** `nexus-ops` runs unprivileged on a Unix socket readable only by group `nexus-ops-clients`. Requests are HMAC-signed with a timestamp and nonce. The schema allows only `restart(unit)`, `logs(unit, lines ≤ 500)` and `health(check)` over a fixed unit allowlist; a polkit rule permits only those restarts. Logs are sanitized. Restarts are asynchronous so `nexus-web` can restart itself. Spec: [12](spec/12-nexus-status-and-operations.md).
 4. **Shield and Continuity run as root timers, never from the web.** They write JSON or INSERT-only rows; the worker ingests; the web reads. Nothing is remediated automatically.
-5. **Metrics.** One in-process poller in `nexus-web` queries Prometheus on a fixed interval with fixed PromQL and fans out over SSE. This assumes a single `nexus-web` instance. Spec: [11](../spec/11-nexus-command.md).
-6. **AI.** SSE chat route; the worker chunks and embeds content into `ai_chunks` with audience and source; retrieval filters by role; retrieved text is untrusted data; no tools; limits protect the CPU. MariaDB 10.5 has no vector type, so embeddings are BLOBs with in-memory cosine search, which suits a few thousand chunks. Spec: [18](../spec/18-nexus-ai.md).
-7. **Mail.** Fresh Postfix and Dovecot with virtual users in `nexus_mail`, internal domain `ytl-nexus.internal`, LMTP delivery, loopback-only `mynetworks`, submission on 587, IMAPS on 993. Roundcube with a custom Elastic child skin. Spec: [17](../spec/17-nexus-mail.md).
-8. **WordPress.** Fresh headless install at `/studio` with the `nexus-content` plugin, signed revalidation webhook, preview tokens, Two Factor and IP-restricted admin. Spec: [15](../spec/15-nexus-library-and-studio.md).
-9. **Motion.** react-three-fiber point-shader particles, lazy-loaded and tiered; Motion for React for component transitions; view transitions where supported. Spec: [01](../spec/01-experience-and-design.md).
+5. **Metrics.** One in-process poller in `nexus-web` queries Prometheus on a fixed interval with fixed PromQL and fans out over SSE. This assumes a single `nexus-web` instance. Spec: [11](spec/11-nexus-command.md).
+6. **AI.** SSE chat route; the worker chunks and embeds content into `ai_chunks` with audience and source; retrieval filters by role; retrieved text is untrusted data; no tools; limits protect the CPU. MariaDB 10.5 has no vector type, so embeddings are BLOBs with in-memory cosine search, which suits a few thousand chunks. Spec: [18](spec/18-nexus-ai.md).
+7. **Mail.** Fresh Postfix and Dovecot with virtual users in `nexus_mail`, internal domain `ytl-nexus.internal`, LMTP delivery, loopback-only `mynetworks`, submission on 587, IMAPS on 993. Roundcube with a custom Elastic child skin. Spec: [17](spec/17-nexus-mail.md).
+8. **WordPress.** Fresh headless install at `/studio` with the `nexus-content` plugin, signed revalidation webhook, preview tokens, Two Factor and IP-restricted admin. Spec: [15](spec/15-nexus-library-and-studio.md).
+9. **Motion.** react-three-fiber point-shader particles, lazy-loaded and tiered; Motion for React for component transitions; view transitions where supported. Spec: [01](design-language.md).
 10. **Server layout and deploy.** Releases in `/opt/ytl-nexus/{releases/<git-sha>,current,shared}`; environment files in `/etc/ytl-nexus/*.env` (`root:nexus`, 0640); SFTP storage on `sdb` at `/srv/nexus-transfer`; backups in `/var/backups/nexus`. `deploy.sh` on the Mac rsyncs a tagged commit to a new release directory, runs `npm ci && npm run build` **on the server** (Sharp and other native modules must match the server platform), runs migrations, swaps the `current` symlink, restarts and health-checks, rolling back automatically on failure. GitHub Actions runs checks only because GitHub cannot reach the private IP.
 11. **Security baseline.** Internal CA certificate with SANs `ytl-nexus.ytlcomms.my`, `ytl-nexus.internal`, `sn1lyvx1d0002.ytlcomms.my` and `10.26.64.164`. HSTS, CSP (follow the installed Next.js CSP guide; if nonces force dynamic rendering of public ISR pages, document the trade-off), `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors`. Zod at every trust boundary, parameterized queries, rate limits on public handlers. systemd sandboxing (`NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp`, minimal `ReadWritePaths`). firewalld allowlist. fail2ban for sshd, SFTPGo and Postfix with the owner's IP ignored. gitleaks in pre-commit and CI. SELinux stays disabled for the pilot and is a documented risk. Root SSH login and password SSH are reported by Shield but not changed (lockout risk).
 
-## 5. Repository layout
+## 5. Repository structure
 
-```text
-ytl-nexus/
-├── app/                     # (public) (workspace) (yes) control/ api/
-├── components/              # shared UI and motion primitives
-├── modules/                 # one folder per module (command, atlas, status, ai, ...)
-├── lib/server/              # server-only data access and adapters
-├── lib/client/              # browser-only helpers
-├── lib/fixtures/            # demo-mode data
-├── services/ops-agent/      # nexus-ops
-├── services/worker/         # nexus-worker
-├── wordpress/plugins/nexus-content/
-├── wordpress/themes/nexus-headless/
-├── roundcube/skins/nexus/
-├── infrastructure/          # apache, systemd, polkit, prometheus, sftpgo, mail, database, firewalld, fail2ban, scripts
-├── assets/source/           # official logo masters and guideline, original filenames, SHA256SUMS
-├── assets/web/              # optimized derivatives (Task 2)
-├── public/
-├── docs/                    # see docs/README.md
-├── tests/{unit,integration,e2e}/
-├── .kiro/steering/ytl-nexus.md
-├── AGENTS.md  README.md  CONTRIBUTING.md
-└── reference/               # git-ignored inspiration and brand extras
-```
-
-`yes-website-redesign/` stays git-ignored in place until Task 15 ports it; Task 22 bundles and removes it.
+[`structure.md`](structure.md) is the canonical map for repository directories, route ownership, module boundaries and file placement. Keep this technology document focused on runtime components and integrations.
 
 ## 6. Host facts (read-only audit, 2026-10-30)
 
@@ -132,4 +108,4 @@ ytl-nexus/
 - **Ollama:** embeddings API; Gemma 3 1B and 4B QAT need Ollama 0.6 or newer. Verify current models at install time.
 - **Motion for React:** `MotionConfig reducedMotion="user"` and `useReducedMotion`.
 - **Roundcube:** Elastic supports child skins; install the current stable complete tarball after verifying its signature or checksum.
-- **Node.js:** 24 LTS on the server and in CI ([ADR 0002](decisions/0002-node-24-lts.md)).
+- **Node.js:** 24 LTS on the server and in CI ([ADR 0002](architecture/decisions/0002-node-24-lts.md)).

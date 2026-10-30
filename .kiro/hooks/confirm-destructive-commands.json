@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Confirm destructive commands",
+      "trigger": "PreToolUse",
+      "description": "Asks the owner to confirm before shell commands that delete data, format disks, change the firewall or hostname, or rewrite Git history. Runs as a plain shell check, so it costs no credits.",
+      "matcher": "execute_bash",
+      "action": {
+        "type": "command",
+        "command": "cat | grep -qiE '(rm +-[a-z]*[rf]|mkfs|wipefs|dd +if=|userdel|dnf +(remove|erase)|yum +(remove|erase)|drop +(database|table|user)|firewall-cmd|systemctl +(enable|start) +firewalld|hostnamectl +set-hostname|git +push +(-f|--force)|git +reset +--hard|git +clean +-[a-z]*f|poweroff|shutdown|reboot)' && printf '%s' '{\"hookSpecificOutput\":{\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"Destructive command pattern detected. Confirm the target host and that a verified backup exists (docs/security.md, destructive-action gate).\"}}'; exit 0",
+        "timeout": 10
+      }
+    }
+  ]
+}

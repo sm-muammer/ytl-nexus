@@ -38,25 +38,25 @@ YTL Nexus runs as a **controlled internal pilot** that the IT Infrastructure tea
 
 Every module has a branded title and a plain subtitle. Standalone module names may appear as sub-brands in heroes, loaders, badges and transitions. The full "YTL Nexus" name stays in global navigation, metadata, sign-in and documentation.
 
-| Module               | Subtitle                                              | Spec                                       | Task  |
-| -------------------- | ----------------------------------------------------- | ------------------------------------------ | ----- |
-| **Nexus Command**    | Infrastructure dashboard (Core 01, metrics, services) | [11](11-nexus-command.md)                  | 8     |
-| **Nexus Atlas**      | Service dependency map                                | [13](13-nexus-atlas.md)                    | 10    |
-| **Nexus Status**     | Health history, incidents and maintenance notices     | [12](12-nexus-status-and-operations.md)    | 9     |
-| **Nexus AI**         | Local knowledge and operations assistant              | [18](18-nexus-ai.md)                       | 14    |
-| **Nexus Transfer**   | Secure SFTP and browser file portal                   | [16](16-nexus-transfer.md)                 | 12    |
-| **Nexus Mail**       | Secure webmail                                        | [17](17-nexus-mail.md)                     | 13    |
-| **Nexus Data**       | MariaDB demonstration records                         | [14](14-nexus-data.md)                     | 5, 11 |
-| **Nexus Library**    | Runbooks, FAQs and architecture notes                 | [15](15-nexus-library-and-studio.md)       | 7     |
-| **Nexus Studio**     | WordPress content management                          | [15](15-nexus-library-and-studio.md)       | 7     |
-| **Nexus Continuity** | Backups and restore verification                      | [20](20-nexus-continuity.md)               | 16    |
-| **Nexus Shield**     | Read-only security posture                            | [21](21-nexus-shield.md)                   | 17    |
-| **Nexus Tour**       | Guided sanitized presentation                         | [22](22-nexus-tour-story-and-demo-mode.md) | 18    |
-| **Project Story**    | The internship case study                             | [22](22-nexus-tour-story-and-demo-mode.md) | 18    |
-| **Nexus Control**    | Hidden administration                                 | [23](23-nexus-control.md)                  | 6, 19 |
-| **Yes Experience**   | Yes website redesign                                  | [19](19-yes-experience.md)                 | 15    |
+| Module               | Subtitle                                              | Spec                                            | Task  |
+| -------------------- | ----------------------------------------------------- | ----------------------------------------------- | ----- |
+| **Nexus Command**    | Infrastructure dashboard (Core 01, metrics, services) | [11](spec/11-nexus-command.md)                  | 8     |
+| **Nexus Atlas**      | Service dependency map                                | [13](spec/13-nexus-atlas.md)                    | 10    |
+| **Nexus Status**     | Health history, incidents and maintenance notices     | [12](spec/12-nexus-status-and-operations.md)    | 9     |
+| **Nexus AI**         | Local knowledge and operations assistant              | [18](spec/18-nexus-ai.md)                       | 14    |
+| **Nexus Transfer**   | Secure SFTP and browser file portal                   | [16](spec/16-nexus-transfer.md)                 | 12    |
+| **Nexus Mail**       | Secure webmail                                        | [17](spec/17-nexus-mail.md)                     | 13    |
+| **Nexus Data**       | MariaDB demonstration records                         | [14](spec/14-nexus-data.md)                     | 5, 11 |
+| **Nexus Library**    | Runbooks, FAQs and architecture notes                 | [15](spec/15-nexus-library-and-studio.md)       | 7     |
+| **Nexus Studio**     | WordPress content management                          | [15](spec/15-nexus-library-and-studio.md)       | 7     |
+| **Nexus Continuity** | Backups and restore verification                      | [20](spec/20-nexus-continuity.md)               | 16    |
+| **Nexus Shield**     | Read-only security posture                            | [21](spec/21-nexus-shield.md)                   | 17    |
+| **Nexus Tour**       | Guided sanitized presentation                         | [22](spec/22-nexus-tour-story-and-demo-mode.md) | 18    |
+| **Project Story**    | The internship case study                             | [22](spec/22-nexus-tour-story-and-demo-mode.md) | 18    |
+| **Nexus Control**    | Hidden administration                                 | [23](spec/23-nexus-control.md)                  | 6, 19 |
+| **Yes Experience**   | Yes website redesign                                  | [19](spec/19-yes-experience.md)                 | 15    |
 
-Cross-cutting specs: [01 Experience and design](01-experience-and-design.md) and [10 Identity and access](10-identity-and-access.md). Architecture: [`../architecture/overview.md`](../architecture/overview.md). Task order: [`implementation-plan.md`](implementation-plan.md).
+Cross-cutting documents: [Design language](design-language.md), [Identity and access](spec/10-identity-and-access.md), [Technology](tech.md), [Structure](structure.md), and [Security](security.md). Task order: [`spec/implementation-plan.md`](spec/implementation-plan.md).
 
 ## 3. Roles
 
@@ -73,7 +73,7 @@ Cross-cutting specs: [01 Experience and design](01-experience-and-design.md) and
 - WordPress Editor accounts, mail credentials and SFTP credentials are separate from Nexus accounts.
 - Root access stays SSH-only. Nothing in Nexus grants it.
 
-Details: [10 Identity and access](10-identity-and-access.md).
+Details: [Identity and access](spec/10-identity-and-access.md).
 
 ## 4. Routes
 
@@ -97,7 +97,7 @@ One hostname with path routing through Apache.
 - Allowed inputs: official brand files in `assets/source/` and inspiration material in `reference/` (ideas only, never copied code or media).
 - Old server content is removed after a verified backup: old static pages and `api/`, the old webmail and its sudoers helper, the `ftpadmin` vhost, old WordPress and `wordpress_db`, vsftpd, the `superman` Podman container and image, old Postfix and Dovecot configuration and old mailboxes. The owner confirmed none of it is needed.
 - **OS user accounts are never deleted** (logesh, azlin, sonu and others). `sssd` configuration is never changed.
-- Every local deletion is recorded in [`../PROGRESS.md`](../PROGRESS.md).
+- Every local deletion is recorded in [`PROGRESS.md`](PROGRESS.md).
 
 ## 6. Out of scope
 

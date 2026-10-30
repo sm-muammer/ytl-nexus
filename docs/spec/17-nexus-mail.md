@@ -40,4 +40,4 @@ The `/mail` entry page shows fixture status. Webmail itself is not part of demo 
 
 ## Related
 
-[23 Control](23-nexus-control.md) · [01 Design, Nexus Mail layout](01-experience-and-design.md#9-nexus-mail-layout)
+[23 Control](23-nexus-control.md) · [Design language, Nexus Mail](../design-language.md#9-nexus-mail-layout)

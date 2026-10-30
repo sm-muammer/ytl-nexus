@@ -39,4 +39,4 @@ A root-owned timer inspects the server and writes findings. Nexus shows them by 
 
 ## Related
 
-[20 Continuity](20-nexus-continuity.md) · [Architecture decision 11](../architecture/overview.md#4-key-design-decisions)
+[20 Continuity](20-nexus-continuity.md) · [Technology decision 11](../tech.md#4-key-design-decisions)

@@ -48,4 +48,4 @@ Deterministic fixtures drive the same UI and SSE shape, labelled **Demo**.
 
 ## Related
 
-[12 Status and operations](12-nexus-status-and-operations.md) · [13 Atlas](13-nexus-atlas.md) · [01 Design, motion](01-experience-and-design.md#4-motion)
+[12 Status and operations](12-nexus-status-and-operations.md) · [13 Atlas](13-nexus-atlas.md) · [Design language, motion](../design-language.md#4-motion)

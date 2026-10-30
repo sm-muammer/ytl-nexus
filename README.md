@@ -28,7 +28,7 @@ Task 1 of 22 is complete: repository, tooling, specifications and agent rules. P
 | Nexus Control                | Hidden administration                                               |
 | Yes Experience               | The Yes website redesign                                            |
 
-Full requirements: [`docs/spec/00-overview.md`](docs/spec/00-overview.md).
+Full requirements: [`docs/product.md`](docs/product.md).
 
 ## Quick start
 
@@ -51,7 +51,11 @@ Open <http://localhost:3000>.
 ## Documentation
 
 - [Documentation map and standard](docs/README.md)
-- [Architecture overview](docs/architecture/overview.md)
+- [Product and requirements](docs/product.md)
+- [Technology and architecture](docs/tech.md)
+- [Repository and route structure](docs/structure.md)
+- [Design language](docs/design-language.md)
+- [Security model](docs/security.md)
 - [Implementation plan](docs/spec/implementation-plan.md)
 - [Contributing](CONTRIBUTING.md)
 

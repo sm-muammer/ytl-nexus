@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # YTL Nexus agent rules
 
-YTL Nexus is one Next.js 16.3.5 platform plus host services (WordPress, Roundcube, SFTPGo, Prometheus, Ollama, MariaDB) on one Rocky Linux server, Nexus Core 01. Requirements: `docs/spec/00-overview.md`. Tasks: `docs/spec/implementation-plan.md`. Architecture: `docs/architecture/overview.md`.
+YTL Nexus is one Next.js 16.3.5 platform plus host services (WordPress, Roundcube, SFTPGo, Prometheus, Ollama, MariaDB) on one Rocky Linux server, Nexus Core 01. Product: `docs/product.md`. Technology: `docs/tech.md`. Structure: `docs/structure.md`. Design: `docs/design-language.md`. Security: `docs/security.md`. Tasks: `docs/spec/implementation-plan.md`.
 
 ## Session protocol
 
@@ -30,7 +30,7 @@ YTL Nexus is one Next.js 16.3.5 platform plus host services (WordPress, Roundcub
 - **Server actions from the web** go only through the `nexus-ops` allowlist: restart of allowlisted units, bounded logs, predefined health checks.
 - **Server access:** `ssh root@10.26.64.164 '<command>'`, non-interactive, long-running work as systemd units. Before any destructive step: verify hostname and IP, confirm a verified backup, show the owner an itemized list, and wait for approval. Keep OS user accounts and `sssd` configuration exactly as they are.
 - **Honest data.** Label every figure Live or Demo. Public company claims come from official YTL or Yes pages with the source recorded.
-- **Naming.** Modules use the names in `docs/spec/00-overview.md`. Files and folders are kebab-case.
+- **Naming.** Modules use the names in `docs/product.md`. Files and folders are kebab-case.
 - **Docs** follow the standard in `docs/README.md` and change in the same commit as the behaviour.
 - **Skills:** use `tdd`, `design-taste-frontend`, `frontend-design`, `ui-ux-pro-max`, `impeccable`, `vercel-react-best-practices`, `web-design-guidelines`, `webapp-testing`, `diagnosing-bugs`, `code-review`, `pdf`, `doc-coauthoring` and `writing-for-agents` where they fit. Ask before installing new ones.
 

@@ -12,7 +12,7 @@ One central Nexus login with role-based access. Authorization runs on the server
 | ID     | Requirement                                                                                                                                                                                             |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | IAM-01 | Authentication uses Better Auth with MariaDB storage: email and password, admin plugin with custom roles, two-factor TOTP, built-in rate limiting, `nextCookies()` as the last plugin                   |
-| IAM-02 | Roles: Visitor (signed out), Viewer, Member, Operator, Administrator. The capability matrix is in [00 overview, section 3](00-overview.md#3-roles)                                                      |
+| IAM-02 | Roles: Visitor (signed out), Viewer, Member, Operator, Administrator. The capability matrix is in [Product roles](../product.md#3-roles)                                                                |
 | IAM-03 | Operator and Administrator must enrol TOTP on first sign-in before reaching any protected page                                                                                                          |
 | IAM-04 | One `requireRole(minRole)` guard is called in every protected page, layout, Route Handler and Server Function. Proxy-level checks only redirect on missing session cookies                              |
 | IAM-05 | `requireStepUp()` requires password plus TOTP within the last 10 minutes. `/control/*` requires it                                                                                                      |
@@ -43,4 +43,4 @@ One central Nexus login with role-based access. Authorization runs on the server
 
 ## Related
 
-[23 Nexus Control](23-nexus-control.md) · [Architecture decision 2](../architecture/overview.md#4-key-design-decisions)
+[23 Nexus Control](23-nexus-control.md) · [Technology decision 2](../tech.md#4-key-design-decisions)

@@ -50,4 +50,4 @@ Status uses fixture history and incidents. Operations controls are visible but d
 
 ## Related
 
-[11 Command](11-nexus-command.md) · [13 Atlas](13-nexus-atlas.md) · [Architecture decision 3](../architecture/overview.md#4-key-design-decisions)
+[11 Command](11-nexus-command.md) · [13 Atlas](13-nexus-atlas.md) · [Technology decision 3](../tech.md#4-key-design-decisions)
