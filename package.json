@@ -19,7 +19,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "assets:convert": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/assets/convert.ts && prettier --write assets/asset-manifest.md",
+    "assets:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/assets/check-filenames.ts"
   },
   "dependencies": {
     "next": "16.3.5",
@@ -45,6 +47,7 @@
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.5"

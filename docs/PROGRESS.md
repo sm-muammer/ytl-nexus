@@ -5,20 +5,32 @@
 
 ## Current status
 
-| Item                        | Value                                                                                               |
-| --------------------------- | --------------------------------------------------------------------------------------------------- |
-| Last completed              | **Task 1:** workspace, repository, specs and tooling baseline (2026-10-30)                          |
-| Next task                   | **Task 2:** brand asset pipeline and design tokens                                                  |
-| Recommended model           | Claude Sonnet 5.5, effort Medium. Switch to Claude Haiku 5.5 for writing `assets/asset-manifest.md` |
-| Start the next session with | `Continue YTL Nexus: run Task 2`                                                                    |
+| Item                        | Value                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------- |
+| Last completed              | **Task 2:** brand asset pipeline and design tokens (2026-10-30)                             |
+| Next task                   | **Task 3:** app shell, route groups, adapters and motion system                             |
+| Recommended model           | Claude Sonnet 5.5, effort Medium (see the task table in `docs/spec/implementation-plan.md`) |
+| Start the next session with | `Continue YTL Nexus: run Task 3`                                                            |
 
 ## Owner actions waiting
 
 1. Ask Logesh whether exact Oracle MySQL is required or MariaDB (MySQL-compatible) is fine. The answer decides whether Task 5 adds the optional MySQL 8 container.
-2. Before Task 2: request the official YTL and Yes media kit and any photos you want to use from Logesh or YTL Corporate Communications.
-3. Optional: after Task 2 confirms nothing else is needed, empty `~/.Trash/ytl-nexus-cleanup-2026-10-30` (see the deletion log).
+2. Request the official YTL and Yes media kit and any official photos you want from Logesh or YTL Corporate Communications (Task 2 used only the logo masters already supplied).
+3. Ask Corporate Communications to confirm the clear space for the centred logo (Task 2 used half the logo height) and whether Yes has its own logo guideline.
+4. Optional: empty `~/.Trash/ytl-nexus-cleanup-2026-10-30` (see the deletion log). Task 2 did not need anything from it.
 
 ## Task log
+
+### Task 2: brand asset pipeline and design tokens (done 2026-10-30)
+
+- Installed Homebrew `poppler` (owner approved) for `pdftocairo`. Added `sharp` as a dev dependency for cropping and PNG rendering.
+- Pipeline: `npm run assets:convert` (`scripts/assets/convert.ts`, catalogue in `lib/brand/catalog.ts`) converts 15 YTL Communications and 4 Yes PDF masters to cropped SVG plus 1x/2x sRGB PNG fallbacks in `public/brand/` (592 KB), and regenerates `assets/asset-manifest.md`. The reverse-white masters carry a dark full-page backing rectangle; the script removes it so those logos are transparent.
+- `npm run assets:check` fails on non-kebab-case or banned filenames in `public/` and `assets/` (not `assets/source/`); it runs in CI before lint.
+- Tokens: Tailwind v4 `@theme` in `app/globals.css` (brand colours; dark and light theme roles; type, spacing, radius, shadow, motion, z-layers). `lib/design/tokens.ts` mirrors the colours; a unit test checks sync and WCAG contrast for both themes. ESLint rejects raw hex in `app/`, `components/`, `modules/`.
+- Fonts: Geist, Geist Mono and Fraunces (OFL 1.1) as woff2 files in `app/fonts/` loaded with `next/font/local`; `next build` no longer needs network access for fonts.
+- `/design` reference page (noindex): all 19 logos with clear-space overlays on light and dark panels, colour swatches with contrast ratios, status badges, type specimen, token tables. `Logo` and `StatusBadge` components.
+- Tests: 63 unit tests and 14 end-to-end tests pass, including logo height at least 31 px and aspect ratio at 390, 1440 and 3840 px, clear space on four sides, axe with zero serious violations, no horizontal scroll. `npm run build` passes.
+- Docs: `docs/design/asset-sourcing.md`, updates to `docs/design-language.md` and `docs/structure.md`. Spec tasks 2.1 to 2.4 are ticked in `.kiro/specs/ytl-nexus-platform/tasks.md`.
 
 ### Task 1: workspace, repository, specs and tooling baseline (done 2026-10-30)
 
@@ -45,22 +57,27 @@
 | D-008 | 2026-10-30 | Fonts move to `next/font/local` or a font npm package in Task 2                                            | The server build should not depend on downloading Google Fonts                                                                                                                                     |
 | D-009 | 2026-10-30 | Task 4 prefers the AppStream `php:8.3` stream over Remi                                                    | Remi `remi-8.1` is currently enabled; AppStream is the distribution-supported path. Record the final choice in Task 4                                                                              |
 | D-010 | 2026-10-30 | Five canonical reader guides: `product.md`, `tech.md`, `structure.md`, `design-language.md`, `security.md` | Stable entry points reduce search and keep detailed module contracts in `docs/spec/`                                                                                                               |
+| D-012 | 2026-10-30 | Fonts: Fraunces (public headings), Geist (UI), Geist Mono (data), all OFL 1.1, committed in `app/fonts/`   | Open licence, no build-time download, matches the design language candidates                                                                                                                       |
+| D-013 | 2026-10-30 | Converted logos live in `public/brand/` and are committed; `poppler` is needed only when masters change    | CI and the server build need neither poppler nor sharp's PDF path                                                                                                                                  |
+| D-014 | 2026-10-30 | Yes gradient is `#ff0084` to `#3333ff` (main ramp of the logomark SVG); Yes pink is `#ff0084`              | Extracted from the official SVG; the other gradient stops in the file are clipped segments of the ramp                                                                                             |
 | D-011 | 2026-10-30 | One Kiro hook: `confirm-destructive-commands` (PreToolUse on `execute_bash`)                               | Plain shell check, zero credits; prompts before `rm -rf`, disk, firewall, hostname, database-drop and force-push commands. Steering, Husky and CI already cover everything else, so no other hooks |
 
 ## Open issues
 
-| ID    | Issue                                                                                                                                                                                                                              | Resolve in |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| O-001 | Local integration database for Task 5. Docker CLI is installed but Docker Desktop is not running; Homebrew `mysql` 26.10 is installed and conflicts with Homebrew `mariadb`. Prefer a `mariadb:10.5` container to match the server | Task 5     |
-| O-002 | Does the server have outbound internet access for `npm ci`, `dnf` and Ollama model downloads? (`dnf module list` worked)                                                                                                           | Task 4     |
-| O-003 | `lscpu` flags (AVX, AVX2) for the AI benchmark                                                                                                                                                                                     | Task 4     |
-| O-004 | Is the server joined to a directory (`realm list`)? Decides whether the hostname may change                                                                                                                                        | Task 4     |
-| O-005 | Exact Oracle MySQL requirement (owner action 2)                                                                                                                                                                                    | Task 5     |
-| O-006 | `pdftocairo` (Homebrew `poppler`) or Inkscape is needed for PDF-to-SVG conversion; ask before installing                                                                                                                           | Task 2     |
+| ID    | Issue                                                                                                                                                                                                                              | Resolve in     |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| O-001 | Local integration database for Task 5. Docker CLI is installed but Docker Desktop is not running; Homebrew `mysql` 26.10 is installed and conflicts with Homebrew `mariadb`. Prefer a `mariadb:10.5` container to match the server | Task 5         |
+| O-002 | Does the server have outbound internet access for `npm ci`, `dnf` and Ollama model downloads? (`dnf module list` worked)                                                                                                           | Task 4         |
+| O-003 | `lscpu` flags (AVX, AVX2) for the AI benchmark                                                                                                                                                                                     | Task 4         |
+| O-004 | Is the server joined to a directory (`realm list`)? Decides whether the hostname may change                                                                                                                                        | Task 4         |
+| O-005 | Exact Oracle MySQL requirement (owner action 2)                                                                                                                                                                                    | Task 5         |
+| O-006 | Resolved in Task 2: `poppler` installed with owner approval                                                                                                                                                                        | Done           |
+| O-007 | `/design` is public (noindex) until `requireRole("viewer")` exists. Add the guard                                                                                                                                                  | Task 6         |
+| O-008 | Centred YTL logo clear space (half the logo height) and the Yes clear space (a quarter) are working values, not from a guideline                                                                                                   | Owner action 3 |
 
 ## Environment facts
 
-**Owner's Mac (2026-10-30):** macOS 27.0.1 on arm64; Node.js 26.13.0; npm 11.20.0; git 2.56.0; Homebrew 7.0.11; GitHub CLI 2.103.3 signed in as `sm-muammer` with `repo` and `workflow` scopes; gitleaks 8.30.1 (installed in Task 1); Docker CLI present, daemon not running; Homebrew `mysql` 26.10; no Podman, MariaDB, poppler or Inkscape.
+**Owner's Mac (2026-10-30):** poppler 26.10.0 installed in Task 2; macOS 27.0.1 on arm64; Node.js 26.13.0; npm 11.20.0; git 2.56.0; Homebrew 7.0.11; GitHub CLI 2.103.3 signed in as `sm-muammer` with `repo` and `workflow` scopes; gitleaks 8.30.1 (installed in Task 1); Docker CLI present, daemon not running; Homebrew `mysql` 26.10; no Podman, MariaDB, poppler or Inkscape.
 
 **Server:** see [technology, host facts](tech.md#6-host-facts-read-only-audit-2026-10-30). Module streams checked in Task 1: `nodejs` 18, 20, 22, 24; `php` 8.1–8.3 (AppStream) and Remi 7.4–8.6 with `remi-8.1` enabled.
 

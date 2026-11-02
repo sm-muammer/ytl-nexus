@@ -9,8 +9,13 @@ Task 1 established this baseline:
 
 ```text
 ytl-nexus/
-├── app/                         # Next.js application (baseline page today)
+├── app/                         # Next.js application: baseline page, /design reference, fonts in app/fonts/
 ├── assets/source/               # Approved YTL and Yes master assets plus checksums
+├── assets/asset-manifest.md     # Generated record of every converted brand asset
+├── components/{brand,ui}/       # Logo component, status badge
+├── lib/{brand,design}/          # Brand asset catalogue, design tokens and contrast helper
+├── public/brand/                # Generated SVG logos and PNG fallbacks (committed)
+├── scripts/assets/              # Asset conversion and filename check
 ├── docs/                        # Canonical guides, module specs, ADRs and progress
 ├── reference/                   # Local-only inspiration and brand extras; Git ignored
 ├── tests/{unit,e2e}/            # Current automated tests

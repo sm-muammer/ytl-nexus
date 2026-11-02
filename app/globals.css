@@ -1,29 +1,162 @@
 @import "tailwindcss";
 
 /*
- * Baseline tokens only. The full Adaptive Nexus token system (colour roles,
- * type scale, motion, light and dark surfaces) replaces this in Task 2.
- * Brand values come from the YTL Communications logo guideline.
+ * Adaptive Nexus design tokens (Task 2). Documented in docs/design-language.md
+ * and shown on /design. Components use these semantic names, never raw hex.
+ *
+ * Colour values for brand and for both themes are mirrored in
+ * lib/design/tokens.ts; tests/unit/design-tokens.test.ts keeps them in sync and
+ * checks WCAG contrast.
+ *
+ * Themes: the workspace register is dark (default). The public register can opt
+ * in to light with data-theme="light" on any container.
  */
-@theme {
-  --color-ytl-blue: #00b4f0;
-  --color-ytl-black: #3c3c3c;
-  --color-ytl-grey: #bcbcbc;
 
-  --color-canvas: #0b0d10;
-  --color-ink: #f2f4f7;
-  --color-muted: #a3aab5;
-  --color-line: #232830;
+/* Theme roles. `--nx-*` change with the theme. */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --nx-canvas: #0b0d10;
+  --nx-surface: #12151a;
+  --nx-surface-raised: #1a1e25;
+  --nx-ink: #f2f4f7;
+  --nx-muted: #a3aab5;
+  --nx-line: #232830;
+  --nx-border-strong: #6b7482;
+  --nx-accent-ink: #00b4f0;
+  --nx-pink-ink: #ff4fa3;
+  --nx-violet-ink: #b58cff;
+  --nx-ok-ink: #34d399;
+  --nx-warn-ink: #fbbf24;
+  --nx-bad-ink: #ff6b6b;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --nx-canvas: #faf7f2;
+  --nx-surface: #ffffff;
+  --nx-surface-raised: #f3efe8;
+  --nx-ink: #16181d;
+  --nx-muted: #596070;
+  --nx-line: #e4ded3;
+  --nx-border-strong: #7a8190;
+  --nx-accent-ink: #006e99;
+  --nx-pink-ink: #b8005f;
+  --nx-violet-ink: #6a2bc2;
+  --nx-ok-ink: #0f7a4a;
+  --nx-warn-ink: #8a5a00;
+  --nx-bad-ink: #b42318;
+}
+
+/* A themed container resets text colour so nested light/dark panels read well. */
+[data-theme] {
+  color: var(--nx-ink);
+}
+
+/* Fixed brand colours. Never themed, never recoloured. */
+@theme {
+  --color-ytl-blue: #00b4f0; /* Pantone 2995 C */
+  --color-ytl-black: #3c3c3c; /* Pantone Black 7 C */
+  --color-ytl-grey: #bcbcbc; /* Cool Gray 6 C */
+  --color-yes-pink: #ff0084; /* Yes logomark, rgb(100%, 0%, 51.8%) */
+  --color-yes-gradient-end: #3333ff; /* Yes gradient, last stop */
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  /* Type scale. Body is 16 px; data tables may use text-data (14 px). */
+  --text-data: 0.875rem;
+  --text-data--line-height: 1.45;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+  --text-lead: clamp(1.125rem, 1.05rem + 0.4vw, 1.375rem);
+  --text-lead--line-height: 1.5;
+  --text-heading-3: clamp(1.25rem, 1.15rem + 0.5vw, 1.625rem);
+  --text-heading-3--line-height: 1.25;
+  --text-heading-2: clamp(1.625rem, 1.4rem + 1.1vw, 2.5rem);
+  --text-heading-2--line-height: 1.15;
+  --text-heading-1: clamp(2.25rem, 1.7rem + 2.6vw, 4.5rem);
+  --text-heading-1--line-height: 1.05;
+  --text-display: clamp(3rem, 2rem + 5vw, 8rem);
+  --text-display--line-height: 0.98;
+
+  /* Spacing: Tailwind's 0.25rem step stays; these are named layout steps. */
+  --spacing-gutter: clamp(1rem, 0.6rem + 2vw, 3rem);
+  --spacing-section: clamp(4rem, 3rem + 5vw, 9rem);
+  --spacing-prose: 65ch;
+
+  /* Radii */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 999px;
+
+  /* Shadows (dark surfaces rely on borders; shadows stay subtle) */
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.35), 0 4px 12px rgb(0 0 0 / 0.25);
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.4), 0 24px 64px rgb(0 0 0 / 0.35);
+  --shadow-glow-blue: 0 0 32px rgb(0 180 240 / 0.35);
+
+  /* Motion. Exits are faster than entrances. */
+  --duration-instant: 80ms;
+  --duration-fast: 140ms;
+  --duration-base: 220ms;
+  --duration-slow: 420ms;
+  --duration-ribbon: 700ms;
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-quad: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+  --ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Z-layers. Use as z-(--z-modal). */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-dropdown: 30;
+  --z-overlay: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+  --z-skip-link: 70;
 }
 
-html {
-  color-scheme: dark;
+/* Semantic roles read the active theme at the element, so they are inline. */
+@theme inline {
+  --color-canvas: var(--nx-canvas);
+  --color-surface: var(--nx-surface);
+  --color-surface-raised: var(--nx-surface-raised);
+  --color-ink: var(--nx-ink);
+  --color-muted: var(--nx-muted);
+  --color-line: var(--nx-line);
+  --color-border-strong: var(--nx-border-strong);
+  --color-accent-ink: var(--nx-accent-ink);
+  --color-pink-ink: var(--nx-pink-ink);
+  --color-violet-ink: var(--nx-violet-ink);
+  --color-ok-ink: var(--nx-ok-ink);
+  --color-warn-ink: var(--nx-warn-ink);
+  --color-bad-ink: var(--nx-bad-ink);
 }
 
 body {
-  background: var(--color-canvas);
-  color: var(--color-ink);
+  background: var(--nx-canvas);
+  color: var(--nx-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+:focus-visible {
+  outline: 2px solid var(--nx-accent-ink);
+  outline-offset: 3px;
+}
+
+/* Baseline reduced-motion safety. Task 3 adds the full motion system. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

@@ -16,21 +16,23 @@ Shared identity: one animated **signal ribbon** connects modules during route tr
 
 ## 2. Colour roles
 
-| Role              | Value                                            | Use                           |
-| ----------------- | ------------------------------------------------ | ----------------------------- |
-| YTL Blue          | `#00b4f0` (Pantone 2995 C)                       | Live infrastructure accents   |
-| Signal pink       | Derived from the official Yes logomark in Task 2 | Brand and navigation          |
-| Violet            | Defined in Task 2                                | Nexus AI                      |
-| Green, amber, red | Defined in Task 2                                | Status only; never decorative |
-| YTL Black         | `#3c3c3c` (Pantone Black 7 C)                    | Brand neutral                 |
-| YTL Grey          | `#bcbcbc` (Cool Gray 6 C)                        | Brand neutral                 |
+| Role              | Value                                               | Use                           |
+| ----------------- | --------------------------------------------------- | ----------------------------- |
+| YTL Blue          | `#00b4f0` (Pantone 2995 C)                          | Live infrastructure accents   |
+| Signal pink       | `#ff0084`, extracted from the Yes logomark SVG      | Brand and navigation          |
+| Violet            | `violet-ink` role (`#b58cff` dark, `#6a2bc2` light) | Nexus AI                      |
+| Green, amber, red | `ok-ink`, `warn-ink`, `bad-ink` roles               | Status only; never decorative |
+| YTL Black         | `#3c3c3c` (Pantone Black 7 C)                       | Brand neutral                 |
+| YTL Grey          | `#bcbcbc` (Cool Gray 6 C)                           | Brand neutral                 |
 
-Components use semantic tokens, never raw hex values. Status is never conveyed by colour alone.
+Components use semantic tokens, never raw hex values; ESLint rejects hex literals in `app/`, `components/` and `modules/`. Status is never conveyed by colour alone (`StatusBadge` pairs each state with an icon and a label).
+
+Tokens live in `app/globals.css` (Tailwind v4 `@theme`): theme roles `--nx-*` for dark (default) and light (`data-theme="light"`), brand colours, type scale, spacing, radii, shadows, motion durations and easings, and z-layers. Colour values are mirrored in `lib/design/tokens.ts`; a unit test keeps both in sync and checks WCAG contrast (text 4.5:1, strong borders 3:1) for both themes. The Yes gradient runs `#ff0084` to `#3333ff`. See `/design` for a live reference.
 
 ## 3. Typography
 
 - Fonts must be open-licence. The Soho fonts embedded in the YTL guideline are not licensed for web use here.
-- Candidates: an editorial serif (Fraunces or Instrument Serif) for public headings, Geist for UI, Geist Mono for data.
+- Chosen (Task 2, decision D-012): Fraunces for public headings, Geist for UI, Geist Mono for data. All are SIL OFL 1.1 and ship in `app/fonts/` with licence files.
 - Load fonts with `next/font/local` or a font npm package so server builds do not download fonts at build time.
 - Body text at least 16 px, line height about 1.5. Data tables may use 14 px.
 

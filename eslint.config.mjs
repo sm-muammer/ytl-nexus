@@ -8,6 +8,29 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Prettier owns formatting; this turns off ESLint rules that would fight it.
   prettier,
+  // Components use semantic tokens. Raw hex values live in app/globals.css and
+  // lib/design/tokens.ts only (Requirement 2.12).
+  {
+    files: [
+      "app/**/*.{ts,tsx}",
+      "components/**/*.{ts,tsx}",
+      "modules/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+          message:
+            "Raw hex colour. Use a semantic token (for example bg-canvas) or import from lib/design/tokens.",
+        },
+        {
+          selector: "TemplateElement[value.raw=/#[0-9a-fA-F]{3,8}\\b/]",
+          message: "Raw hex colour in a template string. Use a semantic token.",
+        },
+      ],
+    },
+  },
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",

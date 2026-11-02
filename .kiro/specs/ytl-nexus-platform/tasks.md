@@ -32,23 +32,23 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
     - Script that builds and starts `NEXUS_MODE=demo` with the network disabled and requests every route
     - _Requirements: 1.11, 1.12, 1.13_
 
-- [ ] 2. Brand assets and design tokens (plan Task 2)
-  - [ ] 2.1 Build the asset conversion pipeline and filename check
+- [x] 2. Brand assets and design tokens (plan Task 2)
+  - [x] 2.1 Build the asset conversion pipeline and filename check
     - `scripts/assets/convert`: one kebab-case SVG and one sRGB PNG per master; write `assets/asset-manifest.md`
     - CI check that fails and lists any banned or non-kebab-case asset filename
     - Write `docs/design/asset-sourcing.md` (no unclear-licence stock images, no Soho fonts)
     - _Requirements: 2.1, 2.2, 2.3, 2.15_
 
-  - [ ] 2.2 Define Tailwind v4 `@theme` tokens and fonts
+  - [x] 2.2 Define Tailwind v4 `@theme` tokens and fonts
     - Colour, type, spacing, radius, shadow, motion and z-layer tokens; fonts through `next/font/local`, no build-time font download
     - Lint rule that forbids raw hex values in component source; status colours paired with icon or text
     - _Requirements: 2.7, 2.8, 2.9, 2.10, 2.11, 2.12_
 
-  - [ ]* 2.3 Write Playwright tests for logo rendering
+  - [x]* 2.3 Write Playwright tests for logo rendering
     - Logo height at least 31 CSS px, aspect ratio preserved, clear space on four sides
     - _Requirements: 2.4, 2.5, 2.6_
 
-  - [ ] 2.4 Build the `/design` reference page
+  - [x] 2.4 Build the `/design` reference page
     - Logos on light and dark, clear-space overlays, swatches, type specimen; `requireRole("viewer")`
     - _Requirements: 2.4, 2.5, 2.6, 2.13, 2.14_
 
