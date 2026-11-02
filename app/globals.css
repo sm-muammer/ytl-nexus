@@ -196,6 +196,42 @@ html:has(dialog[data-nav-sheet][open]) {
 }
 
 /*
+ * Menu sheet: slides 16 px in from the right and fades; leaves faster than it
+ * arrives. Reduced motion drops the slide (the transition-property list below
+ * leaves out translate) and keeps the opacity fade.
+ */
+dialog[data-nav-sheet],
+dialog[data-nav-sheet]::backdrop {
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) var(--ease-in-quad),
+    translate var(--duration-fast) var(--ease-in-quad),
+    display var(--duration-fast) allow-discrete,
+    overlay var(--duration-fast) allow-discrete;
+}
+dialog[data-nav-sheet] {
+  translate: 16px 0;
+}
+dialog[data-nav-sheet][open],
+dialog[data-nav-sheet][open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--duration-base);
+  transition-timing-function: var(--ease-out-quint);
+}
+dialog[data-nav-sheet][open] {
+  translate: 0 0;
+}
+@starting-style {
+  dialog[data-nav-sheet][open],
+  dialog[data-nav-sheet][open]::backdrop {
+    opacity: 0;
+  }
+  dialog[data-nav-sheet][open] {
+    translate: 16px 0;
+  }
+}
+
+/*
  * Entrance primitives (components/motion/reveal.tsx). Plain CSS, so the page
  * is visible without JavaScript and nothing waits for hydration. --nx-delay is
  * set per element.

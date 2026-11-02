@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useFormStatus } from "react-dom";
 import { setDemoSession } from "@/lib/server/demo-session-actions";
 import { ROLES, ROLE_LABEL, type Role } from "@/lib/roles";
 import { NavLink } from "./nav-link";
@@ -13,6 +14,38 @@ export type SheetItem = {
 };
 
 export type SheetGroup = { key: string; label: string; items: SheetItem[] };
+
+/**
+ * Submit button for the demo session form. While the Server Function runs, all
+ * of them are disabled and the form is marked busy, so a second click cannot
+ * race the first and the presenter sees that something is happening.
+ */
+function SessionButton({
+  value,
+  pressed,
+  className,
+  children,
+}: {
+  value: string;
+  pressed?: boolean;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      name="role"
+      value={value}
+      disabled={pending}
+      aria-pressed={pressed}
+      data-demo-role={pressed === undefined ? undefined : ""}
+      className={`${className} disabled:opacity-60`}
+    >
+      {children}
+    </button>
+  );
+}
 
 type NavSheetProps = {
   groups: SheetGroup[];
@@ -44,7 +77,7 @@ export function NavSheet({ groups, demoSession }: NavSheetProps) {
         onClick={open}
         aria-haspopup="dialog"
         aria-label="Open menu"
-        className="border-border-strong hover:bg-surface-raised inline-flex size-11 items-center justify-center gap-2 rounded-md border text-sm font-medium transition-colors duration-(--duration-fast) md:hidden"
+        className="border-border-strong hover:bg-surface-raised inline-flex size-11 items-center justify-center gap-2 rounded-full border text-sm font-medium transition-colors duration-(--duration-fast) md:hidden"
       >
         <svg
           aria-hidden="true"
@@ -95,7 +128,7 @@ export function NavSheet({ groups, demoSession }: NavSheetProps) {
             <button
               type="button"
               onClick={close}
-              className="border-border-strong hover:bg-surface-raised inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium"
+              className="border-border-strong hover:bg-surface-raised inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border px-3 text-sm font-medium"
             >
               <svg
                 aria-hidden="true"
@@ -117,7 +150,7 @@ export function NavSheet({ groups, demoSession }: NavSheetProps) {
               >
                 <h3
                   id={`nav-group-${group.key}`}
-                  className="text-muted mb-2 font-mono text-xs tracking-[0.2em] uppercase"
+                  className="text-muted mb-2 text-sm font-semibold"
                 >
                   {group.label}
                 </h3>
@@ -148,31 +181,26 @@ export function NavSheet({ groups, demoSession }: NavSheetProps) {
               className="border-line mt-auto flex flex-col gap-3 border-t pt-6"
             >
               <fieldset className="m-0 flex min-w-0 flex-wrap gap-2 border-0 p-0">
-                <legend className="text-pink-ink mb-2 font-mono text-xs tracking-wide uppercase">
+                <legend className="text-pink-ink mb-2 text-sm font-semibold">
                   Demo session
                 </legend>
                 {ROLES.map((role) => (
-                  <button
+                  <SessionButton
                     key={role}
-                    type="submit"
-                    name="role"
                     value={role}
-                    aria-pressed={demoSession.role === role}
-                    data-demo-role
+                    pressed={demoSession.role === role}
                     className="border-border-strong hover:bg-surface-raised aria-pressed:border-pink-ink aria-pressed:text-pink-ink min-h-11 rounded-full border px-4 text-sm font-medium"
                   >
                     {ROLE_LABEL[role]}
-                  </button>
+                  </SessionButton>
                 ))}
               </fieldset>
-              <button
-                type="submit"
-                name="role"
+              <SessionButton
                 value="visitor"
-                className="text-muted hover:text-ink min-h-11 self-start rounded-md px-1 text-sm underline underline-offset-4"
+                className="text-muted hover:text-ink min-h-11 self-start rounded-full px-3 text-sm underline underline-offset-4"
               >
                 Visitor view
-              </button>
+              </SessionButton>
               <p className="text-muted text-data max-w-prose">
                 Presenters use this to view the site as each role. It only
                 changes the menu and labels in demo mode. Real access is checked

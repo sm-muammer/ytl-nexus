@@ -17,7 +17,7 @@ export function LiveDemoLabel({
     <span
       data-live-demo
       data-source={source}
-      className={`inline-flex items-center gap-1.5 font-mono text-xs tracking-wide uppercase ${
+      className={`inline-flex items-center gap-1.5 font-mono text-xs ${
         demo ? "text-pink-ink" : "text-accent-ink"
       }`}
     >

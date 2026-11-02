@@ -36,7 +36,7 @@ export function WorkspaceSidebar({ actor }: { actor: Actor }) {
               <section key={group} aria-labelledby={`side-${group}`}>
                 <h2
                   id={`side-${group}`}
-                  className="text-muted mb-1 px-3 font-mono text-xs tracking-[0.2em] uppercase"
+                  className="text-muted mb-1 px-3 text-sm font-semibold"
                 >
                   {NAV_GROUP_LABEL[group]}
                 </h2>

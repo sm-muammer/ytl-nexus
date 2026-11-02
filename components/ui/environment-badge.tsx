@@ -15,7 +15,7 @@ export function EnvironmentBadge({ mode }: { mode: NexusMode }) {
           ? "Every value on this site is sample data from fixtures."
           : "Values come from Nexus Core 01."
       }
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-xs tracking-wide uppercase ${
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-xs ${
         demo
           ? "border-pink-ink text-pink-ink"
           : "border-accent-ink text-accent-ink"

@@ -15,6 +15,10 @@
 | `useQualityTier`, `usePageVisible`, `usePrefersReducedMotion` | `components/motion/use-*.ts`                                                           | React bindings for the rules below                                                                                                                                                   |
 | Quality and visibility rules                                  | `lib/motion/quality.ts`                                                                | Pure functions and classes, unit-tested in `tests/unit/quality-tier.test.ts`                                                                                                         |
 
+## Use motion sparingly
+
+One entrance reveal per page (the hero block) is enough. Do not fade or stagger every section, card or list row. The `Stagger` and `Fade` primitives exist for the rare case that earns them; the module list on the home page deliberately uses neither.
+
 ## Why entrances are CSS and the ribbon is Motion
 
 Motion components render their starting state (opacity 0) into the server HTML, so text stays invisible until the page hydrates. That hurts largest contentful paint and shows nothing without JavaScript. The entrances therefore use CSS keyframes. Motion for React stays for state-driven motion where a JavaScript animation is the right tool: the ribbon now, and the Atlas and Command views later.

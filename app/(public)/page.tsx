@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AmbientField } from "@/components/motion/ambient-field";
 import { PageTransition } from "@/components/motion/page-transition";
-import { Rise, Stagger, StaggerItem } from "@/components/motion/reveal";
+import { Rise } from "@/components/motion/reveal";
 import { MODULES } from "@/lib/navigation/modules";
 import { accessLabel } from "@/lib/roles";
 
@@ -29,32 +29,25 @@ export default function HomePage() {
           />
           <div className="px-(--spacing-gutter) py-(--spacing-section)">
             <Rise>
-              <p className="text-accent-ink font-mono text-xs tracking-[0.3em] uppercase">
-                YTL Communications IT Infrastructure
-              </p>
-            </Rise>
-            <Rise delay={0.06}>
               <h1
                 id="home-title"
-                className="text-display mt-6 font-serif font-medium tracking-tight text-balance"
+                className="text-display font-serif font-medium tracking-tight text-balance"
               >
                 YTL Nexus
               </h1>
-            </Rise>
-            <Rise delay={0.12}>
               <p className="text-muted text-lead mt-6 max-w-2xl text-pretty">
                 One platform for infrastructure, intelligence and digital
                 services. An internship project built with the YTL
                 Communications IT Infrastructure team.
               </p>
-            </Rise>
-            <Rise delay={0.18} className="mt-10 flex flex-wrap gap-3">
-              <Link href="/tour" className={ctaPrimary}>
-                Take the tour
-              </Link>
-              <Link href="/platform" className={ctaSecondary}>
-                How it fits together
-              </Link>
+              <div className="mt-10 flex flex-wrap gap-3">
+                <Link href="/tour" className={ctaPrimary}>
+                  Take the tour
+                </Link>
+                <Link href="/platform" className={ctaSecondary}>
+                  How it fits together
+                </Link>
+              </div>
             </Rise>
           </div>
         </section>
@@ -77,18 +70,17 @@ export default function HomePage() {
             </p>
           </div>
 
-          <Stagger
-            as="ul"
+          <ul
             aria-labelledby="modules-heading"
             className="divide-line border-line divide-y border-y"
           >
-            {MODULES.map((m, index) => {
+            {MODULES.map((m) => {
               const body = (
                 <>
                   <span className="text-heading-3 font-serif font-medium">
                     {m.name}
                   </span>
-                  <span className="border-line text-muted justify-self-start rounded-full border px-3 py-0.5 font-mono text-xs tracking-wide uppercase sm:justify-self-end">
+                  <span className="text-muted text-data sm:text-right">
                     {accessLabel(m.minRole)}
                   </span>
                   <span className="text-muted text-data sm:col-span-2">
@@ -99,7 +91,7 @@ export default function HomePage() {
               const cls =
                 "hover:bg-surface grid min-h-11 gap-x-6 gap-y-1 px-2 py-5 transition-colors duration-(--duration-fast) sm:grid-cols-[minmax(0,1fr)_auto] sm:items-baseline";
               return (
-                <StaggerItem as="li" key={m.slug} index={index}>
+                <li key={m.slug}>
                   {m.apacheServed ? (
                     <a href={m.href} className={cls}>
                       {body}
@@ -109,10 +101,10 @@ export default function HomePage() {
                       {body}
                     </Link>
                   )}
-                </StaggerItem>
+                </li>
               );
             })}
-          </Stagger>
+          </ul>
         </section>
 
         <section
