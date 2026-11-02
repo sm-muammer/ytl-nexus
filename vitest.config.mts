@@ -1,3 +1,4 @@
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
@@ -8,6 +9,13 @@ export default defineConfig({
   resolve: {
     // Resolves the "@/*" alias from tsconfig.json.
     tsconfigPaths: true,
+    alias: {
+      // The real package throws outside the Next.js server bundle.
+      "server-only": path.resolve(
+        import.meta.dirname,
+        "tests/setup/server-only-stub.ts",
+      ),
+    },
   },
   test: {
     environment: "jsdom",

@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { settle } from "./helpers";
 
 test.describe("platform baseline", () => {
   test("home page renders the product name", async ({ page }) => {
@@ -26,6 +27,8 @@ test.describe("platform baseline", () => {
     page,
   }) => {
     await page.goto("/");
+    // Entrances fade in; measure contrast on the finished page.
+    await settle(page);
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])

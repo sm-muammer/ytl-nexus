@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { MotionProvider } from "@/components/motion/motion-provider";
+import { SignalRibbon } from "@/components/motion/signal-ribbon";
 import { themeColor } from "@/lib/design/tokens";
 import "./globals.css";
 
@@ -40,6 +42,9 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
+// The root layout owns what every page shares: fonts, the skip link, the
+// motion configuration and the route-change ribbon. The page frame (header,
+// main, footer) comes from the route group layouts through AppShell.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -53,7 +58,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        {children}
+        <MotionProvider>
+          <SignalRibbon />
+          {children}
+        </MotionProvider>
       </body>
     </html>
   );

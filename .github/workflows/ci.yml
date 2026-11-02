@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # Build and browser tests run on fixtures: no server, no network (DEMO-04).
+  NEXUS_MODE: demo
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

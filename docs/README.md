@@ -17,19 +17,19 @@
 
 ## Map
 
-| Location                  | Contents                                                                          | Status                                             |
-| ------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `product.md`              | Product, users, modules, roles, routes, scope and success criteria                | Canonical                                          |
-| `tech.md`                 | Stack, components, integrations, trust boundaries and host facts                  | Canonical                                          |
-| `structure.md`            | Current and target repository structure, route ownership and placement rules      | Canonical                                          |
-| `design-language.md`      | Adaptive Nexus visual, brand, motion, accessibility and responsive rules          | Canonical                                          |
-| `security.md`             | Security model, controls, risks and verification gates                            | Canonical                                          |
-| `spec/`                   | Detailed module contracts and implementation plan                                 | Written in Task 1; updated with behaviour          |
-| `architecture/decisions/` | [Architecture decision records](architecture/decisions/README.md)                 | Add an ADR when a significant decision changes     |
-| `design/`                 | Tokens, motion implementation, asset guide, asset sourcing and Lighthouse reports | Tasks 2, 3 and 20                                  |
-| `operations/`             | Deploy, rollback, server baseline, configuration and service runbooks             | Written with each service task, starting in Task 4 |
-| `security/`               | Detailed authentication, operations-agent and threat-model documents              | Tasks 6, 9 and 21                                  |
-| `handover/`               | Owners, accounts, credential rotation, DNS, CA, risks, roadmap and rehearsal      | Tasks 4 and 22                                     |
+| Location                  | Contents                                                                          | Status                                                |
+| ------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `product.md`              | Product, users, modules, roles, routes, scope and success criteria                | Canonical                                             |
+| `tech.md`                 | Stack, components, integrations, trust boundaries and host facts                  | Canonical                                             |
+| `structure.md`            | Current and target repository structure, route ownership and placement rules      | Canonical                                             |
+| `design-language.md`      | Adaptive Nexus visual, brand, motion, accessibility and responsive rules          | Canonical                                             |
+| `security.md`             | Security model, controls, risks and verification gates                            | Canonical                                             |
+| `spec/`                   | Detailed module contracts and implementation plan                                 | Written in Task 1; updated with behaviour             |
+| `architecture/decisions/` | [Architecture decision records](architecture/decisions/README.md)                 | Add an ADR when a significant decision changes        |
+| `design/`                 | Tokens, motion implementation, asset guide, asset sourcing and Lighthouse reports | Tasks 2, 3 and 20                                     |
+| `operations/`             | Deploy, rollback, server baseline, configuration and service runbooks             | `configuration.md` since Task 3; the rest from Task 4 |
+| `security/`               | Detailed authentication, operations-agent and threat-model documents              | Tasks 6, 9 and 21                                     |
+| `handover/`               | Owners, accounts, credential rotation, DNS, CA, risks, roadmap and rehearsal      | Tasks 4 and 22                                        |
 
 The five canonical guides are stable entry points. Detailed module contracts remain under `docs/spec/`; decisions remain under `docs/architecture/decisions/`.
 

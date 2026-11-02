@@ -31,5 +31,7 @@ export default defineConfig({
         url: baseURL,
         reuseExistingServer: !isCI,
         timeout: 120_000,
+        // Browser tests run on fixtures, so they need no server and no network.
+        env: { NEXUS_MODE: "demo" },
       },
 });

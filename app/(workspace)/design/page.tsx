@@ -15,8 +15,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// The reference page is internal. Task 6 puts requireRole("viewer") in front
-// of it; until identity exists the route is public but never indexed.
+// The reference page is internal and lives in the workspace route group, so
+// the shell supplies the main landmark. Task 6 puts requireRole("viewer") in
+// front of it; until identity exists the route is open but never indexed.
 
 const LIGHT_VARIANTS = new Set([
   "main-colour",
@@ -207,11 +208,8 @@ export default function DesignPage() {
   const ytl = brandMasters.filter((m) => m.brand === "ytl-communications");
   const yes = brandMasters.filter((m) => m.brand === "yes");
   return (
-    <main
-      id="main-content"
-      className="flex flex-1 flex-col gap-20 px-(--spacing-gutter) py-(--spacing-section)"
-    >
-      <header className="max-w-(--spacing-prose)">
+    <div className="flex flex-col gap-20 px-(--spacing-gutter) py-(--spacing-section)">
+      <div className="max-w-(--spacing-prose)">
         <p className="text-accent-ink font-mono text-xs tracking-[0.3em] uppercase">
           Adaptive Nexus
         </p>
@@ -222,7 +220,7 @@ export default function DesignPage() {
           Official logos, colour roles, type, spacing, motion and layering used
           across YTL Nexus. Components use these tokens, never raw values.
         </p>
-      </header>
+      </div>
 
       <section aria-labelledby="logos-ytl" className="flex flex-col gap-8">
         <div className="max-w-(--spacing-prose)">
@@ -346,6 +344,6 @@ export default function DesignPage() {
           ))}
         </div>
       </section>
-    </main>
+    </div>
   );
 }

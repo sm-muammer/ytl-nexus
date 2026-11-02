@@ -1,8 +1,16 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import HomePage from "@/app/page";
+import { describe, expect, it, vi } from "vitest";
 
-describe("Home page (platform baseline)", () => {
+// The ambient particle field draws on a canvas, which jsdom does not provide.
+// Its behaviour is covered by the end-to-end tests.
+vi.mock("@/components/motion/ambient-field", () => ({
+  AmbientField: () => null,
+}));
+
+import HomePage from "@/app/(public)/page";
+import { MODULES } from "@/lib/navigation/modules";
+
+describe("Home page", () => {
   it("names the product in the only level-one heading", () => {
     render(<HomePage />);
 
@@ -15,27 +23,34 @@ describe("Home page (platform baseline)", () => {
     render(<HomePage />);
 
     expect(
-      screen.getByText(
+      screen.getAllByText(
         /internship project.*YTL Communications IT Infrastructure/i,
-      ),
-    ).toBeInTheDocument();
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText(/not an official YTL/i)).toBeInTheDocument();
   });
 
-  it("lists the planned modules by their Nexus names", () => {
+  it("lists every module by its Nexus name, each with a link and an access level", () => {
     render(<HomePage />);
 
-    const list = screen.getByRole("list", { name: /planned modules/i });
+    const list = screen.getByRole("list", { name: /^modules$/i });
     const items = within(list).getAllByRole("listitem");
-    const names = items.map((item) => item.textContent);
+    expect(items).toHaveLength(MODULES.length);
 
-    expect(names).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("Nexus Command"),
-        expect.stringContaining("Nexus AI"),
-        expect.stringContaining("Nexus Transfer"),
-        expect.stringContaining("Nexus Mail"),
-        expect.stringContaining("Yes Experience"),
-      ]),
+    for (const entry of MODULES) {
+      const link = within(list).getByRole("link", {
+        name: new RegExp(entry.name, "i"),
+      });
+      expect(link).toHaveAttribute("href", entry.href);
+    }
+    expect(within(list).getAllByText("Public").length).toBeGreaterThan(0);
+    expect(within(list).getAllByText(/Administrator/).length).toBeGreaterThan(
+      0,
     );
+  });
+
+  it("renders its own content only: the layout supplies the main landmark", () => {
+    const { container } = render(<HomePage />);
+    expect(container.querySelector("main")).toBeNull();
   });
 });

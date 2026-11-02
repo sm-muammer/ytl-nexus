@@ -52,24 +52,24 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
     - Logos on light and dark, clear-space overlays, swatches, type specimen; `requireRole("viewer")`
     - _Requirements: 2.4, 2.5, 2.6, 2.13, 2.14_
 
-- [ ] 3. App shell, route stubs and motion system (plan Task 3)
-  - [ ]* 3.1 Write e2e and axe tests for the shell
+- [x] 3. App shell, route stubs and motion system (plan Task 3)
+  - [x]* 3.1 Write e2e and axe tests for the shell
     - Skip link first and moves focus, landmarks, one `h1`, no `#` footer links, focus order, 44 px targets, no horizontal scroll, axe zero serious/critical at 390, 1440 and 3840 px
     - _Requirements: 3.2, 3.4, 3.5, 3.15, 3.16, 3.17, 3.18_
 
-  - [ ]* 3.2 Write unit tests for the quality tier and visibility logic
+  - [x]* 3.2 Write unit tests for the quality tier and visibility logic
     - Tier drops for DPR above 2, memory below 4 GB, frame average above 20 ms over 60 frames; pause on hidden, resume within 500 ms
     - _Requirements: 3.12, 3.13_
 
-  - [ ] 3.3 Implement public and workspace layouts and navigation
+  - [x] 3.3 Implement public and workspace layouts and navigation
     - Skip link, landmarks, global nav with every module, contextual sub-nav, accessible mobile menu with focus return, footer, role-aware menu, Live/Demo and environment badges
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-  - [ ] 3.4 Create a page for every product route and robots directives
+  - [x] 3.4 Create a page for every product route and robots directives
     - Stub or full page per route in `docs/product.md`; `noindex` on workspace and `/control` routes
     - _Requirements: 3.8, 3.9_
 
-  - [ ] 3.5 Implement the motion system
+  - [x] 3.5 Implement the motion system
     - `MotionConfig reducedMotion="user"`, fade/rise/stagger primitives, signal-ribbon route transition, quality-tier hook, visibility pause, static particle frame under reduced motion, no particle or parallax on forms, tables, Control or inbox
     - _Requirements: 3.10, 3.11, 3.12, 3.13, 3.14_
 

@@ -14,6 +14,8 @@
 
 Shared identity: one animated **signal ribbon** connects modules during route transitions.
 
+Both registers use the same dark theme and tokens; they differ in layout and decoration. Public pages have a roomy header, a large serif title over a quiet particle field and a text-link navigation. Workspace pages add a module sidebar from 1024 px, a compact title with a breadcrumb, and no particles. Every page shows the environment badge, the Live or Demo data label and the current session in a strip under the header. The full module directory opens from the "All modules" button (the "Menu" button below 768 px) in a modal dialog.
+
 ## 2. Colour roles
 
 | Role              | Value                                               | Use                           |
@@ -38,7 +40,7 @@ Tokens live in `app/globals.css` (Tailwind v4 `@theme`): theme roles `--nx-*` fo
 
 ## 4. Motion
 
-- Use Motion for React with `MotionConfig reducedMotion="user"`. Use view transitions where the installed Next.js and React versions support them.
+- Use Motion for React with `MotionConfig reducedMotion="user"`. Use view transitions where the installed Next.js and React versions support them. Implementation, tier rules and test hooks: [`design/motion.md`](design/motion.md).
 - **Nexus Command** has an interactive particle field: one cluster per service, colour and motion reflect real health, gentle pointer response.
 - Forms, tables, Nexus Control and the mail inbox use no heavy motion: short opacity and position feedback only.
 - **Reduced motion is mandatory.** With `prefers-reduced-motion: reduce`, remove particles, parallax and large transforms; keep opacity transitions; show a static particle frame.

@@ -5,15 +5,34 @@
 
 ## Current structure
 
-Task 1 established this baseline:
+Tasks 1 to 3 established this baseline:
 
 ```text
 ytl-nexus/
-├── app/                         # Next.js application: baseline page, /design reference, fonts in app/fonts/
+├── app/
+│   ├── (public)/                # Editorial register: /, /platform, /story, /tour, /status, /library, /signin
+│   ├── (yes)/yes/               # Yes Experience entry (public register)
+│   ├── (workspace)/             # Dense dark register: /command/*, /ai, /transfer, /mail, /data, /continuity, /shield, /design, /studio fallback
+│   ├── control/                 # Hidden administration entry (workspace register, noindex)
+│   ├── fonts/                   # Open-licence woff2 fonts
+│   ├── layout.tsx               # Root: fonts, skip link, MotionProvider, SignalRibbon
+│   ├── robots.ts                # robots.txt (leaves /control out on purpose)
+│   └── globals.css              # Tokens, entrance and view-transition CSS
 ├── assets/source/               # Approved YTL and Yes master assets plus checksums
 ├── assets/asset-manifest.md     # Generated record of every converted brand asset
-├── components/{brand,ui}/       # Logo component, status badge
-├── lib/{brand,design}/          # Brand asset catalogue, design tokens and contrast helper
+├── components/
+│   ├── brand/                   # Logo
+│   ├── layout/                  # AppShell, header, mode strip, menu sheet, sidebar, footer, ModulePage, ModuleHero
+│   ├── motion/                  # MotionProvider, reveal primitives, SignalRibbon, PageTransition, AmbientField, hooks
+│   └── ui/                      # StatusBadge, LiveDemoLabel, EnvironmentBadge
+├── instrumentation.ts           # Refuses to start without a valid NEXUS_MODE
+├── lib/
+│   ├── brand/, design/          # Brand asset catalogue, design tokens and contrast helper
+│   ├── fixtures/                # Deterministic demo data (adapter statuses, demo session)
+│   ├── motion/                  # Quality-tier and visibility rules (pure)
+│   ├── navigation/              # Module, route, navigation and footer registry
+│   ├── roles.ts                 # Role model shared by menu and (from Task 6) guards
+│   └── server/                  # Server-only: mode, adapters (live and demo), session, demo-session Server Function
 ├── public/brand/                # Generated SVG logos and PNG fallbacks (committed)
 ├── scripts/assets/              # Asset conversion and filename check
 ├── docs/                        # Canonical guides, module specs, ADRs and progress
@@ -93,16 +112,17 @@ ytl-nexus/
 
 ## Route ownership
 
-| URL                                                                          | Owner                                                        | Runtime               |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------- |
-| `/`, `/platform`, `/story`, `/tour`, `/status`, `/library/*`, `/signin`      | Public route group                                           | Next.js               |
-| `/yes/*`                                                                     | Yes route group and `modules/yes`                            | Next.js               |
-| `/command/*`, `/ai`, `/transfer`, `/mail`, `/data`, `/continuity`, `/shield` | Workspace route group and matching module                    | Next.js               |
-| `/control/*`                                                                 | `app/control` and `modules/control`                          | Next.js               |
-| `/api/*`                                                                     | `app/api`; thin policy and transport layer over `lib/server` | Next.js               |
-| `/studio/*`                                                                  | Nexus Studio                                                 | WordPress and PHP-FPM |
-| `/webmail/*`                                                                 | Nexus Mail UI                                                | Roundcube and PHP-FPM |
-| `/files/*`                                                                   | Nexus Transfer WebClient                                     | SFTPGo behind Apache  |
+| URL                                                                          | Owner                                                                                                            | Runtime               |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `/`, `/platform`, `/story`, `/tour`, `/status`, `/library/*`, `/signin`      | Public route group                                                                                               | Next.js               |
+| `/yes/*`                                                                     | Yes route group and `modules/yes`                                                                                | Next.js               |
+| `/studio/` on Nexus Core 01                                                  | Apache, then WordPress. `app/(workspace)/studio` is a fallback for local and demo use that Apache never forwards | Apache, PHP-FPM       |
+| `/command/*`, `/ai`, `/transfer`, `/mail`, `/data`, `/continuity`, `/shield` | Workspace route group and matching module                                                                        | Next.js               |
+| `/control/*`                                                                 | `app/control` and `modules/control`                                                                              | Next.js               |
+| `/api/*`                                                                     | `app/api`; thin policy and transport layer over `lib/server`                                                     | Next.js               |
+| `/studio/*`                                                                  | Nexus Studio                                                                                                     | WordPress and PHP-FPM |
+| `/webmail/*`                                                                 | Nexus Mail UI                                                                                                    | Roundcube and PHP-FPM |
+| `/files/*`                                                                   | Nexus Transfer WebClient                                                                                         | SFTPGo behind Apache  |
 
 ## Module boundary
 
