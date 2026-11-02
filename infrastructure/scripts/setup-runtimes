@@ -22,15 +22,20 @@ install_node() {
 
 install_php() {
   # The Remi 8.1 packages cannot be switched in place; remove them, then install the AppStream stream.
-  if rpm -qa 'php*' | grep -q remi; then
+  # Capture first: `rpm -qa | grep -q` returns SIGPIPE under pipefail and skips the branch.
+  local installed
+  installed="$(rpm -qa 'php*')"
+  if grep -q remi <<<"$installed"; then
     dnf -y remove 'php*'
   fi
   dnf -y module reset php
   dnf -y module enable php:8.3
   dnf -y install php-fpm php-cli php-mysqlnd php-intl php-mbstring php-xml php-gd \
-    php-pecl-zip php-opcache php-sodium
+    php-pecl-zip php-opcache
+  # php-sodium is not packaged for the AppStream 8.3 stream (EPEL only has an
+  # incompatible 8.0 build). WordPress falls back to its bundled sodium_compat.
   php --version | head -1
-  php -m | grep -E -i '^(mysqlnd|intl|mbstring|xml|gd|zip|Zend OPcache|sodium)$' | sort | tr '\n' ' '
+  php -m | grep -E -i '^(mysqlnd|intl|mbstring|xml|gd|zip|Zend OPcache)$' | sort | tr '\n' ' '
   echo
   # Not started here: PHP-FPM is configured and enabled with WordPress in Task 7.
   systemctl disable --now php-fpm 2>/dev/null || true
@@ -69,7 +74,7 @@ mount_disk() {
     lsblk -f "$dev" >&2
     exit 1
   fi
-  mkfs.xfs -L nexus-transfer "$dev"
+  mkfs.xfs -L nexus-xfer "$dev"  # XFS labels are limited to 12 characters
   local uuid
   uuid="$(blkid -s UUID -o value "$dev")"
   cp -p /etc/fstab "/etc/fstab.nexus-bak"

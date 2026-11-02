@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# smoke-test   Run from the Mac (task 4.11, requirements 4.12, 4.13, 4.18, 4.19).
+#
+# Checks Nexus Core 01 from the outside, using the internal CA file in the repo:
+# HTTPS 200 on all four names, HTTP 301, forged Host header, security headers,
+# no directory listing, health endpoints, no open port outside the allowlist,
+# loopback-only listeners, SSH. Exits non-zero if any check fails.
+#
+# Works with bash 3.2 (macOS). The port scan uses nc and takes about a minute.
+
+set -u
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CA="$HERE/../tls/nexus-internal-ca.crt"
+IP=10.26.64.164
+SSH_TARGET="${NEXUS_SSH_TARGET:-root@$IP}"
+ALLOWED_PORTS="22 80 443 2022 587 993"
+pass=0
+fail=0
+
+ok() { pass=$((pass + 1)); printf '  PASS  %s\n' "$1"; }
+bad() { fail=$((fail + 1)); printf '  FAIL  %s\n' "$1"; }
+check() { # description, command...
+  local desc="$1"
+  shift
+  if "$@" >/dev/null 2>&1; then ok "$desc"; else bad "$desc"; fi
+}
+
+# curl with every name mapped to the server, certificate checked against our CA.
+c() { curl -sS --max-time 15 --cacert "$CA" \
+  --resolve ytl-nexus.internal:443:$IP --resolve ytl-nexus.internal:80:$IP \
+  --resolve ytl-nexus.ytlcomms.my:443:$IP --resolve ytl-nexus.ytlcomms.my:80:$IP \
+  --resolve sn1lyvx1d0002.ytlcomms.my:443:$IP --resolve sn1lyvx1d0002.ytlcomms.my:80:$IP "$@"; }
+code() { c -o /dev/null -w '%{http_code}' "$@"; }
+
+echo "HTTPS and certificate"
+for host in ytl-nexus.ytlcomms.my ytl-nexus.internal sn1lyvx1d0002.ytlcomms.my $IP; do
+  [ "$(code "https://$host/" 2>/dev/null)" = 200 ] && ok "https://$host/ answers 200 with a valid certificate" ||
+    bad "https://$host/ answers 200 with a valid certificate"
+done
+
+echo "HTTP redirect"
+loc=$(c -o /dev/null -w '%{http_code} %{redirect_url}' 'http://ytl-nexus.internal/command/atlas?x=1' 2>/dev/null)
+[ "$loc" = "301 https://ytl-nexus.internal/command/atlas?x=1" ] && ok "HTTP 301 keeps host, path and query" || bad "HTTP redirect was: $loc"
+loc=$(curl -sS --max-time 15 -H 'Host: evil.example' -o /dev/null -w '%{http_code} %{redirect_url}' "http://$IP/" 2>/dev/null)
+[ "$loc" = "301 https://ytl-nexus.ytlcomms.my/" ] && ok "forged Host header is redirected to the canonical name" || bad "forged Host redirect was: $loc"
+
+echo "Headers (every HTTPS response, including errors)"
+for path in / /api/health/live /no-such-page; do
+  headers=$(c -sI "https://ytl-nexus.internal$path" 2>/dev/null | tr -d '\r' | tr 'A-Z' 'a-z')
+  for h in strict-transport-security content-security-policy x-content-type-options referrer-policy permissions-policy; do
+    printf '%s\n' "$headers" | grep -q "^$h:" && ok "$path has $h" || bad "$path is missing $h"
+  done
+  printf '%s\n' "$headers" | grep -q "frame-ancestors" && ok "$path CSP has frame-ancestors" || bad "$path CSP lacks frame-ancestors"
+  printf '%s\n' "$headers" | grep -q -E '^(x-powered-by|server: apache/)' && bad "$path leaks server/framework version" || ok "$path leaks no server/framework version"
+done
+
+echo "No directory listing"
+for path in /icons/ /cgi-bin/ /.git/ /_next/static/; do
+  body=$(c "https://ytl-nexus.internal$path" 2>/dev/null)
+  printf '%s' "$body" | grep -q -i 'index of' && bad "$path shows a listing" || ok "$path shows no listing"
+done
+
+echo "Health endpoints"
+[ "$(c https://ytl-nexus.internal/api/health/live 2>/dev/null)" = '{"status":"live"}' ] && ok "/api/health/live" || bad "/api/health/live"
+c https://ytl-nexus.internal/api/health/ready 2>/dev/null | grep -q '"status":"ready"' && ok "/api/health/ready" || bad "/api/health/ready"
+
+echo "Firewall against the allowlist ($ALLOWED_PORTS)"
+# The kernel rate-limits the firewall's rejection replies, so a wide sweep from
+# outside takes tens of minutes. Two checks instead: the firewall's own rule
+# list must equal the allowlist, and a probe of common service ports must find
+# nothing open beyond it.
+fw=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "firewall-cmd --state; firewall-cmd --zone=public --list-services; firewall-cmd --zone=public --list-ports; firewall-cmd --get-active-zones | tr '\n' ' '" 2>/dev/null)
+fw_state=$(printf '%s\n' "$fw" | sed -n 1p)
+fw_services=$(printf '%s\n' "$fw" | sed -n 2p)
+fw_ports=$(printf '%s\n' "$fw" | sed -n 3p | tr ' ' '\n' | sed 's|/tcp||' | sort -n | tr '\n' ' ')
+[ "$fw_state" = running ] && ok "firewalld is running" || bad "firewalld state: $fw_state"
+[ "$fw_services" = ssh ] && ok "firewalld allows only the ssh service" || bad "firewalld services: $fw_services"
+[ "$fw_ports" = "80 443 587 993 2022 " ] && ok "firewalld allows only ports 80 443 587 993 2022 (plus ssh 22)" || bad "firewalld ports: $fw_ports"
+
+probe_ports="21 22 23 25 53 80 110 111 135 139 143 389 443 445 465 587 993 995 1433 2049 2022 2375 3000 3306 3389 5432 5900 6379 8000 8080 8081 8090 8091 8443 8888 9090 9100 9200 11211 11434 27017"
+open_ports=$(printf '%s\n' $probe_ports | xargs -P 20 -I{} sh -c "nc -z -G 2 -w 2 $IP {} >/dev/null 2>&1 && echo {}" | sort -n | tr '\n' ' ')
+unexpected=""
+for p in $open_ports; do
+  case " $ALLOWED_PORTS " in *" $p "*) ;; *) unexpected="$unexpected $p" ;; esac
+done
+[ -z "$unexpected" ] && ok "open ports among the ${probe_ports// /,} probe list: ${open_ports:-none}" || bad "unexpected open ports:$unexpected"
+for p in 22 80 443; do
+  case " $open_ports " in *" $p "*) ok "port $p is reachable" ;; *) bad "port $p is not reachable" ;; esac
+done
+
+echo "Loopback-only listeners (on the server)"
+listeners=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "ss -H -tlnp | awk '{print \$4, \$6}'" 2>/dev/null)
+for p in 3000 3306 9100 11434; do
+  line=$(printf '%s\n' "$listeners" | grep -E "[:.]$p " | head -1)
+  case "$line" in
+    127.0.0.1:$p* | \[::1\]:$p*) ok "port $p listens on loopback only" ;;
+    "") bad "port $p has no listener" ;;
+    *) bad "port $p listens on: $line" ;;
+  esac
+done
+
+echo "SSH"
+check "SSH login works with the firewall on" ssh -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -o ControlPath=none "$SSH_TARGET" true
+
+echo
+echo "Passed: $pass   Failed: $fail"
+[ "$fail" -eq 0 ]
