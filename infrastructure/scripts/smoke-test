@@ -69,8 +69,10 @@ esac
 [ "$(code https://ytl-nexus.internal/control 2>/dev/null)" = 404 ] &&
   [ "$(code https://ytl-nexus.internal/no-such-page 2>/dev/null)" = 404 ] &&
   ok "/control answers a Visitor with 404, like an unknown path" || bad "/control does not answer 404 to a Visitor"
-[ "$(c https://ytl-nexus.internal/control 2>/dev/null | wc -c | tr -d ' ')" = "$(c https://ytl-nexus.internal/no-such-page 2>/dev/null | wc -c | tr -d ' ')" ] &&
-  ok "/control and an unknown path return pages of the same size" || bad "/control page differs from the unknown-path 404"
+# The server's HTML without <script> tags (they carry per-route data) must be identical.
+plain() { c "https://ytl-nexus.internal$1" 2>/dev/null | perl -0pe 's/<script.*?<\/script>//gs' | cksum; }
+[ "$(plain /control)" = "$(plain /no-such-page)" ] &&
+  ok "/control and an unknown path return the same HTML" || bad "/control HTML differs from the unknown-path 404"
 for path in /api/auth/sign-up/email /api/auth/admin/create-user /api/auth/admin/impersonate-user; do
   [ "$(code -X POST -H 'Content-Type: application/json' -H 'Origin: https://ytl-nexus.internal' -d '{}' "https://ytl-nexus.internal$path" 2>/dev/null)" = 404 ] &&
     ok "POST $path is not available" || bad "POST $path is available"

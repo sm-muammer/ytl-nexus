@@ -66,6 +66,25 @@ test.describe("/control (requirement 6.11)", () => {
     });
   }
 
+  test("sends a Visitor exactly the HTML of an unknown path (Proxy rewrite)", async ({
+    request,
+  }) => {
+    // Read as a crawler or curl would: the server's own HTML before any
+    // JavaScript runs. Script tags carry per-route data, so they are removed.
+    const strip = (html: string) =>
+      html.replace(/<script[\s\S]*?<\/script>/g, "");
+    for (const path of ["/control", "/control/users"]) {
+      const control = await request.get(path);
+      const unknown = await request.get("/this-page-does-not-exist");
+      expect(control.status()).toBe(404);
+      expect(unknown.status()).toBe(404);
+      expect(strip(await control.text())).toBe(strip(await unknown.text()));
+      expect(control.headers()["content-type"]).toBe(
+        unknown.headers()["content-type"],
+      );
+    }
+  });
+
   test("covers everything below /control", async ({ request }) => {
     const res = await request.get("/control/users", {
       maxRedirects: 0,

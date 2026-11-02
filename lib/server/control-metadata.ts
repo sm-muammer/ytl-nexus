@@ -12,7 +12,8 @@ import { decide } from "@/lib/server/policy";
  * 404 that a non-administrator gets, and give the area away (requirement 6.11).
  * Pages under /control therefore never export a static `metadata`; they export
  * `generateMetadata` that returns this. Anyone who may not open Control gets
- * exactly the metadata of an unknown path (see app/not-found.tsx).
+ * exactly the metadata of an unknown path (see app/not-found.tsx). Pages that
+ * may be shown are marked noindex here, because there is no layout to do it.
  */
 export async function controlMetadata(path: string): Promise<Metadata> {
   const identity = await getIdentity();
@@ -21,5 +22,7 @@ export async function controlMetadata(path: string): Promise<Metadata> {
     { minRole: "admin", hidden: true },
     Date.now(),
   ).allow;
-  return allowed ? pageMetadata(path) : { title: "Page not found" };
+  return allowed
+    ? { ...pageMetadata(path), robots: { index: false, follow: false } }
+    : { title: "Page not found" };
 }

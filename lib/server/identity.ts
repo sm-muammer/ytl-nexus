@@ -26,6 +26,9 @@ export const getIdentity = cache(async (): Promise<Identity> => {
       stepUpAt: Date.now(),
     };
   }
-  const { identity } = await resolveIdentity(getAuthRuntime(), await headers());
+  // Read the request first: while `next build` renders, headers() throws and the
+  // runtime below is never created, so a build never reaches for the database.
+  const requestHeaders = await headers();
+  const { identity } = await resolveIdentity(getAuthRuntime(), requestHeaders);
   return identity;
 });

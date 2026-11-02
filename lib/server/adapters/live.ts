@@ -61,9 +61,11 @@ export function createLiveAdapters(): Adapters {
             detail: "The authentication settings are missing on the server.",
           },
     getActor: async (): Promise<Actor> => {
+      // Headers first: see lib/server/identity.ts.
+      const requestHeaders = await headers();
       const { identity } = await resolveIdentity(
         getAuthRuntime(),
-        await headers(),
+        requestHeaders,
       );
       return identityToActor(identity);
     },

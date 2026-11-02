@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -80,18 +80,24 @@ describe("pages below /control", () => {
         /export const metadata\b/,
       );
       expect(src, path.relative(ROOT, file)).toContain("controlMetadata(");
+      // The guard must come before the shell, or the shell would render for everyone.
+      expect(
+        src.indexOf("requirePage("),
+        path.relative(ROOT, file),
+      ).toBeLessThan(src.indexOf("<ControlShell"));
     }
   });
 });
 
 describe("layouts", () => {
-  it("guard the groups that hold protected pages", () => {
+  it("guard the groups that hold protected pages, and give /control none", () => {
     expect(read(path.join(ROOT, "app/(workspace)/layout.tsx"))).toMatch(
       /requireRole\("viewer"/,
     );
-    expect(read(path.join(ROOT, "app/control/layout.tsx"))).toContain(
-      'requirePage("/control")',
-    );
+    // /control has no layout on purpose: a layout that answers 404 is rendered as an
+    // error shell, which differs from an unknown path. Each page guards itself and
+    // wraps its content in ControlShell after the guard (components/layout/control-shell.tsx).
+    expect(existsSync(path.join(ROOT, "app/control/layout.tsx"))).toBe(false);
   });
 });
 

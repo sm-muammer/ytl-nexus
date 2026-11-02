@@ -61,17 +61,28 @@ describe("proxy in Live_Mode", () => {
     }
   });
 
-  it("does not redirect /control, so a Visitor sees the same 404 as for an unknown path", () => {
+  it("rewrites /control without a session cookie to a path that does not exist, instead of redirecting", () => {
     vi.stubEnv("NEXUS_MODE", "live");
-    for (const path of [
-      "/control",
-      "/control/users",
-      "/definitely-not-a-page",
-    ]) {
+    for (const path of ["/control", "/control/", "/control/users"]) {
       const res = proxy(request(path));
       expect(res.status, path).toBe(200);
       expect(res.headers.get("location")).toBeNull();
+      const rewrite = new URL(res.headers.get("x-middleware-rewrite") ?? "");
+      expect(rewrite.pathname).toBe("/not-a-route");
     }
+  });
+
+  it("lets /control through when a session cookie exists, because the page guard decides", () => {
+    vi.stubEnv("NEXUS_MODE", "live");
+    const res = proxy(request("/control", "nexus.session_token=garbage"));
+    expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("leaves other unknown paths alone", () => {
+    vi.stubEnv("NEXUS_MODE", "live");
+    const res = proxy(request("/definitely-not-a-page"));
+    expect(res.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
   it("treats a trailing slash like the page itself", () => {
@@ -84,6 +95,18 @@ describe("proxy in Demo_Mode", () => {
   it("never redirects: the guards read the presenter's fixture session", () => {
     vi.stubEnv("NEXUS_MODE", "demo");
     expect(proxy(request("/command")).status).toBe(200);
+  });
+
+  it("treats the demo role cookie as the session for the hidden area", () => {
+    vi.stubEnv("NEXUS_MODE", "demo");
+    expect(
+      proxy(request("/control")).headers.get("x-middleware-rewrite"),
+    ).toContain("/not-a-route");
+    expect(
+      proxy(request("/control", "nexus-demo-role=admin")).headers.get(
+        "x-middleware-rewrite",
+      ),
+    ).toBeNull();
   });
 });
 

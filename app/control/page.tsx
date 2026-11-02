@@ -1,5 +1,6 @@
 import { ControlUsers } from "@/components/auth/control-users";
 import { StepUpForm } from "@/components/auth/auth-forms";
+import { ControlShell } from "@/components/layout/control-shell";
 import { ModuleHero } from "@/components/layout/module-hero";
 import { PageTransition } from "@/components/motion/page-transition";
 import { LiveDemoLabel } from "@/components/ui/live-demo-label";
@@ -23,53 +24,55 @@ export default async function ControlPage() {
   const demo = getMode() === "demo";
 
   return (
-    <PageTransition>
-      <div>
-        <ModuleHero page={page} register="workspace" />
-        <div className="flex flex-col gap-10 px-(--spacing-gutter) py-8">
-          {stepUpRequired ? (
-            <section
-              aria-labelledby="stepup-title"
-              className="flex flex-col gap-4"
-            >
-              <h2 id="stepup-title" className="text-heading-3 font-semibold">
-                Confirm it is you
-              </h2>
-              <p className="text-muted max-w-(--spacing-prose)">
-                Control changes accounts and access, so it asks for your
-                password and a code from your authenticator app again. The check
-                lasts 10 minutes.
-              </p>
-              <StepUpForm />
-            </section>
-          ) : (
-            <section
-              aria-labelledby="users-title"
-              className="flex flex-col gap-4"
-            >
-              <div className="flex flex-wrap items-center gap-3">
-                <h2 id="users-title" className="text-heading-3 font-semibold">
-                  Accounts
+    <ControlShell>
+      <PageTransition>
+        <div>
+          <ModuleHero page={page} register="workspace" />
+          <div className="flex flex-col gap-10 px-(--spacing-gutter) py-8">
+            {stepUpRequired ? (
+              <section
+                aria-labelledby="stepup-title"
+                className="flex flex-col gap-4"
+              >
+                <h2 id="stepup-title" className="text-heading-3 font-semibold">
+                  Confirm it is you
                 </h2>
-                <LiveDemoLabel source={demo ? "demo" : "live"} />
-              </div>
-              {demo ? (
-                <p className="text-muted text-data max-w-(--spacing-prose)">
-                  Demo session: these accounts are examples and the buttons
-                  change nothing.
+                <p className="text-muted max-w-(--spacing-prose)">
+                  Control changes accounts and access, so it asks for your
+                  password and a code from your authenticator app again. The
+                  check lasts 10 minutes.
                 </p>
-              ) : null}
-              <ControlUsers
-                users={
-                  demo
-                    ? demoControlUsers
-                    : await listUsersForAdmin(getAuthRuntime())
-                }
-              />
-            </section>
-          )}
+                <StepUpForm />
+              </section>
+            ) : (
+              <section
+                aria-labelledby="users-title"
+                className="flex flex-col gap-4"
+              >
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 id="users-title" className="text-heading-3 font-semibold">
+                    Accounts
+                  </h2>
+                  <LiveDemoLabel source={demo ? "demo" : "live"} />
+                </div>
+                {demo ? (
+                  <p className="text-muted text-data max-w-(--spacing-prose)">
+                    Demo session: these accounts are examples and the buttons
+                    change nothing.
+                  </p>
+                ) : null}
+                <ControlUsers
+                  users={
+                    demo
+                      ? demoControlUsers
+                      : await listUsersForAdmin(getAuthRuntime())
+                  }
+                />
+              </section>
+            )}
+          </div>
         </div>
-      </div>
-    </PageTransition>
+      </PageTransition>
+    </ControlShell>
   );
 }

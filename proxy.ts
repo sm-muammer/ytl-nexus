@@ -1,8 +1,9 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
+import { DEMO_ROLE_COOKIE } from "@/lib/fixtures/session";
 import { PAGE_POLICY } from "@/lib/server/policy";
 
-// The Next.js Proxy (requirement 6.7). It does two small things before a page
+// The Next.js Proxy (requirement 6.7). It does three small things before a page
 // renders and nothing else:
 //
 //   1. A request for a protected page with no session cookie goes to the
@@ -10,11 +11,16 @@ import { PAGE_POLICY } from "@/lib/server/policy";
 //   2. It records the path in a request header, which layouts (told no path)
 //      use for redirects and the audit trail. It replaces any value the client
 //      sent.
+//   3. A request for a hidden area (/control) with no session cookie is
+//      rewritten to a path that does not exist, so it receives exactly the page
+//      and status of any unknown address (requirement 6.11). It is not
+//      redirected to sign-in, which would show the area exists.
 //
 // It checks only that a cookie exists. It does not prove the cookie is valid, so
 // it is never the authorization check (requirement 6.8); every page, handler and
-// Server Function runs its own guard. /control is deliberately not redirected:
-// a Visitor must see the same 404 as for a path that does not exist.
+// Server Function runs its own guard. A signed-in person who is not an
+// Administrator is answered by the page guard (docs/security/auth.md, "The
+// hidden area").
 
 const PROTECTED = new Set(
   PAGE_POLICY.filter(
@@ -22,22 +28,37 @@ const PROTECTED = new Set(
   ).map((p) => p.path),
 );
 
+const HIDDEN = PAGE_POLICY.filter((p) => p.hidden).map((p) => p.path);
+
+/** A path that is not a route, so the rewrite gets the ordinary 404. */
+const UNKNOWN_PATH = "/not-a-route";
+
+function normalise(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+}
+
 function isProtectedPath(pathname: string): boolean {
-  const normalised =
-    pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-  return PROTECTED.has(normalised);
+  return PROTECTED.has(normalise(pathname));
+}
+
+function isHiddenPath(pathname: string): boolean {
+  const path = normalise(pathname);
+  return HIDDEN.some((p) => path === p || path.startsWith(`${p}/`));
 }
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const live = process.env.NEXUS_MODE === "live";
+  // Demo_Mode has no Better Auth cookie; its "session" is the presenter's role cookie.
+  const hasSession = live
+    ? Boolean(getSessionCookie(request, { cookiePrefix: "nexus" }))
+    : request.cookies.has(DEMO_ROLE_COOKIE);
 
-  // Demo_Mode has no session cookie; the guards read the presenter's fixture.
-  if (
-    live &&
-    isProtectedPath(pathname) &&
-    !getSessionCookie(request, { cookiePrefix: "nexus" })
-  ) {
+  if (isHiddenPath(pathname) && !hasSession) {
+    return NextResponse.rewrite(new URL(UNKNOWN_PATH, request.url));
+  }
+
+  if (live && isProtectedPath(pathname) && !hasSession) {
     const url = new URL("/signin", request.url);
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
