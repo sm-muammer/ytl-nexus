@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# preflight-backup: gate 2 (requirements 4.3 to 4.5). Run from the Mac.
+#
+# 1. verify-target (gate 1)
+# 2. copy the ops scripts to /root/nexus-ops on the server and run the backup
+# 3. copy the backup to ~/ytl-nexus-backups/ (outside the repository)
+# 4. verify every checksum on the Mac, and confirm every archive opens and lists
+# 5. only if all of that passes, mark the server copy as VERIFIED
+#
+# On any failure the script stops, removes nothing, and exits non-zero.
+# Works with bash 3.2 (macOS).
+
+set -Eeuo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SSH_TARGET="${NEXUS_SSH_TARGET:-root@10.26.64.164}"
+LOCAL_ROOT="${NEXUS_BACKUP_DIR:-$HOME/ytl-nexus-backups}"
+STAMP="${1:-$(date +%F)}"
+REMOTE_DIR="/root/nexus-preflight-backup-${STAMP}"
+LOCAL_DIR="${LOCAL_ROOT}/nexus-preflight-backup-${STAMP}"
+
+ssh_run() { ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "$@" 2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2); }
+
+"$HERE/verify-target"
+
+echo "Installing ops scripts on the server..."
+ssh_run 'mkdir -p /root/nexus-ops && chmod 700 /root/nexus-ops'
+scp -q "$HERE/verify-target" "$HERE/preflight-backup-remote" "$SSH_TARGET:/root/nexus-ops/" 2>/dev/null
+ssh_run 'chmod 700 /root/nexus-ops/*'
+
+echo "Creating the backup on the server..."
+ssh_run "/root/nexus-ops/preflight-backup-remote '$STAMP'"
+
+echo "Copying the backup to $LOCAL_DIR ..."
+mkdir -p "$LOCAL_ROOT"
+chmod 700 "$LOCAL_ROOT"
+[ ! -e "$LOCAL_DIR" ] || { echo "preflight-backup: $LOCAL_DIR already exists; refusing to overwrite" >&2; exit 1; }
+scp -q -r "$SSH_TARGET:$REMOTE_DIR" "$LOCAL_ROOT/" 2>/dev/null
+chmod -R go-rwx "$LOCAL_DIR"
+
+echo "Verifying checksums on the Mac..."
+(cd "$LOCAL_DIR" && shasum -a 256 -c SHA256SUMS --quiet) ||
+  { echo "preflight-backup: CHECKSUM MISMATCH. Stop; nothing has been removed." >&2; exit 1; }
+
+# Every file listed must exist, and no file may be missing from the list.
+listed=$(cd "$LOCAL_DIR" && awk '{print $2}' SHA256SUMS | sort)
+present=$(cd "$LOCAL_DIR" && find . -type f ! -name SHA256SUMS | sort)
+[ "$listed" = "$present" ] ||
+  { echo "preflight-backup: file list differs from SHA256SUMS. Stop." >&2; exit 1; }
+
+echo "Confirming every archive opens and lists..."
+for archive in "$LOCAL_DIR"/*.tar.gz; do
+  count=$(tar -tzf "$archive" | wc -l | tr -d ' ')
+  [ "$count" -gt 0 ] || { echo "preflight-backup: $archive is empty or unreadable. Stop." >&2; exit 1; }
+  printf '  %-28s %8s entries\n' "$(basename "$archive")" "$count"
+done
+grep -q "CREATE DATABASE" "$LOCAL_DIR/mariadb-all-databases.sql" ||
+  { echo "preflight-backup: the SQL dump has no CREATE DATABASE statements. Stop." >&2; exit 1; }
+tail -n 1 "$LOCAL_DIR/mariadb-all-databases.sql" | grep -q "Dump completed" ||
+  { echo "preflight-backup: the SQL dump does not end with 'Dump completed'. Stop." >&2; exit 1; }
+
+ssh_run "date -u +%FT%TZ > '$REMOTE_DIR/OFFSITE-VERIFIED' && chmod 600 '$REMOTE_DIR/OFFSITE-VERIFIED'"
+echo "Backup verified: $LOCAL_DIR"
+echo "Server copy marked: $REMOTE_DIR/OFFSITE-VERIFIED"

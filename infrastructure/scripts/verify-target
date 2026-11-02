@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# verify-target: gate 1 before any destructive action (requirements 4.1, 4.2).
+#
+# Confirms that the machine answering is Nexus Core 01 by comparing its
+# hostname, IP address and machine ID with the recorded values. Exits non-zero
+# on any mismatch, and every destructive script must call it first.
+#
+#   verify-target            from the Mac: reads the facts over SSH
+#   verify-target --local    on the server itself (used by the server-side scripts)
+#
+# The machine ID is stored here only as a SHA-256 hash, and neither the real
+# nor the expected ID is ever printed. Works with bash 3.2 (macOS) and bash 5.
+
+set -u
+
+EXPECTED_HOSTNAME="sn1lyvx1d0002.ytlcomms.my"
+EXPECTED_IP="10.26.64.164"
+EXPECTED_MACHINE_ID_SHA256="4c20b14f347fe4955467ce8e96767485c16d8b420d0b91c5df6f6971a0be8126"
+SSH_TARGET="${NEXUS_SSH_TARGET:-root@${EXPECTED_IP}}"
+
+LOCAL_FACTS='hostname; hostname -I; cat /etc/machine-id'
+
+fail() {
+  echo "verify-target: $*" >&2
+  echo "verify-target: STOP. No destructive action may run." >&2
+  exit 1
+}
+
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf %s "$1" | sha256sum | cut -d' ' -f1
+  else
+    printf %s "$1" | shasum -a 256 | cut -d' ' -f1
+  fi
+}
+
+# NEXUS_TARGET_FACTS_CMD replaces the lookup in tests. It must print the
+# hostname, the space-separated IP addresses and the machine ID, one per line.
+if [ -n "${NEXUS_TARGET_FACTS_CMD:-}" ]; then
+  facts=$(bash -c "$NEXUS_TARGET_FACTS_CMD") || fail "could not read the target facts"
+elif [ "${1:-}" = "--local" ]; then
+  facts=$(bash -c "$LOCAL_FACTS") || fail "could not read the local facts"
+else
+  facts=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "$LOCAL_FACTS" 2>/dev/null) ||
+    fail "could not read the target facts over SSH"
+fi
+
+actual_hostname=$(printf '%s\n' "$facts" | sed -n '1p')
+actual_ips=$(printf '%s\n' "$facts" | sed -n '2p')
+actual_machine_id=$(printf '%s\n' "$facts" | sed -n '3p')
+
+[ "$actual_hostname" = "$EXPECTED_HOSTNAME" ] ||
+  fail "hostname is '$actual_hostname', expected '$EXPECTED_HOSTNAME'"
+
+ip_found=no
+for ip in $actual_ips; do
+  [ "$ip" = "$EXPECTED_IP" ] && ip_found=yes
+done
+[ "$ip_found" = yes ] || fail "IP $EXPECTED_IP is not assigned to this host (found: $actual_ips)"
+
+[ "$(sha256_of "$actual_machine_id")" = "$EXPECTED_MACHINE_ID_SHA256" ] ||
+  fail "machine ID does not match the recorded value"
+
+echo "Target verified: $EXPECTED_HOSTNAME ($EXPECTED_IP), machine ID matches."

@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# preflight-backup-remote: creates the preflight backup on Nexus Core 01
+# (gate 2, requirements 4.3 to 4.5). Runs on the server as root, normally
+# started by `preflight-backup` on the Mac, which copies the result off the
+# server and verifies it.
+#
+# Output: /root/nexus-preflight-backup-<date>/ with one archive per area, a
+# MariaDB dump, listings of the system state, and SHA256SUMS over every file.
+# The directory is 0700 because the dump contains password hashes.
+# Nothing is removed or changed on the server.
+
+set -Eeuo pipefail
+
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+STAMP="${1:-$(date +%F)}"
+DEST="/root/nexus-preflight-backup-${STAMP}"
+[ ! -e "$DEST" ] || {
+  echo "preflight-backup-remote: $DEST already exists; refusing to overwrite" >&2
+  exit 1
+}
+umask 077
+mkdir -p "$DEST/state-before"
+
+# tar exits 1 when a file changes while it is read; that is not a failure here.
+archive() {
+  local name="$1"
+  shift
+  local paths=()
+  local p
+  for p in "$@"; do
+    # Globs that match nothing are skipped; missing paths are recorded in MISSING.txt.
+    if compgen -G "$p" >/dev/null || [ -e "$p" ]; then
+      paths+=("$p")
+    else
+      echo "$p" >>"$DEST/MISSING.txt"
+    fi
+  done
+  [ "${#paths[@]}" -gt 0 ] || return 0
+  local status=0
+  tar --numeric-owner --xattrs -czf "$DEST/$name.tar.gz" -- "${paths[@]}" 2>"$DEST/$name.tar.log" || status=$?
+  [ "$status" -le 1 ] || {
+    echo "preflight-backup-remote: tar failed for $name (exit $status)" >&2
+    exit 1
+  }
+}
+
+echo "Dumping MariaDB (all databases, routines, events)..."
+mariadb-dump --all-databases --routines --events --single-transaction >"$DEST/mariadb-all-databases.sql"
+[ -s "$DEST/mariadb-all-databases.sql" ]
+
+echo "Archiving web content, configuration and mail..."
+archive var-www /var/www
+archive etc-services /etc/httpd /etc/postfix /etc/dovecot /etc/vsftpd /etc/my.cnf /etc/my.cnf.d \
+  /etc/php.ini /etc/php.d /etc/php-fpm.conf /etc/php-fpm.d /etc/opt/remi /etc/aliases /etc/hosts \
+  /etc/hostname /etc/sudoers.d /etc/pki/tls/certs/ftpadmin.crt /etc/pki/tls/private/ftpadmin.key \
+  /etc/systemd/system /etc/sssd /etc/nsswitch.conf /etc/pam.d /etc/ssh/sshd_config /etc/ssh/sshd_config.d
+archive usr-local-sbin /usr/local/sbin
+archive mail-spool /var/spool/mail
+archive maildirs /home/*/Maildir
+archive crontabs /var/spool/cron /etc/crontab /etc/cron.d /etc/cron.daily /etc/cron.hourly \
+  /etc/cron.weekly /etc/cron.monthly
+
+echo "Recording container and system state..."
+{
+  echo "## podman ps -a"
+  podman ps -a
+  echo "## podman images"
+  podman images
+} >"$DEST/state-before/podman-overview.txt" 2>&1
+podman inspect superman >"$DEST/podman-inspect-superman.json" 2>"$DEST/podman-inspect-superman.err" || true
+[ -s "$DEST/podman-inspect-superman.json" ] || rm -f "$DEST/podman-inspect-superman.json"
+rm -f "$DEST/podman-inspect-superman.err"
+
+systemctl list-unit-files --no-pager >"$DEST/state-before/unit-files.txt" 2>&1
+systemctl list-timers --all --no-pager >"$DEST/state-before/timers.txt" 2>&1
+rpm -qa | sort >"$DEST/state-before/packages.txt"
+dnf module list --enabled --quiet >"$DEST/state-before/dnf-modules.txt" 2>&1 || true
+ss -tlnp >"$DEST/state-before/listening-ports.txt" 2>&1
+lsblk -f >"$DEST/state-before/lsblk.txt" 2>&1
+df -h >"$DEST/state-before/df.txt" 2>&1
+getenforce >"$DEST/state-before/selinux.txt" 2>&1 || true
+systemctl is-active firewalld >"$DEST/state-before/firewalld.txt" 2>&1 || true
+mariadb -e "SELECT user, host FROM mysql.user; SHOW DATABASES;" >"$DEST/state-before/mariadb-users-and-databases.txt" 2>&1
+
+# Requirement 4.8 needs a before/after comparison of OS accounts and sssd.
+# Account names and IDs are stored in clear; password hashes only as a checksum.
+getent passwd | sort >"$DEST/state-before/passwd.txt"
+getent group | sort >"$DEST/state-before/group.txt"
+sha256sum /etc/shadow /etc/passwd /etc/group >"$DEST/state-before/accounts.sha256"
+find /etc/sssd -type f -exec sha256sum {} + 2>/dev/null | sort -k2 >"$DEST/state-before/sssd.sha256" || true
+find /etc/sssd >"$DEST/state-before/sssd-tree.txt" 2>&1 || true
+
+echo "Checksumming..."
+(cd "$DEST" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum >SHA256SUMS)
+
+echo "Backup written to $DEST"
+du -sh "$DEST"
+wc -l <"$DEST/SHA256SUMS" | xargs echo "files checksummed:"

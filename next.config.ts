@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
-// Deployment-specific settings (standalone output, security headers, image
-// patterns) are added in Task 4. See docs/spec/implementation-plan.md.
+// Security headers (HSTS, CSP and the rest) are sent by Apache on Nexus Core 01
+// (infrastructure/apache); the application sets its own from Task 21.
 const nextConfig: NextConfig = {
+  // Self-hosting: `deploy.sh` runs `.next/standalone/server.js` under systemd.
+  output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
   // Next.js 16 blocks dev-server resources requested from other hosts. The
