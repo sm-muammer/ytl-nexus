@@ -79,7 +79,9 @@ flowchart TB
 
 [`structure.md`](structure.md) is the canonical map for repository directories, route ownership, module boundaries and file placement. Keep this technology document focused on runtime components and integrations.
 
-## 6. Host facts (read-only audit, 2026-10-30)
+## 6. Host facts (audit 2026-10-30; state after Task 4 in [`operations/server-baseline.md`](operations/server-baseline.md))
+
+The table is the state **before** Task 4. Firewall, time sync, Node.js 24, PHP 8.3, loopback binding, TLS and the `nexus-web` service are now in place, and the old webmail, WordPress, FTP and container are gone; the baseline document is the current record.
 
 | Item           | Value                                                                                                                                                                                                                                                                             |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

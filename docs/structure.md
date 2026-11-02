@@ -33,9 +33,10 @@ ytl-nexus/
 │   ├── motion/                  # Quality-tier and visibility rules (pure)
 │   ├── navigation/              # Module, route, navigation and footer registry; scenes.ts maps each route to its backdrop
 │   ├── roles.ts                 # Role model shared by menu and (from Task 6) guards
-│   └── server/                  # Server-only: mode, adapters (live and demo), session, demo-session Server Function
+│   └── server/                  # Server-only: mode, adapters (live and demo), session, demo-session Server Function, readiness checks (health.ts)
 ├── public/brand/                # Generated SVG logos and PNG fallbacks (committed)
 ├── scripts/assets/              # Asset conversion and filename check
+├── infrastructure/              # Task 4: scripts/ (verify, backup, setup, deploy, smoke test), apache/, systemd/, tls/ (public CA certificate)
 ├── docs/                        # Canonical guides, module specs, ADRs and progress
 ├── reference/                   # Local-only inspiration and brand extras; Git ignored
 ├── tests/{unit,e2e}/            # Current automated tests

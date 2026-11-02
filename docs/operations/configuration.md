@@ -3,7 +3,7 @@
 > **Purpose:** every environment variable YTL Nexus reads, what it does and where it lives.
 > **Audience:** developers running the app locally and the IT Infrastructure team configuring the server.
 
-Variables are added to this file in the same commit that starts reading them. Secrets are named here, never shown. Locally they live in `.env.local` (Git-ignored); on Nexus Core 01 they live in `/etc/ytl-nexus/*.env` (`root:nexus`, mode 0640), loaded by the `nexus-web` systemd unit from Task 4.
+Variables are added to this file in the same commit that starts reading them. Secrets are named here, never shown. Locally they live in `.env.local` (Git-ignored); on Nexus Core 01 they live in `/etc/ytl-nexus/*.env` (`root:nexus`, mode 0640), loaded by the `nexus-web` systemd unit and by `deploy.sh` when it builds (Task 4). On Core 01, `/etc/ytl-nexus/web.env` currently holds `NEXUS_MODE=live` and nothing secret; the unit adds `NODE_ENV=production`, `PORT=3000` and `HOSTNAME=127.0.0.1` itself. Do not put `NODE_ENV=production` in `web.env`: the build would then skip dev dependencies and fail. See [Deploy](deploy.md).
 
 ## Variables
 

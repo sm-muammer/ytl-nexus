@@ -52,7 +52,7 @@ Mail
   R10 Postfix and Dovecot custom configuration reset to package defaults:
       /etc/postfix/main.cf, /etc/dovecot/conf.d/10-auth.conf, /etc/dovecot/conf.d/10-mail.conf restored from the RPMs,
       /etc/dovecot/conf.d/10-mail.conf.save and .save.1 deleted. Packages stay installed. Dovecot is stopped and
-      disabled until Task 11 configures it (the firewall will open 993 for it).
+      disabled until Task 13 configures it (the firewall will open 993 for it).
   maildirs  /home/*/Maildir for every user (11 directories, 141 files)   [owner may decline with --skip maildirs]
 Not touched by this script: OS user accounts, home directories (other than Maildir), sssd files,
 /var/spool/mail files, Ollama, node_exporter, MariaDB itself and its system databases.

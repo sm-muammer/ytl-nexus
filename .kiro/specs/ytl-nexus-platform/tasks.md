@@ -73,57 +73,57 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
     - `MotionConfig reducedMotion="user"`, fade/rise/stagger primitives, signal-ribbon route transition, quality-tier hook, visibility pause, static particle frame under reduced motion, no particle or parallax on forms, tables, Control or inbox
     - _Requirements: 3.10, 3.11, 3.12, 3.13, 3.14_
 
-- [ ] 4. Server preparation, backup, removal, hardening and first deployment (plan Task 4)
-  - [ ] 4.1 Write the verify-target script (gate 1)
+- [x] 4. Server preparation, backup, removal, hardening and first deployment (plan Task 4)
+  - [x] 4.1 Write the verify-target script (gate 1)
     - `infrastructure/scripts/verify-target`: compare hostname, IP 10.26.64.164 and machine ID with recorded values; exit non-zero on mismatch; every destructive script calls it first
     - _Requirements: 4.1, 4.2_
 
-  - [ ] 4.2 Create and verify the preflight backup (gate 2)
+  - [x] 4.2 Create and verify the preflight backup (gate 2)
     - Run verify-target; MariaDB dump of all databases, `/var/www`, service config, mail storage, Podman inspect output and crontabs into a dated directory with checksums
     - Copy off the server, verify every checksum, confirm the archive opens and lists; on failure stop and report, with no removal
     - _Requirements: 4.3, 4.4, 4.5_
 
-  - [ ] 4.3 Remove old server content after owner approval (gate 3)
+  - [x] 4.3 Remove old server content after owner approval (gate 3)
     - Run verify-target and require the verified backup from 4.2; present one itemized removal list (old web content, `ftpadmin` vhost, old webmail and sudoers helper, old WordPress and DB, vsftpd, `superman` container, custom Postfix/Dovecot config and mailboxes)
     - Remove only listed items after explicit owner approval; with no approval, remove nothing
     - Verify OS user accounts and `sssd` configuration are unchanged
     - _Requirements: 4.1, 4.3, 4.6, 4.7, 4.8_
 
-  - [ ] 4.4 Configure time sync and host identity
+  - [x] 4.4 Configure time sync and host identity
     - Enable `chronyd` and confirm synchronised state
     - Run `realm list`; if joined to a directory, add hostname aliases only; otherwise set the hostname only after verify-target, verified backup and owner approval
     - _Requirements: 4.1, 4.9, 4.16_
 
-  - [ ] 4.5 Install runtimes, bind MariaDB and mount `sdb`
+  - [x] 4.5 Install runtimes, bind MariaDB and mount `sdb`
     - Node.js 24, PHP 8.3 with FPM and required extensions; bind MariaDB to Loopback
     - Check `sdb` with `lsblk -f` and `wipefs -n`; if any partition or signature exists, do not format or mount and report; otherwise, after the three gates, format xfs and mount at `/srv/nexus-transfer` with `nosuid,nodev,noexec`
     - _Requirements: 4.1, 4.13, 4.14, 4.15_
 
-  - [ ] 4.6 Enable firewalld with the safety net
+  - [x] 4.6 Enable firewalld with the safety net
     - After the three gates: add the ssh service first, schedule `systemctl stop firewalld` in 5 minutes, add ports 80, 443, 2022, 587, 993, verify SSH from a new connection, then cancel the scheduled stop
     - _Requirements: 4.1, 4.10, 4.11, 4.12_
 
-  - [ ] 4.7 Configure TLS and Apache
+  - [x] 4.7 Configure TLS and Apache
     - Internal CA and server certificate with SANs `ytl-nexus.ytlcomms.my`, `ytl-nexus.internal`, `sn1lyvx1d0002.ytlcomms.my`, `10.26.64.164`
     - Vhost: HTTP to HTTPS redirect, `Options -Indexes`, security headers, proxy to 127.0.0.1:3000 with `ProxyPreserveHost On`, `X-Forwarded-Proto https`, buffering off on SSE routes
     - _Requirements: 4.17, 4.18, 4.19, 4.20_
 
-  - [ ] 4.8 Create the `nexus` user and `nexus-web` unit
+  - [x] 4.8 Create the `nexus` user and `nexus-web` unit
     - Sandboxed unit (`NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp`, limited `ReadWritePaths`, SIGTERM drain); `/etc/ytl-nexus/*.env` owned `root:nexus` mode 0640; Nexus_Web bound to Loopback
     - _Requirements: 4.13, 4.21, 4.22_
 
-  - [ ] 4.9 Implement `deploy.sh`, `rollback.sh` and health endpoints
+  - [x] 4.9 Implement `deploy.sh`, `rollback.sh` and health endpoints
     - Release directory per git SHA, `npm ci && npm run build`, migrations, symlink swap, restart, health check
     - Build or migration failure leaves `current` unchanged; failed health check restores the previous release; both exit non-zero
     - `/api/health/live` and `/api/health/ready` (database check with 2 s timeout, see 5.5)
     - _Requirements: 4.23, 4.24, 4.25, 4.26, 5.11, 5.12_
 
-  - [ ] 4.10 Record server facts and write operations docs
+  - [x] 4.10 Record server facts and write operations docs
     - `lscpu` AVX flags and outbound internet availability in `docs/PROGRESS.md`
     - `docs/operations/deploy.md`, `rollback.md`, `server-baseline.md`, `docs/handover/ca-install.md`
     - _Requirements: 4.27, 4.28_
 
-  - [ ]* 4.11 Write smoke tests and run the rollback drill
+  - [x]* 4.11 Write smoke tests and run the rollback drill
     - curl checks (HTTPS 200, HTTP 301, headers, no listing), port scan against the allowlist, Loopback-only bind checks, broken-build rollback drill, SSH after firewalld
     - _Requirements: 4.12, 4.13, 4.18, 4.19, 4.24, 4.25_
 
