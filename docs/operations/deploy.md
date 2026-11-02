@@ -23,17 +23,18 @@ The command exits 0 only when the new release is live and healthy. Any other exi
 
 ## What `deploy.sh` does on the server
 
-| Step | Action                                                                                                                                        | If it fails                                                                |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 1    | `verify-target --local`, then take the lock `/opt/ytl-nexus/deploy.lock` (one deploy or rollback at a time)                                   | Nothing has changed                                                        |
-| 2    | `git archive` the commit into `/opt/ytl-nexus/releases/<git-sha>`                                                                             | Nothing has changed                                                        |
-| 3    | Build as the `nexus` user: `npm ci`, `npm run build`, copy `public/` and `.next/static` into `.next/standalone`, link the cache directory     | The half-built release is deleted. `current` is unchanged. Exit 1          |
-| 4    | Migrations as `nexus`: `npm run migrate --if-present`, with `/etc/ytl-nexus/migrate.env` loaded when it exists (the script arrives in Task 5) | The half-built release is deleted. `current` is unchanged. Exit 1          |
-| 5    | Point `current` at the new release in one step, then `systemctl restart nexus-web`                                                            |                                                                            |
-| 6    | Poll `http://127.0.0.1:3000/api/health/ready` for up to 60 seconds                                                                            | `current` goes back to the old release, the service restarts on it. Exit 1 |
-| 7    | On success, `previous` becomes the old release; keep the newest 3 releases plus `current` and `previous`, delete the rest                     |                                                                            |
+| Step | Action                                                                                                                                                           | If it fails                                                                |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1    | `verify-target --local`, then take the lock `/opt/ytl-nexus/deploy.lock` (one deploy or rollback at a time)                                                      | Nothing has changed                                                        |
+| 2    | `git archive` the commit into `/opt/ytl-nexus/releases/<git-sha>`                                                                                                | Nothing has changed                                                        |
+| 3    | Build as the `nexus` user: `npm ci`, `npm run build`, copy `public/` and `.next/static` into `.next/standalone`, link the cache directory                        | The half-built release is deleted. `current` is unchanged. Exit 1          |
+| 4    | Migrations as `nexus`: `npm run migrate --if-present`, with `/etc/ytl-nexus/migrate.env` loaded when it exists (`nexus_migrate`, see [database](database.md))    | The half-built release is deleted. `current` is unchanged. Exit 1          |
+| 4b   | Table grants as root: `db-grants` re-applies the privileges of `nexus_app` and `nexus_ingest`, so a table added by a migration works before the service restarts | The half-built release is deleted. `current` is unchanged. Exit 1          |
+| 5    | Point `current` at the new release in one step, then `systemctl restart nexus-web`                                                                               |                                                                            |
+| 6    | Poll `http://127.0.0.1:3000/api/health/ready` for up to 60 seconds                                                                                               | `current` goes back to the old release, the service restarts on it. Exit 1 |
+| 7    | On success, `previous` becomes the old release; keep the newest 3 releases plus `current` and `previous`, delete the rest                                        |                                                                            |
 
-A build or migration failure never restarts the service. The running site is not touched until step 5.
+A build, migration or grants failure never restarts the service. The running site is not touched until step 5.
 
 ## Layout on the server
 

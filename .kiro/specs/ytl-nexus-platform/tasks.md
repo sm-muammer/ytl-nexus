@@ -127,29 +127,29 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
     - curl checks (HTTPS 200, HTTP 301, headers, no listing), port scan against the allowlist, Loopback-only bind checks, broken-build rollback drill, SSH after firewalld
     - _Requirements: 4.12, 4.13, 4.18, 4.19, 4.24, 4.25_
 
-- [ ] 5. Platform database (plan Task 5)
-  - [ ]* 5.1 Write property tests for migrations and seeds
+- [x] 5. Platform database (plan Task 5)
+  - [x]* 5.1 Write property tests for migrations and seeds
     - **Property 8: Migration up, down, up is idempotent**
     - **Property 9: Seed determinism**
     - **Validates: Requirements 5.4, 5.6, 5.7, 5.8**
 
-  - [ ]* 5.2 Write the property test for input validation before writes
+  - [x]* 5.2 Write the property test for input validation before writes
     - **Property 6: Invalid input is rejected before any write**
     - **Validates: Requirements 5.10, 6.5, 6.6**
 
-  - [ ] 5.3 Implement Kysely data layer, migrations and grants
+  - [x] 5.3 Implement Kysely data layer, migrations and grants
     - Typed schema with `mysql2`, up and down for every migration, all `ytl_nexus` tables, users `nexus_app`, `nexus_migrate`, `nexus_ingest` (INSERT only); local test database harness
     - _Requirements: 5.1, 5.3, 5.4, 5.5_
 
-  - [ ] 5.4 Implement deterministic seed scripts
+  - [x] 5.4 Implement deterministic seed scripts
     - Generic assets, sites and tickets only; no passwords, keys or tokens
     - _Requirements: 5.7, 5.8_
 
-  - [ ] 5.5 Add Zod validation, parameterized queries and the ready check
+  - [x] 5.5 Add Zod validation, parameterized queries and the ready check
     - Validate before any statement; parameterized queries only; `/api/health/ready` reports database state within 2 s whether healthy or not
     - _Requirements: 5.9, 5.10, 5.11, 5.12_
 
-  - [ ] 5.6 Create the module databases and document Oracle MySQL
+  - [x] 5.6 Create the module databases and document Oracle MySQL
     - On the server: `nexus_mail`, `nexus_roundcube`, `nexus_sftpgo`, `nexus_wordpress`, each with a single-database user; run `ytl_nexus` migrations and seed
     - `docs/operations/database.md` with the optional Oracle MySQL 8 Podman procedure
     - _Requirements: 5.1, 5.2, 5.13, 5.14_
