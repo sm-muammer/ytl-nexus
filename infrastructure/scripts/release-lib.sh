@@ -26,11 +26,16 @@ die() {
 
 # Runs a shell command string in the current directory, as the service user
 # when NEXUS_RUN_AS is set (build and migrations never run as root).
+# `set -eo pipefail` is forced inside: the caller tests this function's result in
+# an `if`, which switches errexit off, so without it a failing line in a
+# multi-line command would be ignored (found in the rollback drill).
 as_service_user() {
+  local script="set -eo pipefail
+$1"
   if [ -n "$NEXUS_RUN_AS" ]; then
-    runuser -u "$NEXUS_RUN_AS" -- bash -c "$1"
+    runuser -u "$NEXUS_RUN_AS" -- bash -c "$script"
   else
-    bash -c "$1"
+    bash -c "$script"
   fi
 }
 

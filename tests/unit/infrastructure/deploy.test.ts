@@ -128,6 +128,32 @@ describe("deploy.sh", () => {
     expect(fs.existsSync(release(second))).toBe(false); // half-built release removed
   });
 
+  it("treats a multi-line build command as failed when an early line fails (4.24)", () => {
+    // Regression: the real build command is several lines. A failing line in the
+    // middle must fail the build even though the last line succeeds.
+    const first = commit("v1", true);
+    run("deploy.sh", ["v1"]);
+    commit("v2", true);
+    const result = run("deploy.sh", ["v2"], {
+      NEXUS_BUILD_CMD: "false\ntrue",
+    });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toMatch(/build failed/i);
+    expect(current()).toBe(release(first));
+  });
+
+  it("treats a multi-line migration command as failed when an early line fails (4.24)", () => {
+    const first = commit("v1", true);
+    run("deploy.sh", ["v1"]);
+    commit("v2", true);
+    const result = run("deploy.sh", ["v2"], {
+      NEXUS_MIGRATE_CMD: "false\ntrue",
+    });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toMatch(/migrations failed/i);
+    expect(current()).toBe(release(first));
+  });
+
   it("leaves current unchanged and exits non-zero when a migration fails (4.24)", () => {
     const first = commit("v1", true);
     run("deploy.sh", ["v1"]);
