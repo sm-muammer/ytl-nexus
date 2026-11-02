@@ -5,9 +5,10 @@ import { Backdrop } from "@/components/backdrop/backdrop";
 import { PageTransition } from "@/components/motion/page-transition";
 import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { accessLabel } from "@/lib/roles";
+import { accessLabel, meetsRole } from "@/lib/roles";
 import { findModule, pageInfo } from "@/lib/navigation/modules";
 import { getAdapters } from "@/lib/server/adapters";
+import { getActor } from "@/lib/server/session";
 import type { AdapterName } from "@/lib/server/adapters/types";
 import { ModuleHero } from "./module-hero";
 import type { Register } from "./app-shell";
@@ -57,7 +58,7 @@ async function BackingStatus({ name }: { name: AdapterName }) {
  * status of the service behind it (labelled Live or Demo data), and links
  * related modules. The module task replaces the body, not the route.
  */
-export function ModulePage({
+export async function ModulePage({
   path,
   register,
 }: {
@@ -65,7 +66,11 @@ export function ModulePage({
   register: Register;
 }) {
   const page = pageInfo(path);
-  const related = page.related.map(findModule);
+  // A hidden module is listed only for someone who can open it.
+  const actor = await getActor();
+  const related = page.related
+    .map(findModule)
+    .filter((m) => !m.hidden || meetsRole(actor, m.minRole));
   const roomy = register === "public";
 
   return (

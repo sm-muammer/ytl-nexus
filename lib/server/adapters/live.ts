@@ -1,5 +1,9 @@
 import "server-only";
+import { headers } from "next/headers";
 import type { Actor } from "@/lib/roles";
+import { authIsConfigured, getAuthRuntime } from "@/lib/server/auth/runtime";
+import { resolveIdentity } from "@/lib/server/auth/service";
+import { identityToActor } from "@/lib/server/policy";
 import type {
   AdapterName,
   AdapterStatus,
@@ -9,10 +13,10 @@ import type {
 } from "./types";
 import { ADAPTER_NAMES } from "./types";
 
-// Live adapters. Task 3 only fixes the switch: none of them connects anywhere
-// yet, and none reads the demo cookie. Each module task replaces its stub with
-// the real client (Task 5 db, Task 6 auth, Task 7 wordpress, Task 8
-// prometheus, Task 9 ops, Task 12 sftpgo, Task 13 mail, Task 14 ollama).
+// Live adapters. Task 3 fixed the switch; each module task replaces its stub
+// with the real client (Task 7 wordpress, Task 8 prometheus, Task 9 ops, Task 12
+// sftpgo, Task 13 mail, Task 14 ollama). The auth adapter is real since Task 6.
+// None of them reads the demo cookie.
 
 function notConnected(name: AdapterName): AdapterStatus {
   return {
@@ -38,9 +42,31 @@ export function createLiveAdapters(): Adapters {
   ) as Record<AdapterName, ServiceAdapter>;
 
   const auth: AuthAdapter = {
-    ...base.auth,
-    // Nobody can sign in until Task 6, so every request is a Visitor.
-    getActor: async (): Promise<Actor> => null,
+    name: "auth",
+    source: "live",
+    status: async (): Promise<AdapterStatus> =>
+      authIsConfigured()
+        ? {
+            name: "auth",
+            source: "live",
+            state: "ok",
+            label: "Ready",
+            detail: "Sign-in is available.",
+          }
+        : {
+            name: "auth",
+            source: "live",
+            state: "bad",
+            label: "Not configured",
+            detail: "The authentication settings are missing on the server.",
+          },
+    getActor: async (): Promise<Actor> => {
+      const { identity } = await resolveIdentity(
+        getAuthRuntime(),
+        await headers(),
+      );
+      return identityToActor(identity);
+    },
   };
 
   return { ...base, auth };

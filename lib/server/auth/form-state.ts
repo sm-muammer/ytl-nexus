@@ -1,0 +1,42 @@
+// Shapes the sign-in, enrolment, Step_Up and Control forms exchange with their
+// Server Functions. Types only, so client components can import them. Every
+// message is written for the person at the keyboard: no codes, no hostnames,
+// nothing that tells an attacker which half of a login was wrong.
+
+export type FormMessage = { error: string } | null;
+
+export type SignInState = FormMessage;
+export type TotpState = FormMessage;
+export type StepUpState = FormMessage;
+
+export type EnrolState =
+  | null
+  | { error: string; step?: "password" | "code" }
+  | {
+      step: "code";
+      error?: string;
+      qrSvg: string;
+      manualKey: string;
+      backupCodes: string[];
+    };
+
+export type ResetPasswordState =
+  null | { error: string } | { done: true; email: string; password: string };
+
+export type RevokeSessionsState =
+  null | { error: string } | { done: true; email: string };
+
+export const MESSAGES = {
+  invalidCredentials: "The email or password is not correct.",
+  locked: "Too many failed attempts. Try again in 15 minutes.",
+  invalidInput: "Check the highlighted fields and try again.",
+  invalidCode:
+    "That code did not work. Check it and try again, or sign in again.",
+  invalidStepUp: "The password or the code is not correct.",
+  genericFailure: "Something went wrong. Nothing was changed. Try again.",
+  demo: "This is a demo session. Nothing was changed.",
+  forbidden: "You do not have access to do that.",
+  stepUpRequired: "Confirm your password and code again to continue.",
+  self: "Use another Administrator account to reset your own password.",
+  notFound: "That account no longer exists.",
+} as const;

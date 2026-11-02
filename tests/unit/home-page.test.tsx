@@ -8,7 +8,7 @@ vi.mock("@/components/motion/ambient-field", () => ({
 }));
 
 import HomePage from "@/app/(public)/page";
-import { MODULES } from "@/lib/navigation/modules";
+import { MODULES, PUBLIC_MODULES } from "@/lib/navigation/modules";
 
 describe("Home page", () => {
   it("names the product in the only level-one heading", () => {
@@ -35,18 +35,20 @@ describe("Home page", () => {
 
     const list = screen.getByRole("list", { name: /^modules$/i });
     const items = within(list).getAllByRole("listitem");
-    expect(items).toHaveLength(MODULES.length);
+    expect(items).toHaveLength(PUBLIC_MODULES.length);
 
-    for (const entry of MODULES) {
+    for (const entry of PUBLIC_MODULES) {
       const link = within(list).getByRole("link", {
         name: new RegExp(entry.name, "i"),
       });
       expect(link).toHaveAttribute("href", entry.href);
     }
     expect(within(list).getAllByText("Public").length).toBeGreaterThan(0);
-    expect(within(list).getAllByText(/Administrator/).length).toBeGreaterThan(
-      0,
-    );
+    // Nexus Control is hidden: the home page does not announce it.
+    expect(within(list).queryByText(/Nexus Control/)).toBeNull();
+    expect(MODULES.filter((m) => m.hidden).map((m) => m.slug)).toEqual([
+      "control",
+    ]);
   });
 
   it("renders its own content only: the layout supplies the main landmark", () => {

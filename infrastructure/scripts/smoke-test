@@ -60,6 +60,22 @@ for path in /icons/ /cgi-bin/ /.git/ /_next/static/; do
   printf '%s' "$body" | grep -q -i 'index of' && bad "$path shows a listing" || ok "$path shows no listing"
 done
 
+echo "Access control (task 6)"
+loc=$(c -o /dev/null -w '%{http_code} %{redirect_url}' https://ytl-nexus.internal/command 2>/dev/null)
+case "$loc" in
+  "307 "*"/signin?next=%2Fcommand") ok "a Visitor asking for /command is sent to sign-in" ;;
+  *) bad "/command for a Visitor was: $loc" ;;
+esac
+[ "$(code https://ytl-nexus.internal/control 2>/dev/null)" = 404 ] &&
+  [ "$(code https://ytl-nexus.internal/no-such-page 2>/dev/null)" = 404 ] &&
+  ok "/control answers a Visitor with 404, like an unknown path" || bad "/control does not answer 404 to a Visitor"
+[ "$(c https://ytl-nexus.internal/control 2>/dev/null | wc -c | tr -d ' ')" = "$(c https://ytl-nexus.internal/no-such-page 2>/dev/null | wc -c | tr -d ' ')" ] &&
+  ok "/control and an unknown path return pages of the same size" || bad "/control page differs from the unknown-path 404"
+for path in /api/auth/sign-up/email /api/auth/admin/create-user /api/auth/admin/impersonate-user; do
+  [ "$(code -X POST -H 'Content-Type: application/json' -H 'Origin: https://ytl-nexus.internal' -d '{}' "https://ytl-nexus.internal$path" 2>/dev/null)" = 404 ] &&
+    ok "POST $path is not available" || bad "POST $path is available"
+done
+[ "$(c https://ytl-nexus.internal/api/auth/get-session 2>/dev/null)" = "null" ] && ok "no session for a Visitor" || bad "get-session did not return null for a Visitor"
 echo "Health endpoints"
 [ "$(c https://ytl-nexus.internal/api/health/live 2>/dev/null)" = '{"status":"live"}' ] && ok "/api/health/live" || bad "/api/health/live"
 c https://ytl-nexus.internal/api/health/ready 2>/dev/null | grep -q '"status":"ready"' && ok "/api/health/ready" || bad "/api/health/ready"

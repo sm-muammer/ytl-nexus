@@ -27,6 +27,13 @@ export const defaultProbes: Record<string, Probe> = {
     ]);
     return probeDatabase(getDb());
   },
+  // The sign-in settings are present and valid. A release without them would
+  // answer every sign-in with an error, so the deploy's health check fails it.
+  auth: async () => {
+    if (getMode() === "demo") return "not-configured";
+    const { authIsConfigured } = await import("./auth/runtime");
+    return authIsConfigured() ? "ok" : "unavailable";
+  },
 };
 
 const DEFAULT_TIMEOUT_MS = 2000;

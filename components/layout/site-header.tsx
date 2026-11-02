@@ -112,6 +112,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
             {...(mode === "demo"
               ? { demoSession: { role: actor?.role ?? null } }
               : {})}
+            canSignOut={mode === "live" && actor !== null}
           />
         </div>
       </div>

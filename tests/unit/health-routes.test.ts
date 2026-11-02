@@ -29,7 +29,11 @@ describe("GET /api/health/ready", () => {
     const body = await response.json();
     expect(body.status).toBe("ready");
     // Honest data: demo mode has no database, so the check says so.
-    expect(body.checks).toEqual({ app: "ok", database: "not-configured" });
+    expect(body.checks).toEqual({
+      app: "ok",
+      database: "not-configured",
+      auth: "not-configured",
+    });
   });
 
   it("exposes only check names and states, never versions, paths or secrets", async () => {
@@ -52,6 +56,27 @@ describe("GET /api/health/ready in live mode", () => {
     const body = await response.json();
     expect(body.checks.database).toBe("unavailable");
     expect(JSON.stringify(body)).not.toMatch(/NEXUS_DB|password/i);
+  });
+
+  it("answers 503 with unavailable authentication when its settings are missing, so a deploy rolls back", async () => {
+    vi.stubEnv("NEXUS_MODE", "live");
+    vi.stubEnv("BETTER_AUTH_SECRET", "");
+    vi.stubEnv("BETTER_AUTH_URL", "");
+    const response = await getReady();
+    expect(response.status).toBe(503);
+    const body = await response.json();
+    expect(body.checks.auth).toBe("unavailable");
+    expect(JSON.stringify(body)).not.toMatch(/BETTER_AUTH|secret/i);
+  });
+
+  it("reports authentication ok when the settings are valid", async () => {
+    vi.stubEnv("NEXUS_MODE", "live");
+    vi.stubEnv("BETTER_AUTH_SECRET", "s".repeat(40));
+    vi.stubEnv("BETTER_AUTH_URL", "https://nexus.test");
+    vi.stubEnv("NEXUS_DB_USER", "u");
+    vi.stubEnv("NEXUS_DB_PASSWORD", "p");
+    const body = await (await getReady()).json();
+    expect(body.checks.auth).toBe("ok");
   });
 });
 

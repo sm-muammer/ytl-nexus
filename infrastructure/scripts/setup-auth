@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# setup-auth: task 6. Runs on the server (use server-run).
+#
+# Adds the authentication settings to /etc/ytl-nexus/web.env:
+#   BETTER_AUTH_SECRET    64 random hex characters; signs sessions and encrypts
+#                         the stored TOTP secrets. Never printed.
+#   BETTER_AUTH_URL       the canonical public address
+#   NEXUS_TRUSTED_ORIGINS the other names people reach the server by
+#
+# Safe to run again: a value that is already there is kept, so sessions and
+# enrolled authenticator apps stay valid. Changing BETTER_AUTH_SECRET makes every
+# stored TOTP secret unreadable: everyone with two-factor must enrol again.
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+ENV_FILE=/etc/ytl-nexus/web.env
+umask 077
+if [ ! -f "$ENV_FILE" ]; then
+  echo "setup-auth: $ENV_FILE is missing. Run setup-nexus-service first." >&2
+  exit 1
+fi
+# add_once KEY VALUE: appends KEY=VALUE unless KEY is already set.
+add_once() {
+  if ! grep -q "^$1=" "$ENV_FILE"; then
+    printf '%s=%s\n' "$1" "$2" >>"$ENV_FILE"
+    echo "setup-auth: added $1"
+  else
+    echo "setup-auth: $1 already set, kept"
+  fi
+}
+add_once BETTER_AUTH_SECRET "$(openssl rand -hex 32)"
+add_once BETTER_AUTH_URL https://ytl-nexus.ytlcomms.my
+add_once NEXUS_TRUSTED_ORIGINS https://ytl-nexus.internal,https://sn1lyvx1d0002.ytlcomms.my,https://10.26.64.164
+chown root:nexus "$ENV_FILE"
+chmod 0640 "$ENV_FILE"
+# Show which keys exist, never the values.
+sed -n 's/^\([A-Z_]*\)=.*/  \1/p' "$ENV_FILE"

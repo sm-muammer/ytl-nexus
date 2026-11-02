@@ -1,5 +1,6 @@
 import net from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Identity } from "@/lib/server/policy";
 import {
   ADAPTER_NAMES,
   createAdapters,
@@ -9,6 +10,19 @@ import { DEMO_ROLE_COOKIE } from "@/lib/fixtures/session";
 import { ROLES } from "@/lib/roles";
 
 const noCookie = async () => undefined;
+
+// The live auth adapter reads the Better Auth session. These doubles stand in
+// for the request headers and the session store, so no database is involved.
+let liveIdentity: Identity = { kind: "visitor" };
+let configured = false;
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
+vi.mock("@/lib/server/auth/runtime", () => ({
+  getAuthRuntime: () => ({}),
+  authIsConfigured: () => configured,
+}));
+vi.mock("@/lib/server/auth/service", () => ({
+  resolveIdentity: async () => ({ identity: liveIdentity, session: null }),
+}));
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -99,7 +113,7 @@ describe("live adapters (Live_Mode)", () => {
     const connectSpy = vi.spyOn(net, "connect");
 
     const set = createAdapters("live", { readDemoRole: noCookie });
-    for (const name of ADAPTER_NAMES) {
+    for (const name of ADAPTER_NAMES.filter((n) => n !== "auth")) {
       const status = await set[name].status();
       expect(status.source).toBe("live");
       expect(status.state).toBe("warn");
@@ -110,8 +124,48 @@ describe("live adapters (Live_Mode)", () => {
     expect(connectSpy).not.toHaveBeenCalled();
   });
 
-  it("ignore the demo cookie: nobody is signed in until Task 6", async () => {
-    const set = createAdapters("live", { readDemoRole: async () => "admin" });
+  it("report the auth adapter as configured or not, without a connection", async () => {
+    const connectSpy = vi.spyOn(net, "connect");
+    const set = createAdapters("live", { readDemoRole: noCookie });
+    configured = false;
+    expect(await set.auth.status()).toMatchObject({
+      source: "live",
+      state: "bad",
+      label: "Not configured",
+    });
+    configured = true;
+    expect(await set.auth.status()).toMatchObject({ state: "ok" });
+    expect(connectSpy).not.toHaveBeenCalled();
+  });
+
+  it("ignore the demo cookie: the actor comes from the Better Auth session only", async () => {
+    const readDemoRole = vi.fn(async () => "admin");
+    const set = createAdapters("live", { readDemoRole });
+    liveIdentity = { kind: "visitor" };
+    expect(await set.auth.getActor()).toBeNull();
+    liveIdentity = {
+      kind: "user",
+      userId: "u1",
+      role: "operator",
+      twoFactorEnabled: true,
+      stepUpAt: null,
+    };
+    expect(await set.auth.getActor()).toEqual({
+      userId: "u1",
+      role: "operator",
+    });
+    expect(readDemoRole).not.toHaveBeenCalled();
+  });
+
+  it("does not treat an unenrolled Operator as signed in", async () => {
+    const set = createAdapters("live", { readDemoRole: noCookie });
+    liveIdentity = {
+      kind: "user",
+      userId: "u2",
+      role: "operator",
+      twoFactorEnabled: false,
+      stepUpAt: null,
+    };
     expect(await set.auth.getActor()).toBeNull();
   });
 });

@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   // Playwright tests reach the dev server at 127.0.0.1, so allow it; without
   // this the dev page never hydrates. It affects `next dev` only.
   allowedDevOrigins: ["127.0.0.1"],
+  // Enables forbidden(), which the guards call for a signed-in user whose role
+  // is too low. It renders app/forbidden.tsx with a 403.
+  experimental: { authInterrupts: true },
 };
 
 export default nextConfig;

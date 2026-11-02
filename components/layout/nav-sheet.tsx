@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useFormStatus } from "react-dom";
+import { signOutAction } from "@/lib/server/auth/actions";
 import { setDemoSession } from "@/lib/server/demo-session-actions";
 import { ROLES, ROLE_LABEL, type Role } from "@/lib/roles";
 import { EnvironmentBadge } from "@/components/ui/environment-badge";
@@ -90,6 +91,8 @@ type NavSheetProps = {
   groups: SheetGroup[];
   /** Present in Demo_Mode only: the role the presenter is viewing as, or null. */
   demoSession?: { role: Role | null };
+  /** True in Live_Mode for a signed-in person: shows the Sign out button. */
+  canSignOut?: boolean;
 };
 
 /**
@@ -104,6 +107,7 @@ export function NavSheet({
   session,
   groups,
   demoSession,
+  canSignOut,
 }: NavSheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -250,6 +254,19 @@ export function NavSheet({
             ))}
           </nav>
 
+          {canSignOut ? (
+            <form
+              action={signOutAction}
+              className="border-line mt-auto flex flex-col gap-3 border-t pt-6"
+            >
+              <SessionButton
+                value="sign-out"
+                className="border-border-strong hover:bg-surface-raised min-h-11 self-start rounded-full border px-5 text-sm font-medium"
+              >
+                Sign out
+              </SessionButton>
+            </form>
+          ) : null}
           {demoSession ? (
             <form
               action={setDemoSession}

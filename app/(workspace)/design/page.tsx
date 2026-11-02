@@ -9,6 +9,7 @@ import {
   themes,
   type ThemeRole,
 } from "@/lib/design/tokens";
+import { requirePage } from "@/lib/server/guards";
 
 export const metadata: Metadata = {
   title: "Design",
@@ -16,9 +17,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// The reference page is internal and lives in the workspace route group, so
-// the shell supplies the main landmark. Task 6 puts requireRole("viewer") in
-// front of it; until identity exists the route is open but never indexed.
+// The reference page is internal (Viewer and above) and lives in the workspace
+// route group, so the shell supplies the main landmark.
 
 const LIGHT_VARIANTS = new Set([
   "main-colour",
@@ -205,7 +205,8 @@ const typeScale = [
   ["text-data", "text-data"],
 ] as const;
 
-export default function DesignPage() {
+export default async function DesignPage() {
+  await requirePage("/design");
   const ytl = brandMasters.filter((m) => m.brand === "ytl-communications");
   const yes = brandMasters.filter((m) => m.brand === "yes");
   return (

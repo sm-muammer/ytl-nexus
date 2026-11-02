@@ -1,5 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { signInAs } from "./helpers";
+
+// /design is for Viewers and above, so every test here views it as a Viewer.
+test.beforeEach(async ({ context, baseURL }) => {
+  await signInAs(context, baseURL, "viewer");
+});
 
 const MIN_HEIGHT = 31;
 const widths = [390, 1440, 3840] as const;

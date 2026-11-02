@@ -60,6 +60,12 @@ export type ModuleInfo = {
    * Apache never forwards in production.
    */
   apacheServed?: boolean;
+  /**
+   * Its existence is not announced: it is left out of the home page and of
+   * "related modules" lists unless the viewer is allowed to open it. Nexus
+   * Control is the one hidden module (requirement 6.11).
+   */
+  hidden?: boolean;
   /** Contextual navigation shown on every page of a module with child routes. */
   subNav?: readonly { label: string; href: string }[];
   /** Extra Next.js routes this module owns. */
@@ -299,6 +305,7 @@ export const MODULES: readonly ModuleInfo[] = [
     task: 19,
     backing: "auth",
     related: ["shield", "transfer", "mail"],
+    hidden: true,
   },
   {
     slug: "yes",
@@ -315,6 +322,11 @@ export const MODULES: readonly ModuleInfo[] = [
     related: ["story", "tour", "library"],
   },
 ];
+
+/** The modules the home page lists: everything except hidden areas. */
+export const PUBLIC_MODULES: readonly ModuleInfo[] = MODULES.filter(
+  (m) => !m.hidden,
+);
 
 export type NavItem = {
   label: string;

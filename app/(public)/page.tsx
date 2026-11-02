@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Backdrop } from "@/components/backdrop/backdrop";
 import { PageTransition } from "@/components/motion/page-transition";
 import { Rise } from "@/components/motion/reveal";
-import { MODULES } from "@/lib/navigation/modules";
+import { PUBLIC_MODULES } from "@/lib/navigation/modules";
 import { accessLabel } from "@/lib/roles";
 
 // Editorial home page (public register). It names the project honestly: an
@@ -60,9 +60,9 @@ export default function HomePage() {
               Modules
             </h2>
             <p className="text-muted mt-4 max-w-sm">
-              {MODULES.length} modules share one sign-in, one design and one
-              server. Each shows its access level, so you know what a link needs
-              before you follow it.
+              {PUBLIC_MODULES.length} modules share one sign-in, one design and
+              one server. Each shows its access level, so you know what a link
+              needs before you follow it.
             </p>
           </div>
 
@@ -70,7 +70,7 @@ export default function HomePage() {
             aria-labelledby="modules-heading"
             className="divide-line border-line divide-y border-y"
           >
-            {MODULES.map((m) => {
+            {PUBLIC_MODULES.map((m) => {
               const body = (
                 <>
                   <span className="text-heading-3 font-display font-semibold">

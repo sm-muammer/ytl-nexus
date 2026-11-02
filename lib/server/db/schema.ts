@@ -242,7 +242,87 @@ export interface AiConversationsTable {
   updated_at: ColumnType<Date, never, never>;
 }
 
+/** Better Auth owns the next five tables. Its adapter reads and writes them with its own column names. */
+export interface AuthUserTable {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: Generated<number>;
+  image: string | null;
+  createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  role: Generated<DbRole>;
+  banned: Generated<number>;
+  banReason: string | null;
+  banExpires: Timestamp | null;
+  twoFactorEnabled: Generated<number>;
+}
+
+export interface AuthSessionTable {
+  id: string;
+  expiresAt: Timestamp;
+  token: string;
+  createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  ipAddress: string | null;
+  userAgent: string | null;
+  userId: string;
+  impersonatedBy: string | null;
+  /** Time of the last password plus TOTP check (Step_Up). */
+  stepUpAt: Timestamp | null;
+}
+
+export interface AuthAccountTable {
+  id: string;
+  accountId: string;
+  providerId: string;
+  userId: string;
+  accessToken: string | null;
+  refreshToken: string | null;
+  idToken: string | null;
+  accessTokenExpiresAt: Timestamp | null;
+  refreshTokenExpiresAt: Timestamp | null;
+  scope: string | null;
+  /** Password hash for the "credential" provider. Never leaves the server. */
+  password: string | null;
+  createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
+export interface AuthVerificationTable {
+  id: string;
+  identifier: string;
+  value: string;
+  expiresAt: Timestamp;
+  createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
+  updatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
+export interface AuthTwoFactorTable {
+  id: string;
+  /** Encrypted with BETTER_AUTH_SECRET. */
+  secret: string;
+  backupCodes: string;
+  userId: string;
+  verified: Generated<number>;
+  failedVerificationCount: Generated<number>;
+  lockedUntil: Timestamp | null;
+}
+
+export interface AuthFailuresTable {
+  id: Id;
+  /** "account:<lower-case email>" or "ip:<address>". */
+  subject: string;
+  failed_at: Timestamp;
+}
+
 export interface Database {
+  user: AuthUserTable;
+  session: AuthSessionTable;
+  account: AuthAccountTable;
+  verification: AuthVerificationTable;
+  twoFactor: AuthTwoFactorTable;
+  auth_failures: AuthFailuresTable;
   audit_events: AuditEventsTable;
   services: ServicesTable;
   service_dependencies: ServiceDependenciesTable;
@@ -261,6 +341,12 @@ export interface Database {
 
 /** Every application table, parents before children. */
 export const APPLICATION_TABLES = [
+  "user",
+  "session",
+  "account",
+  "verification",
+  "twoFactor",
+  "auth_failures",
   "audit_events",
   "services",
   "service_dependencies",

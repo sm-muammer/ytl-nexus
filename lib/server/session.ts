@@ -1,12 +1,13 @@
 import "server-only";
 import type { Actor } from "@/lib/roles";
-import { getAdapters } from "@/lib/server/adapters";
+import { getIdentity } from "@/lib/server/identity";
+import { identityToActor } from "@/lib/server/policy";
 
 /**
- * The current actor, or null for a Visitor. Task 3 uses it only to filter
- * navigation. Task 6 adds requireRole(), which every protected page, Route
- * Handler and Server Function must call; a menu is never access control.
+ * The current actor, or null for a Visitor, for menus and labels. Showing or
+ * hiding a menu entry is not access control: every protected page, Route Handler
+ * and Server Function calls a guard from ./guards.ts.
  */
 export async function getActor(): Promise<Actor> {
-  return getAdapters().auth.getActor();
+  return identityToActor(await getIdentity());
 }
