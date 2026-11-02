@@ -1,6 +1,7 @@
 "use client";
 
 import * as m from "motion/react-m";
+import { useReducedMotion } from "motion/react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -13,6 +14,7 @@ import { useState } from "react";
  */
 export function SignalRibbon() {
   const pathname = usePathname();
+  const reduced = useReducedMotion();
   const [lastPath, setLastPath] = useState(pathname);
   const [runs, setRuns] = useState(0);
 
@@ -35,8 +37,11 @@ export function SignalRibbon() {
       <m.div
         key={runs}
         className="from-ytl-blue via-yes-pink to-yes-gradient-end h-full origin-left bg-linear-to-r"
-        initial={{ scaleX: 0, opacity: 1 }}
-        animate={{ scaleX: 1, opacity: [1, 1, 0] }}
+        // Reduced motion: full width from the first frame, then a fade. No scale.
+        initial={reduced ? { opacity: 1 } : { scaleX: 0, opacity: 1 }}
+        animate={
+          reduced ? { opacity: [1, 1, 0] } : { scaleX: 1, opacity: [1, 1, 0] }
+        }
         transition={{
           duration: 0.7, // --duration-ribbon
           ease: [0.65, 0, 0.35, 1], // --ease-in-out-cubic
