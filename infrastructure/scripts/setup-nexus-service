@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# setup-nexus-service: task 4.8 and the deploy layout of 4.9. Runs on the server.
+#
+# Creates the `nexus` service user, /etc/ytl-nexus (root:nexus 0750) with web.env
+# (0640), /opt/ytl-nexus (repo.git, releases, bin), /var/cache/ytl-nexus, and
+# installs the nexus-web unit. It does not start the unit; deploy.sh does that
+# after the first release exists.
+#
+# Expects nexus-web.service next to this script (uploaded by server-run).
+
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+if ! getent passwd nexus >/dev/null; then
+  useradd --system --user-group --home-dir /var/lib/ytl-nexus --create-home --shell /sbin/nologin \
+    --comment "YTL Nexus service" nexus
+fi
+chmod 0750 /var/lib/ytl-nexus
+
+install -d -m 0750 -o root -g nexus /etc/ytl-nexus
+if [ ! -f /etc/ytl-nexus/web.env ]; then
+  umask 027
+  cat >/etc/ytl-nexus/web.env <<'EOF'
+# Environment for nexus-web and for builds. See docs/operations/configuration.md.
+# No secrets belong in this file; those go in separate files in this directory.
+NEXUS_MODE=live
+EOF
+fi
+chown root:nexus /etc/ytl-nexus/*.env
+chmod 0640 /etc/ytl-nexus/*.env
+
+install -d -m 0755 -o root -g root /opt/ytl-nexus /opt/ytl-nexus/bin
+install -d -m 0755 -o nexus -g nexus /opt/ytl-nexus/releases
+install -d -m 0750 -o nexus -g nexus /var/cache/ytl-nexus /var/cache/ytl-nexus/next
+if [ ! -d /opt/ytl-nexus/repo.git ]; then
+  git init --bare --initial-branch=main /opt/ytl-nexus/repo.git
+fi
+
+install -m 0644 -o root -g root "$OPS_DIR/nexus-web.service" /etc/systemd/system/nexus-web.service
+systemctl daemon-reload
+systemctl enable nexus-web
+echo "nexus user: $(id nexus)"
+ls -ld /etc/ytl-nexus /etc/ytl-nexus/web.env /opt/ytl-nexus /var/cache/ytl-nexus

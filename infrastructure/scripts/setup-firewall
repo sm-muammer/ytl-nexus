@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# setup-firewall: task 4.6 (requirements 4.10 to 4.12). Runs on the server.
+#
+#   setup-firewall start     add the rules, start firewalld, and schedule an
+#                            automatic `systemctl stop firewalld` in 5 minutes
+#   setup-firewall confirm   cancel the scheduled stop (run only after a NEW ssh
+#                            connection worked; `firewall-enable` on the Mac does this)
+#
+# The ssh service is added before anything else and before firewalld starts.
+# Allowed inbound: 22 (ssh), 80, 443, 2022 (SFTP), 587 (submission), 993 (IMAPS).
+
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+SAFETY_UNIT=nexus-firewall-safety
+
+case "${1:-}" in
+  start)
+    # Safety net first: if anything goes wrong, firewalld stops itself in 5 minutes.
+    systemctl stop "$SAFETY_UNIT.timer" 2>/dev/null || true
+    systemd-run --unit="$SAFETY_UNIT" --on-active=5min --description="Stop firewalld if the new rules lock us out" \
+      /usr/bin/systemctl stop firewalld
+    echo "Safety net armed: firewalld will stop at $(date -d '+5 minutes' +%T) unless you run: setup-firewall confirm"
+
+    systemctl start firewalld
+    # Permanent rules, ssh first.
+    firewall-cmd --permanent --zone=public --add-service=ssh
+    for port in 80 443 2022 587 993; do
+      firewall-cmd --permanent --zone=public --add-port="${port}/tcp"
+    done
+    # Remove anything else the zone allows (for example cockpit or dhcpv6-client)
+    # except ssh, then reload so the permanent rules become active.
+    for svc in $(firewall-cmd --permanent --zone=public --list-services); do
+      [ "$svc" = ssh ] || firewall-cmd --permanent --zone=public --remove-service="$svc"
+    done
+    firewall-cmd --reload
+    systemctl enable firewalld
+    firewall-cmd --zone=public --list-all
+    ;;
+  confirm)
+    systemctl stop "$SAFETY_UNIT.timer" 2>/dev/null || true
+    systemctl reset-failed "$SAFETY_UNIT.service" 2>/dev/null || true
+    if systemctl is-active --quiet firewalld; then
+      echo "Safety net cancelled; firewalld stays active."
+    else
+      echo "firewalld is NOT active." >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "usage: setup-firewall start|confirm" >&2
+    exit 2
+    ;;
+esac

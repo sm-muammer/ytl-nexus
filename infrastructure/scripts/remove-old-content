@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+# remove-old-content: gate 3 (requirements 4.3, 4.6 to 4.8). Runs on the server.
+#
+#   remove-old-content --list                      print the itemized removal list; change nothing
+#   remove-old-content --approved <backup-dir>     remove the listed items
+#   remove-old-content --approved <backup-dir> --skip maildirs
+#
+# It refuses to remove anything unless
+#   1. verify-target passes (gate 1),
+#   2. <backup-dir> holds the OFFSITE-VERIFIED marker written by `preflight-backup`
+#      and every checksum in its SHA256SUMS still matches (gate 2), and
+#   3. --approved is given, which the operator passes only after the owner has
+#      approved this exact list (gate 3).
+# It only touches the items below. OS user accounts and the sssd configuration
+# are never touched; the script compares them with the backup afterwards.
+
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+MODE=""
+BACKUP=""
+SKIP=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --list) MODE=list ;;
+    --approved) MODE=run; BACKUP="${2:-}"; shift ;;
+    --skip) SKIP="${SKIP} ${2:-}"; shift ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+  shift
+done
+[ -n "$MODE" ] || { echo "usage: remove-old-content --list | --approved <backup-dir> [--skip maildirs]" >&2; exit 2; }
+
+skipped() { case " $SKIP " in *" $1 "*) return 0 ;; esac; return 1; }
+
+list_items() {
+  cat <<'EOF'
+Old web content
+  R1  /var/www/html/{ai.html,index.html,api/,"webmail Claude.zip"}   (static pages and API drafts)
+  R2  /var/www/html/webmail/                                       (old custom PHP webmail)
+  R3  /usr/local/sbin/webmail-useradmin and /etc/sudoers.d/webmail-useradmin   (passwordless root helper)
+  R4  /var/www/html/wp/ (311 MB) and /etc/httpd/conf.d/wordpress.conf (+ .swp file)   (old WordPress)
+  R5  database wordpress_db and user wp_user@localhost
+FTP
+  R6  vsftpd: stop, disable, remove package; /etc/vsftpd, /etc/pam.d/vsftpd-virtual, /var/log/vsftpd.log
+  R7  ftpadmin: /var/www/ftpadmin, /etc/httpd/conf.d/ftpadmin.conf (port 8443), ftpadmin.socket and ftpadmin@.service,
+      /usr/local/sbin/ftpadmin-helper, /etc/pki/tls/{certs/ftpadmin.crt,private/ftpadmin.key}
+  R8  /srv/ftp (21 MB virtual FTP home directories)
+Container
+  R9  Podman container "superman" (nginx on :8080) and the image docker.io/library/nginx:latest
+Mail
+  R10 Postfix and Dovecot custom configuration reset to package defaults:
+      /etc/postfix/main.cf, /etc/dovecot/conf.d/10-auth.conf, /etc/dovecot/conf.d/10-mail.conf restored from the RPMs,
+      /etc/dovecot/conf.d/10-mail.conf.save and .save.1 deleted. Packages stay installed. Dovecot is stopped and
+      disabled until Task 11 configures it (the firewall will open 993 for it).
+  maildirs  /home/*/Maildir for every user (11 directories, 141 files)   [owner may decline with --skip maildirs]
+Not touched by this script: OS user accounts, home directories (other than Maildir), sssd files,
+/var/spool/mail files, Ollama, node_exporter, MariaDB itself and its system databases.
+EOF
+}
+
+if [ "$MODE" = list ]; then
+  list_items
+  exit 0
+fi
+
+# ---- Gates ----------------------------------------------------------------
+"$OPS_DIR/verify-target" --local
+[ -d "$BACKUP" ] || { echo "remove-old-content: backup directory '$BACKUP' not found" >&2; exit 1; }
+[ -f "$BACKUP/OFFSITE-VERIFIED" ] || { echo "remove-old-content: $BACKUP has no OFFSITE-VERIFIED marker; run preflight-backup first" >&2; exit 1; }
+(cd "$BACKUP" && sha256sum -c SHA256SUMS --quiet) ||
+  { echo "remove-old-content: backup checksums no longer match. Stop." >&2; exit 1; }
+echo "Gates passed: target verified, backup verified. Removing the approved items."
+
+STATE="$BACKUP/state-before"
+safe_rm() { rm -rf --one-file-system -- "$@"; }
+
+# ---- R1 to R4: web content, helpers and WordPress ----------------------------
+safe_rm /var/www/html/ai.html /var/www/html/index.html /var/www/html/api "/var/www/html/webmail Claude.zip"
+safe_rm /var/www/html/webmail
+safe_rm /usr/local/sbin/webmail-useradmin /etc/sudoers.d/webmail-useradmin
+safe_rm /var/www/html/wp /etc/httpd/conf.d/wordpress.conf /etc/httpd/conf.d/.wordpress.conf.swp
+
+# ---- R5: database ----------------------------------------------------------
+mariadb -e "DROP DATABASE IF EXISTS wordpress_db; DROP USER IF EXISTS 'wp_user'@'localhost'; FLUSH PRIVILEGES;"
+
+# ---- R6 to R8: FTP -----------------------------------------------------------
+systemctl disable --now vsftpd 2>/dev/null || true
+systemctl disable --now ftpadmin.socket 2>/dev/null || true
+rpm -q vsftpd >/dev/null 2>&1 && dnf -y remove vsftpd
+safe_rm /etc/vsftpd /etc/vsftpd.rpmsave /etc/pam.d/vsftpd-virtual /var/log/vsftpd.log
+safe_rm /var/www/ftpadmin /etc/httpd/conf.d/ftpadmin.conf
+safe_rm /etc/systemd/system/ftpadmin.socket /etc/systemd/system/ftpadmin@.service
+safe_rm /etc/systemd/system/sockets.target.wants/ftpadmin.socket
+safe_rm /usr/local/sbin/ftpadmin-helper
+safe_rm /etc/pki/tls/certs/ftpadmin.crt /etc/pki/tls/private/ftpadmin.key
+safe_rm /srv/ftp
+systemctl daemon-reload
+
+# ---- R9: container -----------------------------------------------------------
+podman rm -f superman 2>/dev/null || true
+podman rmi -f docker.io/library/nginx:latest 2>/dev/null || true
+
+# ---- R10: Postfix and Dovecot back to package defaults -----------------------
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+dnf -y download --destdir "$tmp" postfix dovecot >/dev/null
+for rpmfile in "$tmp"/postfix-*.rpm "$tmp"/dovecot-*.rpm; do
+  (cd "$tmp" && rpm2cpio "$rpmfile" | cpio -idm --quiet ./etc/postfix/main.cf ./etc/dovecot/conf.d/10-auth.conf ./etc/dovecot/conf.d/10-mail.conf 2>/dev/null || true)
+done
+for f in /etc/postfix/main.cf /etc/dovecot/conf.d/10-auth.conf /etc/dovecot/conf.d/10-mail.conf; do
+  [ -f "$tmp$f" ] || { echo "remove-old-content: package copy of $f not found" >&2; exit 1; }
+  install -m 0644 -o root -g root "$tmp$f" "$f"
+done
+safe_rm /etc/dovecot/conf.d/10-mail.conf.save /etc/dovecot/conf.d/10-mail.conf.save.1
+systemctl disable --now dovecot 2>/dev/null || true
+postfix check
+systemctl restart postfix
+
+# ---- maildirs ----------------------------------------------------------------
+if skipped maildirs; then
+  echo "Skipping maildirs at the owner's request."
+else
+  for d in /home/*/Maildir; do
+    [ -d "$d" ] && safe_rm "$d"
+  done
+fi
+
+# ---- Requirement 4.8: accounts and sssd unchanged ------------------------------
+getent passwd | sort | diff -q - "$STATE/passwd.txt" >/dev/null || { echo "ERROR: passwd differs from the backup" >&2; exit 1; }
+getent group | sort | diff -q - "$STATE/group.txt" >/dev/null || { echo "ERROR: group differs from the backup" >&2; exit 1; }
+sha256sum -c "$STATE/accounts.sha256" --quiet || { echo "ERROR: /etc/shadow, passwd or group changed" >&2; exit 1; }
+if [ -s "$STATE/sssd.sha256" ]; then
+  sha256sum -c "$STATE/sssd.sha256" --quiet || { echo "ERROR: sssd configuration changed" >&2; exit 1; }
+fi
+echo "OS user accounts and sssd configuration are identical to the backup."
+echo "Removal complete."

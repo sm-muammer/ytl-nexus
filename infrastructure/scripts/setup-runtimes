@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# setup-runtimes: task 4.5 (requirements 4.13 to 4.15). Runs on the server.
+#
+#   setup-runtimes node      Node.js 24 from the AppStream module (ADR 0002)
+#   setup-runtimes php       PHP 8.3 from the AppStream module, replacing Remi PHP 8.1 (decision D-009)
+#   setup-runtimes mariadb   bind MariaDB to 127.0.0.1 and node_exporter to 127.0.0.1
+#   setup-runtimes disk      format and mount /dev/sdb at /srv/nexus-transfer, only if it is empty
+#
+# Run after the three gates (verify-target, verified backup, approved removal).
+
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+install_node() {
+  dnf -y module reset nodejs
+  dnf -y module enable nodejs:24
+  dnf -y install nodejs npm
+  node --version
+  npm --version
+}
+
+install_php() {
+  # The Remi 8.1 packages cannot be switched in place; remove them, then install the AppStream stream.
+  if rpm -qa 'php*' | grep -q remi; then
+    dnf -y remove 'php*'
+  fi
+  dnf -y module reset php
+  dnf -y module enable php:8.3
+  dnf -y install php-fpm php-cli php-mysqlnd php-intl php-mbstring php-xml php-gd \
+    php-pecl-zip php-opcache php-sodium
+  php --version | head -1
+  php -m | grep -E -i '^(mysqlnd|intl|mbstring|xml|gd|zip|Zend OPcache|sodium)$' | sort | tr '\n' ' '
+  echo
+  # Not started here: PHP-FPM is configured and enabled with WordPress in Task 7.
+  systemctl disable --now php-fpm 2>/dev/null || true
+}
+
+bind_loopback() {
+  cat >/etc/my.cnf.d/99-nexus.cnf <<'EOF'
+# Managed by YTL Nexus (task 4.5): MariaDB listens on loopback only (requirement 4.13).
+[mysqld]
+bind-address = 127.0.0.1
+skip-name-resolve
+EOF
+  systemctl restart mariadb
+  # node_exporter: keep the existing unit, add only the listen address.
+  local unit=/etc/systemd/system/node_exporter.service
+  if ! grep -q 'web.listen-address' "$unit"; then
+    sed -i.nexus-bak 's|^ExecStart=\(/usr/local/bin/node_exporter.*\)$|ExecStart=\1 --web.listen-address=127.0.0.1:9100|' "$unit"
+    systemctl daemon-reload
+    systemctl restart node_exporter
+  fi
+  ss -tlnp | grep -E ':(3306|9100|11434) ' || true
+}
+
+mount_disk() {
+  local dev=/dev/sdb mnt=/srv/nexus-transfer
+  if findmnt -n "$mnt" >/dev/null 2>&1; then
+    echo "$mnt is already mounted:"; findmnt "$mnt"; return 0
+  fi
+  [ -b "$dev" ] || { echo "setup-runtimes: $dev not found" >&2; exit 1; }
+  # Requirements 4.14 and 4.15: never touch a disk that holds anything.
+  if [ -n "$(lsblk -n -o NAME "$dev" | tail -n +2)" ] ||
+    [ -n "$(wipefs -n "$dev" 2>/dev/null)" ] ||
+    [ -n "$(blkid -p "$dev" 2>/dev/null)" ] ||
+    findmnt -S "$dev" >/dev/null 2>&1; then
+    echo "setup-runtimes: $dev has a partition, signature or mount. Not formatting. Report to the owner." >&2
+    lsblk -f "$dev" >&2
+    exit 1
+  fi
+  mkfs.xfs -L nexus-transfer "$dev"
+  local uuid
+  uuid="$(blkid -s UUID -o value "$dev")"
+  cp -p /etc/fstab "/etc/fstab.nexus-bak"
+  echo "UUID=$uuid $mnt xfs defaults,nosuid,nodev,noexec,nofail 0 0" >>/etc/fstab
+  mkdir -p "$mnt"
+  systemctl daemon-reload
+  mount "$mnt"
+  findmnt -o TARGET,SOURCE,FSTYPE,OPTIONS "$mnt"
+  chmod 0755 "$mnt"
+}
+
+case "${1:-}" in
+  node) install_node ;;
+  php) install_php ;;
+  mariadb) bind_loopback ;;
+  disk) mount_disk ;;
+  *) echo "usage: setup-runtimes node|php|mariadb|disk" >&2; exit 2 ;;
+esac

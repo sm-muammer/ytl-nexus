@@ -32,6 +32,11 @@ describe("verify-target (gate 1, requirements 4.1 and 4.2)", () => {
     expect(result.stdout).toContain("Target verified");
   });
 
+  it("also passes under the planned new hostname, because IP and machine ID still match", () => {
+    const result = run("ytl-nexus.ytlcomms.my", GOOD_IPS, GOOD_MACHINE_ID);
+    expect(result.status).toBe(0);
+  });
+
   it("fails when the hostname differs", () => {
     const result = run("other.ytlcomms.my", GOOD_IPS, GOOD_MACHINE_ID);
     expect(result.status).not.toBe(0);

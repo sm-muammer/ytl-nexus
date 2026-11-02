@@ -1,0 +1,57 @@
+# YTL Nexus web application (Next.js standalone server).
+# Installed as /etc/systemd/system/nexus-web.service by `setup-nexus-service`.
+# Requirements 4.13, 4.21 and 4.22. Check the sandbox with:
+#   systemd-analyze security nexus-web
+[Unit]
+Description=YTL Nexus web (Next.js)
+Documentation=https://github.com/sm-muammer/ytl-nexus
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nexus
+Group=nexus
+# `current` is a symlink to the active release; deploy.sh swaps it and restarts the unit.
+WorkingDirectory=/opt/ytl-nexus/current/.next/standalone
+EnvironmentFile=/etc/ytl-nexus/web.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+# Loopback only (requirement 4.13): Apache is the public entry point.
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=3
+
+# Graceful stop: SIGTERM, then up to 30 s for in-flight requests before SIGKILL.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Sandbox.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# V8 compiles JavaScript to machine code, so memory that is both writable and
+# executable is required; MemoryDenyWriteExecute stays off for Node.js.
+SystemCallFilter=@system-service
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+UMask=0077
+# The only writable path: the Next.js cache, linked into each release by deploy.sh.
+ReadWritePaths=/var/cache/ytl-nexus
+
+[Install]
+WantedBy=multi-user.target

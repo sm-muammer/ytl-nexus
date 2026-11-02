@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# deploy-remote [git-ref]   Run from the Mac. Default ref: HEAD.
+#
+# 1. verify-target
+# 2. installs the deploy scripts into /opt/ytl-nexus/bin on the server
+# 3. pushes the commit to the bare repository on the server (the GitHub
+#    repository is private and the server holds no GitHub credentials)
+# 4. runs deploy.sh on the server for a tag named deploy-<short-sha>
+#
+# The server builds the code itself (`npm ci && npm run build`); nothing built
+# on the Mac is copied over. Exits non-zero if the deploy fails or rolls back.
+
+set -Eeuo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SSH_TARGET="${NEXUS_SSH_TARGET:-root@10.26.64.164}"
+REF="${1:-HEAD}"
+ssh_quiet() { ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "$@" 2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2); }
+
+"$HERE/verify-target"
+
+sha="$(git rev-parse --verify "${REF}^{commit}")"
+short="$(git rev-parse --short=12 "$sha")"
+tag="deploy-$short"
+
+if [ -n "$(git status --porcelain)" ] && [ "$REF" = HEAD ]; then
+  echo "deploy-remote: note: the working tree has uncommitted changes; only the commit $short is deployed." >&2
+fi
+
+ssh_quiet 'install -d -m 755 /opt/ytl-nexus/bin'
+scp -q -o BatchMode=yes "$HERE/deploy.sh" "$HERE/rollback.sh" "$HERE/release-lib.sh" "$HERE/verify-target" \
+  "$SSH_TARGET:/opt/ytl-nexus/bin/" 2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2)
+ssh_quiet 'chmod 755 /opt/ytl-nexus/bin/*'
+
+echo "Pushing $short to the server..."
+GIT_SSH_COMMAND="ssh -o BatchMode=yes" git push -q "$SSH_TARGET:/opt/ytl-nexus/repo.git" "$sha:refs/tags/$tag" 2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2)
+
+echo "Deploying $tag..."
+ssh_quiet "/opt/ytl-nexus/bin/deploy.sh '$tag'"

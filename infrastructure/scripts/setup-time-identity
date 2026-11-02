@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# setup-time-identity: task 4.4 (requirements 4.9, 4.16). Runs on the server.
+#
+#   setup-time-identity               enable chronyd and report the identity state
+#   setup-time-identity --rename      also set the hostname to ytl-nexus.ytlcomms.my
+#
+# --rename is passed only after the owner approved it, a verified backup exists,
+# and `realm list` shows the host is not joined to a directory. If the host is
+# joined, the script adds aliases to /etc/hosts and never renames.
+
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+NEW_NAME="ytl-nexus.ytlcomms.my"
+OLD_NAME="sn1lyvx1d0002.ytlcomms.my"
+IP="10.26.64.164"
+RENAME=no
+[ "${1:-}" = "--rename" ] && RENAME=yes
+
+# --- time ---------------------------------------------------------------------
+rpm -q chrony >/dev/null 2>&1 || dnf -y install chrony
+systemctl enable --now chronyd
+echo "Waiting up to 90 seconds for chronyd to synchronise..."
+if chronyc waitsync 18 0.5 5 >/dev/null 2>&1; then
+  echo "chronyd: synchronised"
+else
+  echo "chronyd: NOT synchronised. Sources:" >&2
+  chronyc sources >&2 || true
+  echo "The default NTP pool may be blocked on this network; ask YTL IT for an internal NTP server." >&2
+fi
+timedatectl | grep -E "System clock synchronized|NTP service"
+
+# --- identity -------------------------------------------------------------------
+joined=no
+if command -v realm >/dev/null 2>&1 && [ -n "$(realm list 2>/dev/null)" ]; then
+  joined=yes
+fi
+echo "Directory joined (realm list): $joined"
+echo "sssd installed: $(rpm -q sssd 2>&1 | head -1)"
+
+hosts_line="$IP $NEW_NAME ytl-nexus $OLD_NAME sn1lyvx1d0002"
+add_hosts_aliases() {
+  if grep -q "$NEW_NAME" /etc/hosts; then return; fi
+  # Replace only the line that maps this host's own IP; every other line stays as it is.
+  sed -i.nexus-bak "s|^$IP .*|$hosts_line|" /etc/hosts
+  grep -q "$NEW_NAME" /etc/hosts || echo "$hosts_line" >>/etc/hosts
+}
+
+if [ "$joined" = yes ]; then
+  echo "Host is joined to a directory: adding aliases only, hostname unchanged."
+  add_hosts_aliases
+elif [ "$RENAME" = yes ]; then
+  hostnamectl set-hostname "$NEW_NAME"
+  add_hosts_aliases
+  echo "Hostname is now $(hostname); the old name is kept as an alias in /etc/hosts."
+else
+  echo "No rename requested; hostname stays $(hostname)."
+fi

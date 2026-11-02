@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# setup-tls: task 4.7 (requirement 4.17). Runs on the server.
+#
+# Creates the YTL Nexus internal CA and a server certificate signed by it.
+# Existing files are never overwritten; delete them on purpose to start over.
+#
+#   CA key    /etc/pki/nexus-ca/private/ca.key   0600 root   (never leaves the server)
+#   CA cert   /etc/pki/nexus-ca/ca.crt           public; install it on client machines
+#   Server    /etc/pki/nexus-ca/server.{crt,key}
+#
+# The CA carries name constraints, so even if its key leaked, a certificate for
+# any other host name or address would not be trusted by clients that honour them.
+
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+DIR=/etc/pki/nexus-ca
+umask 077
+mkdir -p "$DIR/private"
+chmod 0755 "$DIR"
+chmod 0700 "$DIR/private"
+
+if [ ! -f "$DIR/ca.crt" ]; then
+  openssl ecparam -name prime256v1 -genkey -noout -out "$DIR/private/ca.key"
+  cat >"$DIR/ca.cnf" <<'EOF'
+[req]
+distinguished_name = dn
+x509_extensions = v3_ca
+prompt = no
+[dn]
+O = YTL Nexus (internal)
+CN = YTL Nexus Internal CA
+[v3_ca]
+basicConstraints = critical, CA:TRUE, pathlen:0
+keyUsage = critical, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+nameConstraints = critical, @names
+[names]
+permitted;DNS.0 = ytl-nexus.ytlcomms.my
+permitted;DNS.1 = ytl-nexus.internal
+permitted;DNS.2 = sn1lyvx1d0002.ytlcomms.my
+permitted;IP.0 = 10.26.64.164/255.255.255.255
+EOF
+  openssl req -new -x509 -key "$DIR/private/ca.key" -sha256 -days 3650 -config "$DIR/ca.cnf" -out "$DIR/ca.crt"
+  chmod 0644 "$DIR/ca.crt"
+fi
+
+if [ ! -f "$DIR/server.crt" ]; then
+  openssl ecparam -name prime256v1 -genkey -noout -out "$DIR/server.key"
+  cat >"$DIR/server.cnf" <<'EOF'
+[req]
+distinguished_name = dn
+req_extensions = v3_req
+prompt = no
+[dn]
+O = YTL Nexus (internal)
+CN = ytl-nexus.ytlcomms.my
+[v3_req]
+subjectAltName = @sans
+[sans]
+DNS.1 = ytl-nexus.ytlcomms.my
+DNS.2 = ytl-nexus.internal
+DNS.3 = sn1lyvx1d0002.ytlcomms.my
+IP.1 = 10.26.64.164
+EOF
+  cat >"$DIR/server.ext" <<'EOF'
+basicConstraints = critical, CA:FALSE
+keyUsage = critical, digitalSignature
+extendedKeyUsage = serverAuth
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid
+subjectAltName = @sans
+[sans]
+DNS.1 = ytl-nexus.ytlcomms.my
+DNS.2 = ytl-nexus.internal
+DNS.3 = sn1lyvx1d0002.ytlcomms.my
+IP.1 = 10.26.64.164
+EOF
+  openssl req -new -key "$DIR/server.key" -config "$DIR/server.cnf" -out "$DIR/server.csr"
+  # 397 days: the longest validity that browsers accept for publicly trusted certificates, a sensible habit here too.
+  openssl x509 -req -in "$DIR/server.csr" -CA "$DIR/ca.crt" -CAkey "$DIR/private/ca.key" -CAcreateserial \
+    -sha256 -days 397 -extfile "$DIR/server.ext" -out "$DIR/server.crt"
+  rm -f "$DIR/server.csr"
+  chmod 0644 "$DIR/server.crt"
+  chmod 0600 "$DIR/server.key"
+fi
+
+openssl verify -CAfile "$DIR/ca.crt" "$DIR/server.crt"
+echo "CA SHA-256 fingerprint (compare on the client when installing):"
+openssl x509 -in "$DIR/ca.crt" -noout -fingerprint -sha256
+echo "Server certificate:"
+openssl x509 -in "$DIR/server.crt" -noout -subject -enddate -ext subjectAltName

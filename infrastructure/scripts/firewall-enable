@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# firewall-enable   Run from the Mac (requirements 4.10 and 4.11).
+#
+# 1. Starts firewalld on the server with the ssh service added first and an
+#    automatic `systemctl stop firewalld` scheduled in 5 minutes.
+# 2. Opens a NEW ssh connection (ControlMaster off, so it is a fresh login).
+# 3. Only if that login works, cancels the scheduled stop.
+#
+# If the new login fails, the script does not cancel; the server stops the
+# firewall by itself within 5 minutes and you regain access.
+
+set -Eeuo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SSH_TARGET="${NEXUS_SSH_TARGET:-root@10.26.64.164}"
+
+"$HERE/server-run" setup-firewall start
+
+echo "Testing a brand-new SSH connection..."
+if ssh -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -o ControlPath=none "$SSH_TARGET" 'echo new-connection-ok' 2>/dev/null | grep -q new-connection-ok; then
+  echo "New connection works. Cancelling the safety net."
+  ssh -o BatchMode=yes "$SSH_TARGET" '/root/nexus-ops/setup-firewall confirm' 2>/dev/null
+else
+  echo "firewall-enable: the new SSH connection FAILED. The safety net stays armed;" >&2
+  echo "firewalld will stop itself within 5 minutes. Wait, then investigate." >&2
+  exit 1
+fi

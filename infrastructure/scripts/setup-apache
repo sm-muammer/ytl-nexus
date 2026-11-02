@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# setup-apache: task 4.7 (requirements 4.17 to 4.20). Runs on the server after
+# setup-tls. Installs the YTL Nexus vhost, silences the default welcome page and
+# reloads Apache only if `httpd -t` accepts the configuration.
+#
+# Expects /root/nexus-ops/ytl-nexus.conf next to this script (uploaded by server-run).
+
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+[ -f /etc/pki/nexus-ca/server.crt ] || { echo "setup-apache: run setup-tls first" >&2; exit 1; }
+[ -f "$OPS_DIR/ytl-nexus.conf" ] || { echo "setup-apache: $OPS_DIR/ytl-nexus.conf missing" >&2; exit 1; }
+
+install -m 0644 -o root -g root "$OPS_DIR/ytl-nexus.conf" /etc/httpd/conf.d/00-ytl-nexus.conf
+
+# Disable the default welcome page (the package file stays, with its content commented out).
+if grep -q '^<LocationMatch' /etc/httpd/conf.d/welcome.conf 2>/dev/null; then
+  cp -p /etc/httpd/conf.d/welcome.conf /etc/httpd/conf.d/welcome.conf.nexus-bak.disabled
+  sed -i 's/^/# disabled by YTL Nexus: /' /etc/httpd/conf.d/welcome.conf
+fi
+
+httpd -t
+systemctl enable httpd
+systemctl reload httpd || systemctl restart httpd
+systemctl is-active httpd

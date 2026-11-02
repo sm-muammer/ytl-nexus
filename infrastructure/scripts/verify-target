@@ -14,6 +14,9 @@
 set -u
 
 EXPECTED_HOSTNAME="sn1lyvx1d0002.ytlcomms.my"
+# The planned name (Task 4.4, only if the owner approves the rename). Accepted
+# so the gate keeps working afterwards; the IP and machine ID still have to match.
+PLANNED_HOSTNAME="ytl-nexus.ytlcomms.my"
 EXPECTED_IP="10.26.64.164"
 EXPECTED_MACHINE_ID_SHA256="4c20b14f347fe4955467ce8e96767485c16d8b420d0b91c5df6f6971a0be8126"
 SSH_TARGET="${NEXUS_SSH_TARGET:-root@${EXPECTED_IP}}"
@@ -49,8 +52,8 @@ actual_hostname=$(printf '%s\n' "$facts" | sed -n '1p')
 actual_ips=$(printf '%s\n' "$facts" | sed -n '2p')
 actual_machine_id=$(printf '%s\n' "$facts" | sed -n '3p')
 
-[ "$actual_hostname" = "$EXPECTED_HOSTNAME" ] ||
-  fail "hostname is '$actual_hostname', expected '$EXPECTED_HOSTNAME'"
+[ "$actual_hostname" = "$EXPECTED_HOSTNAME" ] || [ "$actual_hostname" = "$PLANNED_HOSTNAME" ] ||
+  fail "hostname is '$actual_hostname', expected '$EXPECTED_HOSTNAME' or '$PLANNED_HOSTNAME'"
 
 ip_found=no
 for ip in $actual_ips; do
@@ -61,4 +64,4 @@ done
 [ "$(sha256_of "$actual_machine_id")" = "$EXPECTED_MACHINE_ID_SHA256" ] ||
   fail "machine ID does not match the recorded value"
 
-echo "Target verified: $EXPECTED_HOSTNAME ($EXPECTED_IP), machine ID matches."
+echo "Target verified: $actual_hostname ($EXPECTED_IP), machine ID matches."
