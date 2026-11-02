@@ -68,7 +68,7 @@ describe("proxy in Live_Mode", () => {
       expect(res.status, path).toBe(200);
       expect(res.headers.get("location")).toBeNull();
       const rewrite = new URL(res.headers.get("x-middleware-rewrite") ?? "");
-      expect(rewrite.pathname).toBe("/not-a-route");
+      expect(rewrite.pathname).toMatch(/^\/not-a-route\/?$/);
     }
   });
 

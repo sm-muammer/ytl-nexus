@@ -55,7 +55,13 @@ export function proxy(request: NextRequest) {
     : request.cookies.has(DEMO_ROLE_COOKIE);
 
   if (isHiddenPath(pathname) && !hasSession) {
-    return NextResponse.rewrite(new URL(UNKNOWN_PATH, request.url));
+    // Clone the incoming URL instead of building one from request.url: behind
+    // Apache the scheme and port can differ, and a rewrite to another origin is
+    // fetched as an external request (a 500 on Nexus Core 01).
+    const url = request.nextUrl.clone();
+    url.pathname = UNKNOWN_PATH;
+    url.search = "";
+    return NextResponse.rewrite(url);
   }
 
   if (live && isProtectedPath(pathname) && !hasSession) {
