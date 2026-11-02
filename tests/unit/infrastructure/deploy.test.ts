@@ -54,6 +54,7 @@ function env(overrides: Record<string, string> = {}) {
     NEXUS_VERIFY_CMD: "true",
     NEXUS_BUILD_CMD: '[ ! -e "$NEXUS_ROOT/fail-build" ]',
     NEXUS_MIGRATE_CMD: '[ ! -e "$NEXUS_ROOT/fail-migrate" ]',
+    NEXUS_GRANTS_CMD: '[ ! -e "$NEXUS_ROOT/fail-grants" ]',
     NEXUS_RESTART_CMD:
       'readlink "$NEXUS_ROOT/current" >> "$NEXUS_ROOT/restarts.log"',
     NEXUS_HEALTH_CMD: '[ -e "$NEXUS_ROOT/current/healthy" ]',
@@ -165,6 +166,30 @@ describe("deploy.sh", () => {
     expect(restarts()).toEqual([release(first)]);
   });
 
+  it("leaves current unchanged when the database grants step fails", () => {
+    const first = commit("v1", true);
+    run("deploy.sh", ["v1"]);
+    commit("v2", true);
+    fs.writeFileSync(path.join(root, "fail-grants"), "");
+    const result = run("deploy.sh", ["v2"]);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toMatch(/grants failed/i);
+    expect(current()).toBe(release(first));
+    expect(restarts()).toEqual([release(first)]);
+  });
+  it("applies grants after the migrations and before the switch", () => {
+    commit("v1", true);
+    const result = run("deploy.sh", ["v1"], {
+      NEXUS_GRANTS_CMD: 'echo "grants-ran" >> "$NEXUS_ROOT/order.log"',
+    });
+    expect(result.status).toBe(0);
+    expect(result.stderr + result.stdout).toMatch(
+      /running migrations[\s\S]*applying database grants[\s\S]*switching current/,
+    );
+    expect(fs.readFileSync(path.join(root, "order.log"), "utf8")).toBe(
+      "grants-ran\n",
+    );
+  });
   it("restores the previous release, restarts and exits non-zero when the health check fails (4.25)", () => {
     const first = commit("v1", true);
     run("deploy.sh", ["v1"]);

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# db-grants [release-dir]   Runs on the server as root; deploy.sh calls it.
+#
+# Applies the table-level grants for nexus_app and nexus_ingest after the
+# migrations, using the TypeScript source of truth (lib/server/db/provision.ts)
+# in the release being deployed. It first removes both users' old privileges, so
+# the result is exactly the documented list. Safe to repeat. Needs that release's
+# node_modules, which the build step has already installed.
+set -Eeuo pipefail
+cd "${1:-$PWD}"
+NEXUS_DB_ADMIN_SOCKET="${NEXUS_DB_ADMIN_SOCKET:-/var/lib/mysql/mysql.sock}" NEXUS_DB_NAME=ytl_nexus \
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db/provision.ts grants

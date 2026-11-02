@@ -6,10 +6,11 @@
 #
 #   1. verify-target
 #   2. create /opt/ytl-nexus/releases/<git-sha> from `git archive`
-#   3. build as the `nexus` user (npm ci && npm run build) and run migrations
+#   3. build as the `nexus` user (npm ci && npm run build), run migrations, then
+#      apply database grants as root (db-grants)
 #   4. swap the `current` symlink, restart nexus-web, wait for the health check
 #
-# A failed build or migration leaves `current` untouched and removes the
+# A failed build, migration or grants step leaves `current` untouched and removes the
 # half-built release. A failed health check puts `current` back on the previous
 # release and restarts it. Both exit non-zero.
 #
@@ -36,12 +37,21 @@ DEFAULT_BUILD_CMD='
   rm -rf .next/standalone/.next/cache
   ln -sfn "'"$NEXUS_CACHE_DIR"'/next" .next/standalone/.next/cache
 '
-# Migrations arrive in Task 5 (`npm run migrate`); until then this is a no-op.
+# Migrations run as nexus_migrate (settings in migrate.env). Skipped when the
+# project has no `migrate` script.
 DEFAULT_MIGRATE_CMD='
   if [ -r "'"$NEXUS_ENV_DIR"'/migrate.env" ]; then set -a; . "'"$NEXUS_ENV_DIR"'/migrate.env"; set +a; fi
   npm run migrate --if-present
 '
+# After the migrations, root re-applies the table grants so a table added by a
+# migration is usable by nexus_app before the new release starts (the health
+# check needs the database). Skipped when db-grants is not installed.
+DEFAULT_GRANTS_CMD='
+  grants="'"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"'/db-grants"
+  if [ -x "$grants" ]; then "$grants" "$PWD"; fi
+'
 NEXUS_BUILD_CMD="${NEXUS_BUILD_CMD:-$DEFAULT_BUILD_CMD}"
+NEXUS_GRANTS_CMD="${NEXUS_GRANTS_CMD:-$DEFAULT_GRANTS_CMD}"
 NEXUS_MIGRATE_CMD="${NEXUS_MIGRATE_CMD:-$DEFAULT_MIGRATE_CMD}"
 
 REF="${1:-}"
@@ -89,6 +99,12 @@ else
   if ! (cd "$RELEASE" && as_service_user "$NEXUS_MIGRATE_CMD"); then
     cleanup_failed_release
     die "migrations failed; 'current' is unchanged"
+  fi
+  log "applying database grants"
+  if ! (cd "$RELEASE" && bash -c "set -eo pipefail
+$NEXUS_GRANTS_CMD"); then
+    cleanup_failed_release
+    die "database grants failed; 'current' is unchanged"
   fi
   : >"$RELEASE/.nexus-built"
 fi

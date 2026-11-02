@@ -27,7 +27,7 @@ if [ -n "$(git status --porcelain)" ] && [ "$REF" = HEAD ]; then
 fi
 
 ssh_quiet 'install -d -m 755 /opt/ytl-nexus/bin'
-scp -q -o BatchMode=yes "$HERE/deploy.sh" "$HERE/rollback.sh" "$HERE/release-lib.sh" "$HERE/verify-target" \
+scp -q -o BatchMode=yes "$HERE/deploy.sh" "$HERE/rollback.sh" "$HERE/release-lib.sh" "$HERE/verify-target" "$HERE/db-grants" \
   "$SSH_TARGET:/opt/ytl-nexus/bin/" 2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2)
 ssh_quiet 'chmod 755 /opt/ytl-nexus/bin/*'
 

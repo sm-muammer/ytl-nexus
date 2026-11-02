@@ -7,7 +7,7 @@
 # passwords to /etc/ytl-nexus (never printed) and points the app at nexus_app.
 #
 # Table-level grants for nexus_app and nexus_ingest cannot be given before the
-# tables exist; run `setup-database-grants` after the first deploy.
+# tables exist; deploy.sh applies them (db-grants) after every migration.
 #
 # Safe to run again: existing databases, users and password files are kept.
 # Accounts are tied to 127.0.0.1 because MariaDB runs with skip-name-resolve.
@@ -101,4 +101,4 @@ GRANT ALL PRIVILEGES ON \`$db\`.* TO '$db'@'$HOST';
 SQL
 done
 mariadb_sql <<<"FLUSH PRIVILEGES;"
-echo "Databases and users are ready. Run setup-database-grants after the first deploy."
+echo "Databases and users are ready. The next deploy migrates and applies the table grants."
