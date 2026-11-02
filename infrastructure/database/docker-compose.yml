@@ -1,0 +1,19 @@
+# Local MariaDB 10.5 matching Nexus Core 01. Development and integration tests only.
+# Listens on 127.0.0.1:3307 so it never collides with a Homebrew MySQL on 3306.
+# The root password below is a throwaway for this local container, not a real secret.
+services:
+  mariadb:
+    image: mariadb:10.5
+    container_name: nexus-mariadb-test
+    environment:
+      MARIADB_ROOT_PASSWORD: local-test-root
+    ports:
+      - "127.0.0.1:3307:3306"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test:
+        ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-plocal-test-root"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

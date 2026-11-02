@@ -1,4 +1,5 @@
 import "server-only";
+import { getMode } from "./mode";
 
 export type CheckState = "ok" | "unavailable" | "not-configured";
 
@@ -12,12 +13,20 @@ export interface ReadinessResult {
 export type Probe = () => Promise<CheckState>;
 
 /**
- * The checks behind `/api/health/ready`. The database probe is added in
- * Task 5 (requirements 5.11 and 5.12); until then it reports "not-configured"
- * rather than pretending to be healthy.
+ * The checks behind `/api/health/ready`. In demo mode there is no database, so
+ * the probe says "not-configured" and makes no connection (DEMO-05). In live
+ * mode it runs `SELECT 1`; missing settings or an unreachable server make it
+ * "unavailable" through `runProbe`.
  */
 export const defaultProbes: Record<string, Probe> = {
-  database: async () => "not-configured",
+  database: async () => {
+    if (getMode() === "demo") return "not-configured";
+    const [{ getDb }, { probeDatabase }] = await Promise.all([
+      import("./db"),
+      import("./db/probe"),
+    ]);
+    return probeDatabase(getDb());
+  },
 };
 
 const DEFAULT_TIMEOUT_MS = 2000;

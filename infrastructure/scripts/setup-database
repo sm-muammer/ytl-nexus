@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# setup-database: task 5.6. Runs on the server (use server-run).
+#
+# Creates the `ytl_nexus` database and the users nexus_migrate, nexus_app and
+# nexus_ingest, plus one database and one single-database user for each of
+# nexus_mail, nexus_roundcube, nexus_sftpgo and nexus_wordpress. Writes the
+# passwords to /etc/ytl-nexus (never printed) and points the app at nexus_app.
+#
+# Table-level grants for nexus_app and nexus_ingest cannot be given before the
+# tables exist; run `setup-database-grants` after the first deploy.
+#
+# Safe to run again: existing databases, users and password files are kept.
+# Accounts are tied to 127.0.0.1 because MariaDB runs with skip-name-resolve.
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+ENV_DIR=/etc/ytl-nexus
+HOST=127.0.0.1
+umask 077
+
+# new_password: 32 hex characters, no quoting problems anywhere.
+new_password() { openssl rand -hex 16; }
+
+# env_value FILE KEY: prints the value of KEY in FILE, or nothing.
+env_value() { [ -f "$1" ] && sed -n "s/^$2=//p" "$1" | head -n1 || true; }
+
+# ensure_env FILE OWNER MODE USER_VAR PASS_VAR NAME: writes the file once.
+ensure_env() {
+  local file="$1" owner="$2" mode="$3" user="$4" name="$5" extra="${6:-}"
+  if [ ! -f "$file" ]; then
+    {
+      echo "# Written by setup-database. Rotate by deleting this file and running it again."
+      echo "NEXUS_DB_HOST=$HOST"
+      echo "NEXUS_DB_PORT=3306"
+      echo "NEXUS_DB_NAME=$name"
+      echo "NEXUS_DB_USER=$user"
+      echo "NEXUS_DB_PASSWORD=$(new_password)"
+      [ -z "$extra" ] || echo "$extra"
+    } >"$file"
+  fi
+  chown "$owner" "$file"
+  chmod "$mode" "$file"
+}
+
+ensure_env "$ENV_DIR/migrate.env" root:nexus 0640 nexus_migrate ytl_nexus
+ensure_env "$ENV_DIR/app-db.env" root:nexus 0640 nexus_app ytl_nexus
+ensure_env "$ENV_DIR/ingest.env" root:root 0600 nexus_ingest ytl_nexus
+
+# mariadb_sql: runs SQL given on stdin as the MariaDB administrator over the socket.
+mariadb_sql() { mariadb --batch --skip-column-names; }
+
+create_account() {
+  local db="$1" user="$2" password="$3"
+  mariadb_sql <<SQL
+CREATE DATABASE IF NOT EXISTS \`$db\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '$user'@'$HOST' IDENTIFIED BY '$password';
+ALTER USER '$user'@'$HOST' IDENTIFIED BY '$password';
+SQL
+}
+
+migrate_pw="$(env_value "$ENV_DIR/migrate.env" NEXUS_DB_PASSWORD)"
+app_pw="$(env_value "$ENV_DIR/app-db.env" NEXUS_DB_PASSWORD)"
+ingest_pw="$(env_value "$ENV_DIR/ingest.env" NEXUS_DB_PASSWORD)"
+
+create_account ytl_nexus nexus_migrate "$migrate_pw"
+create_account ytl_nexus nexus_app "$app_pw"
+create_account ytl_nexus nexus_ingest "$ingest_pw"
+mariadb_sql <<SQL
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'nexus_migrate'@'$HOST';
+GRANT ALL PRIVILEGES ON \`ytl_nexus\`.* TO 'nexus_migrate'@'$HOST';
+SQL
+
+# The web app reads nexus_app's settings from web.env; keep a single copy there.
+# (web.env already holds NEXUS_MODE; the database lines are appended once.)
+if ! grep -q '^NEXUS_DB_USER=' "$ENV_DIR/web.env"; then
+  {
+    echo "NEXUS_DB_HOST=$HOST"
+    echo "NEXUS_DB_PORT=3306"
+    echo "NEXUS_DB_NAME=ytl_nexus"
+    echo "NEXUS_DB_USER=nexus_app"
+    echo "NEXUS_DB_PASSWORD=$app_pw"
+  } >>"$ENV_DIR/web.env"
+fi
+chown root:nexus "$ENV_DIR/web.env"
+chmod 0640 "$ENV_DIR/web.env"
+# app-db.env only seeds web.env above and for provision; keep it root-only afterwards.
+chown root:root "$ENV_DIR/app-db.env"
+chmod 0600 "$ENV_DIR/app-db.env"
+
+# Module databases: each user can reach its own database and nothing else.
+for module in mail roundcube sftpgo wordpress; do
+  db="nexus_$module"
+  file="$ENV_DIR/$db.env"
+  ensure_env "$file" root:root 0600 "$db" "$db"
+  pw="$(env_value "$file" NEXUS_DB_PASSWORD)"
+  create_account "$db" "$db" "$pw"
+  mariadb_sql <<SQL
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$db'@'$HOST';
+GRANT ALL PRIVILEGES ON \`$db\`.* TO '$db'@'$HOST';
+SQL
+done
+mariadb_sql <<<"FLUSH PRIVILEGES;"
+echo "Databases and users are ready. Run setup-database-grants after the first deploy."

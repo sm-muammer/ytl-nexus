@@ -21,10 +21,20 @@
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
     "prepare": "husky",
     "assets:convert": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/assets/convert.ts && prettier --write assets/asset-manifest.md",
-    "assets:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/assets/check-filenames.ts"
+    "assets:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/assets/check-filenames.ts",
+    "migrate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db/migrate.ts up",
+    "migrate:down": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db/migrate.ts down",
+    "migrate:status": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db/migrate.ts status",
+    "db:seed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db/seed.ts",
+    "db:provision": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db/provision.ts",
+    "db:test:up": "docker compose -f infrastructure/database/docker-compose.yml up -d --wait",
+    "db:test:down": "docker compose -f infrastructure/database/docker-compose.yml down",
+    "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
+    "kysely": "^0.29.8",
     "motion": "^14.9.0",
+    "mysql2": "^3.24.6",
     "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
