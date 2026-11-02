@@ -19,6 +19,14 @@
 3. Ask Corporate Communications to confirm the clear space for the centred logo (Task 2 used half the logo height) and whether Yes has its own logo guideline.
 4. Optional: empty `~/.Trash/ytl-nexus-cleanup-2026-10-30` (see the deletion log). Task 2 did not need anything from it.
 
+## Task 4 in progress (2026-11-02)
+
+- **Gate 1 done:** `infrastructure/scripts/verify-target` (hostname, IP, machine-ID hash) passes against Core 01.
+- **Gate 2 done:** preflight backup `~/ytl-nexus-backups/nexus-preflight-backup-2026-11-02/` on the Mac (98 MB, 31 files, checksums match, all archives list) and `/root/nexus-preflight-backup-2026-11-02/OFFSITE-VERIFIED` on the server.
+- **Gate 3 waiting for the owner:** run `infrastructure/scripts/server-run remove-old-content --list`, show the owner, and wait for explicit approval. Nothing has been removed or changed on the server yet.
+- **Repo work committed:** deploy and rollback scripts with tests, health endpoints, standalone output, server setup scripts. Remaining after approval: run the setup scripts in the order in the task (time, runtimes, `sdb`, TLS, Apache, service user, firewall, first deploy), smoke tests, rollback drill, docs, PROGRESS.
+- **Server facts found:** outbound internet works (npm and dnf return 200); no AVX in `lscpu` flags (Westmere); `sdb` empty; `realm` and `sssd` are not installed (no directory join); chrony not installed.
+
 ## Task log
 
 ### Task 3: app shell, route groups, adapters and motion system (done 2026-11-02)
