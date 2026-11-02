@@ -61,4 +61,4 @@ Open <http://localhost:3000>.
 
 ## Ownership
 
-Built by Muammer. After the internship, the YTL Communications IT Infrastructure team owns YTL Nexus, with Logesh, Azlin and Sonu as primary owners.
+Built by Muammer.
