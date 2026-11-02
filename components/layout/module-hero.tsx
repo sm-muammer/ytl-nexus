@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AmbientField } from "@/components/motion/ambient-field";
 import { Rise } from "@/components/motion/reveal";
 import type { Accent, PageInfo } from "@/lib/navigation/modules";
 import type { Register } from "./app-shell";
@@ -14,19 +13,16 @@ const barClass: Record<Accent, string> = {
 
 /**
  * Title block with the module's sub-brand name. The public register is
- * editorial: a large serif name, optionally over the quiet particle field. The
+ * editorial: a large display name over the page backdrop. The
  * workspace register is compact: a plain heading, and a breadcrumb on child
- * pages. Particles stay out of forms, tables and Control, so `ambient` is off
- * there.
+ * pages.
  */
 export function ModuleHero({
   page,
   register,
-  ambient = false,
 }: {
   page: Pick<PageInfo, "title" | "subtitle" | "accent" | "parent">;
   register: Register;
-  ambient?: boolean;
 }) {
   if (register === "workspace") {
     return (
@@ -52,20 +48,17 @@ export function ModuleHero({
   }
 
   return (
-    <div className="border-line relative isolate overflow-hidden border-b">
-      {ambient ? (
-        <AmbientField className="absolute inset-0 -z-10 opacity-60" />
-      ) : null}
+    <div className="border-line border-b">
       <div className="px-(--spacing-gutter) py-(--spacing-section)">
         <Rise>
           <span
             aria-hidden="true"
             className={`${barClass[page.accent]} block h-1 w-14 rounded-full`}
           />
-          <h1 className="text-heading-1 mt-6 max-w-4xl font-serif font-medium tracking-tight text-balance break-words">
+          <h1 className="text-heading-1 font-display mt-6 max-w-4xl font-semibold tracking-tight text-balance break-words">
             {page.title}
           </h1>
-          <p className="text-muted text-lead mt-5 max-w-(--spacing-prose) text-pretty">
+          <p className="text-ink/80 text-lead mt-5 max-w-(--spacing-prose) text-pretty">
             {page.subtitle}
           </p>
         </Rise>

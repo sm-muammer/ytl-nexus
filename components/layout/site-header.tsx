@@ -8,12 +8,22 @@ import {
   visibleNav,
 } from "@/lib/navigation/modules";
 import type { NexusMode } from "@/lib/server/mode";
-import { ModeStrip } from "./mode-strip";
+import { EnvironmentBadge } from "@/components/ui/environment-badge";
+import { ROLE_LABEL } from "@/lib/roles";
 import { NavLink } from "./nav-link";
-import { NavSheet, type SheetGroup } from "./nav-sheet";
+import { NavSheet, type SessionSummary, type SheetGroup } from "./nav-sheet";
+
+// Short labels keep the bar on one line; the menu sheet uses the full names.
+const SHORT: Record<string, string> = {
+  "Nexus Status": "Status",
+  "Nexus Library": "Library",
+  "Nexus Tour": "Tour",
+  "Project Story": "Story",
+  "Yes Experience": "Yes",
+};
 
 const linkClass =
-  "text-muted hover:text-ink aria-[current=page]:text-ink inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium transition-colors duration-(--duration-fast)";
+  "text-muted hover:text-ink aria-[current=page]:text-ink inline-flex whitespace-nowrap min-h-11 items-center rounded-md px-3 text-sm font-medium transition-colors duration-(--duration-fast)";
 
 /**
  * Banner landmark for both registers: brand, global navigation, the module
@@ -37,8 +47,20 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
       })),
   })).filter((g) => g.items.length > 0);
 
+  const demo = mode === "demo";
+  const session: SessionSummary | null = actor
+    ? {
+        kicker: demo ? "Demo session" : "Signed in",
+        name: ROLE_LABEL[actor.role],
+        initial: ROLE_LABEL[actor.role].charAt(0),
+        demo,
+      }
+    : demo
+      ? { kicker: "Demo session", name: "Not signed in", initial: null, demo }
+      : null;
+
   return (
-    <header className="border-line bg-canvas border-b">
+    <header className="border-line bg-canvas/70 relative z-(--z-sticky) border-b backdrop-blur-md">
       <div className="max-w-page mx-auto flex w-full items-center gap-3 px-(--spacing-gutter) py-3">
         <Link
           href="/"
@@ -54,7 +76,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
           <span aria-hidden="true" className="bg-border-strong h-6 w-px" />
           <span
             aria-hidden="true"
-            className="font-serif text-xl font-medium tracking-tight"
+            className="font-display text-xl font-medium tracking-tight"
           >
             Nexus
           </span>
@@ -66,21 +88,26 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
         >
           {primary.map((item) => (
             <NavLink key={item.href} href={item.href} className={linkClass}>
-              {item.label}
+              {SHORT[item.label] ?? item.label}
             </NavLink>
           ))}
         </nav>
 
         <div className="ml-auto flex items-center gap-2 xl:ml-2">
+          <span className="hidden sm:inline-flex">
+            <EnvironmentBadge mode={mode} />
+          </span>
           {actor === null ? (
             <NavLink
               href="/signin"
-              className="border-accent-ink text-accent-ink hover:bg-surface-raised hidden min-h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors duration-(--duration-fast) md:inline-flex"
+              className="border-accent-ink text-accent-ink hover:bg-surface-raised hidden min-h-11 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors duration-(--duration-fast) md:inline-flex"
             >
               Sign in
             </NavLink>
           ) : null}
           <NavSheet
+            mode={mode}
+            session={session}
             groups={groups}
             {...(mode === "demo"
               ? { demoSession: { role: actor?.role ?? null } }
@@ -88,7 +115,6 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
           />
         </div>
       </div>
-      <ModeStrip mode={mode} actor={actor} />
     </header>
   );
 }

@@ -67,13 +67,13 @@ test.describe("particle field with full motion", () => {
 
     await page
       .getByRole("navigation", { name: "Global" })
-      .getByRole("link", { name: "Nexus Tour" })
+      .getByRole("link", { name: "Tour", exact: true })
       .click();
     await expect(page).toHaveURL(/\/tour$/);
     await expect(ribbon).toHaveAttribute("data-runs", "1");
     await page
       .getByRole("navigation", { name: "Global" })
-      .getByRole("link", { name: "Project Story" })
+      .getByRole("link", { name: "Story", exact: true })
       .click();
     await expect(ribbon).toHaveAttribute("data-runs", "2");
   });
@@ -128,7 +128,7 @@ test.describe("prefers-reduced-motion: reduce", () => {
     await page.goto("/platform");
     await page
       .getByRole("navigation", { name: "Global" })
-      .getByRole("link", { name: "Nexus Tour" })
+      .getByRole("link", { name: "Tour", exact: true })
       .click();
 
     const ribbon = page.locator("[data-signal-ribbon] > div");

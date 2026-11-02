@@ -4,5 +4,5 @@ import { ModulePage, pageMetadata } from "@/components/layout/module-page";
 export const metadata = pageMetadata("/yes");
 
 export default function YesPage() {
-  return <ModulePage path="/yes" register="public" ambient />;
+  return <ModulePage path="/yes" register="public" />;
 }

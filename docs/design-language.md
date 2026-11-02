@@ -14,7 +14,7 @@
 
 Shared identity: one animated **signal ribbon** connects modules during route transitions.
 
-Both registers use the same dark theme and tokens; they differ in layout and decoration. Public pages have a roomy header, a large serif title over a quiet particle field and a text-link navigation. Workspace pages add a module sidebar from 1024 px, a compact title with a breadcrumb, and no particles. Every page shows the environment badge, the Live or Demo data label and the current session in a strip under the header. The full module directory opens from the "All modules" button (the "Menu" button below 768 px) in a modal dialog.
+The dark theme is a deep navy ink, not flat black, and every route has its own backdrop (see "Backdrops" in [`design/motion.md`](design/motion.md)). Both registers use the same dark theme and tokens; they differ in layout and decoration. Public pages have a roomy header, a large serif title over a quiet particle field and a text-link navigation. Workspace pages add a module sidebar from 1024 px, a compact title with a breadcrumb, and no particles. Every page shows the Demo or Live mode badge in the header, an avatar chip with the current session ("Demo session, Administrator"), and the Live or Demo data label in the footer. The full module directory opens from the "All modules" button (the "Menu" button below 768 px) in a modal dialog.
 
 ## 2. Colour roles
 
@@ -34,7 +34,7 @@ Tokens live in `app/globals.css` (Tailwind v4 `@theme`): theme roles `--nx-*` fo
 ## 3. Typography
 
 - Fonts must be open-licence. The Soho fonts embedded in the YTL guideline are not licensed for web use here.
-- Chosen (Task 2, decision D-012): Fraunces for public headings, Geist for UI, Geist Mono for data. All are SIL OFL 1.1 and ship in `app/fonts/` with licence files.
+- Chosen (Task 2 D-012, replaced in Task 3 by D-021): Bricolage Grotesque for headings and large display type, Figtree for interface and body text, JetBrains Mono for data, routes and code. All are SIL OFL 1.1 and ship in `app/fonts/` with licence files. Headings use weight 600 with tight tracking; Bricolage's optical-size axis is automatic.
 - Load fonts with `next/font/local` or a font npm package so server builds do not download fonts at build time.
 - Body text at least 16 px, line height about 1.5. Data tables may use 14 px.
 

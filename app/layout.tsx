@@ -8,22 +8,24 @@ import "./globals.css";
 // Open-licence variable fonts (SIL OFL 1.1) shipped in the repository, so the
 // server build never downloads fonts. Sources and licences: app/fonts/ and
 // docs/design/asset-sourcing.md.
-const geistSans = localFont({
-  src: "./fonts/geist-latin-wght-normal.woff2",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+// Bricolage Grotesque: display (headings, large numbers). Figtree: interface
+// and body text. JetBrains Mono: data, routes and code.
+const figtree = localFont({
+  src: "./fonts/figtree-latin-wght-normal.woff2",
+  variable: "--font-figtree",
+  weight: "300 900",
   display: "swap",
 });
-const geistMono = localFont({
-  src: "./fonts/geist-mono-latin-wght-normal.woff2",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const jetbrainsMono = localFont({
+  src: "./fonts/jetbrains-mono-latin-wght-normal.woff2",
+  variable: "--font-jetbrains-mono",
+  weight: "100 800",
   display: "swap",
 });
-const fraunces = localFont({
-  src: "./fonts/fraunces-latin-opsz-normal.woff2",
-  variable: "--font-fraunces",
-  weight: "100 900",
+const bricolage = localFont({
+  src: "./fonts/bricolage-grotesque-latin-opsz-normal.woff2",
+  variable: "--font-bricolage",
+  weight: "200 800",
   display: "swap",
 });
 
@@ -49,7 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${figtree.variable} ${jetbrainsMono.variable} ${bricolage.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
         <a

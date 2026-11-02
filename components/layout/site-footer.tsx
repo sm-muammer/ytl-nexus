@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { EnvironmentBadge } from "@/components/ui/environment-badge";
+import { LiveDemoLabel } from "@/components/ui/live-demo-label";
+import type { NexusMode } from "@/lib/server/mode";
 import { meetsRole, type Actor } from "@/lib/roles";
 import { FOOTER_LINKS } from "@/lib/navigation/modules";
 
@@ -10,10 +13,10 @@ const linkClass =
  * Contentinfo landmark. Every link resolves: an existing route, or an official
  * YTL or Yes page. tests/e2e/shell.spec.ts follows each one.
  */
-export function SiteFooter({ actor }: { actor: Actor }) {
+export function SiteFooter({ actor, mode }: { actor: Actor; mode: NexusMode }) {
   const links = FOOTER_LINKS.filter((l) => meetsRole(actor, l.minRole));
   return (
-    <footer className="border-line bg-surface border-t">
+    <footer className="border-line bg-surface/70 border-t backdrop-blur-md">
       <div className="max-w-page mx-auto flex w-full flex-col gap-10 px-(--spacing-gutter) py-10 lg:flex-row lg:justify-between">
         <div className="flex max-w-md flex-col gap-4">
           {/* self-start: a stretched flex item would distort the logo. */}
@@ -26,6 +29,10 @@ export function SiteFooter({ actor }: { actor: Actor }) {
             YTL Nexus is an internship project built with the YTL Communications
             IT Infrastructure team on Nexus Core 01. It is not an official YTL
             commercial product.
+          </p>
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <EnvironmentBadge mode={mode} />
+            <LiveDemoLabel source={mode === "demo" ? "demo" : "live"} />
           </p>
         </div>
         <nav aria-label="Footer">

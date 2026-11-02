@@ -5,13 +5,13 @@
 
 ## Allowed sources
 
-| Kind                   | Source                                                                                                                         | Record                                     |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
-| YTL and Yes logos      | The official press and media kit from YTL Corporate Communications. Masters live in `assets/source/` and are never overwritten | `assets/asset-manifest.md`                 |
-| Yes product imagery    | Official Yes channels (yes.my, official social accounts) or the media kit                                                      | Source URL or kit name in the manifest     |
-| Photos of the platform | Your own screenshots at 2x or larger, taken from the running Nexus (Demo mode data only)                                       | File name and capture date in the manifest |
-| Illustrations, renders | Made in this project (SVG, CSS, canvas or WebGL), or generated from the project's own data                                     | The script or component path               |
-| Fonts                  | Open-licence fonts shipped in `app/fonts/` with their licence text: Geist, Geist Mono and Fraunces (SIL Open Font License 1.1) | Licence files beside the font files        |
+| Kind                   | Source                                                                                                                                          | Record                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| YTL and Yes logos      | The official press and media kit from YTL Corporate Communications. Masters live in `assets/source/` and are never overwritten                  | `assets/asset-manifest.md`                 |
+| Yes product imagery    | Official Yes channels (yes.my, official social accounts) or the media kit                                                                       | Source URL or kit name in the manifest     |
+| Photos of the platform | Your own screenshots at 2x or larger, taken from the running Nexus (Demo mode data only)                                                        | File name and capture date in the manifest |
+| Illustrations, renders | Made in this project (SVG, CSS, canvas or WebGL), or generated from the project's own data                                                      | The script or component path               |
+| Fonts                  | Open-licence fonts shipped in `app/fonts/` with their licence text: Bricolage Grotesque, Figtree and JetBrains Mono (SIL Open Font License 1.1) | Licence files beside the font files        |
 
 ## Never allowed
 

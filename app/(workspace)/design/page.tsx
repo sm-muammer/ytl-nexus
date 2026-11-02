@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Backdrop } from "@/components/backdrop/backdrop";
 import { Logo } from "@/components/brand/logo";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { brandMasters, type BrandMaster } from "@/lib/brand/catalog";
@@ -195,8 +196,8 @@ const tokenTables = {
 } as const;
 
 const typeScale = [
-  ["text-display", "text-display font-serif"],
-  ["text-heading-1", "text-heading-1 font-serif"],
+  ["text-display", "text-display font-display"],
+  ["text-heading-1", "text-heading-1 font-display"],
   ["text-heading-2", "text-heading-2 font-semibold"],
   ["text-heading-3", "text-heading-3 font-semibold"],
   ["text-lead", "text-lead"],
@@ -209,11 +210,12 @@ export default function DesignPage() {
   const yes = brandMasters.filter((m) => m.brand === "yes");
   return (
     <div className="flex flex-col gap-20 px-(--spacing-gutter) py-(--spacing-section)">
+      <Backdrop path="/design" />
       <div className="max-w-(--spacing-prose)">
         <p className="text-accent-ink font-mono text-xs tracking-[0.3em] uppercase">
           Adaptive Nexus
         </p>
-        <h1 className="text-heading-1 mt-4 font-serif font-medium text-balance">
+        <h1 className="text-heading-1 font-display mt-4 font-semibold text-balance">
           Design reference
         </h1>
         <p className="text-muted text-lead mt-4">
@@ -301,9 +303,9 @@ export default function DesignPage() {
             Typography
           </h2>
           <p className="text-muted mt-3">
-            Fraunces for editorial headings, Geist for interface text, Geist
-            Mono for data. All three are SIL Open Font License 1.1 and are
-            served from this repository.
+            Bricolage Grotesque for headings, Figtree for interface text,
+            JetBrains Mono for data. All three are SIL Open Font License 1.1 and
+            are served from this repository.
           </p>
         </div>
         <ul className="flex flex-col gap-6">

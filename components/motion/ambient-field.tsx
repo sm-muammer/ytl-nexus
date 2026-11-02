@@ -2,66 +2,38 @@
 
 import { useEffect, useRef } from "react";
 import { MAX_DPR, PARTICLE_COUNT } from "@/lib/motion/quality";
+import type { CanvasKind } from "@/lib/navigation/scenes";
+import { createScene, type Palette } from "./scene-engine";
 import { usePageVisible } from "./use-page-visible";
 import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 import { useQualityTier } from "./use-quality-tier";
 
-// A quiet drifting-particle backdrop for public pages (design language,
-// section 4). It is decorative, hidden from assistive technology, and never
-// appears on forms, tables, Nexus Control or the mail inbox. Nexus Command
-// builds its own data-driven field in Task 8.
+// Full-viewport particle backdrop for public pages. Decorative, hidden from
+// assistive technology, and never used on forms, tables, Nexus Control or the
+// mail inbox (lib/navigation/scenes.ts keeps those pages canvas-free). Each
+// public page picks its own scene; see components/motion/scene-engine.ts.
 //
 // Behaviour, exposed through data attributes for tests:
-//   data-state   running | paused (tab hidden) | static (reduced motion)
-//   data-tier    high | medium | low
-//   data-frames  frames painted so far; static draws one frame
+//   data-state      running | paused (tab hidden) | static (reduced motion)
+//   data-tier       high | medium | low
+//   data-particles  particles in the scene
+//   data-frames     frames painted so far; static draws one frame
+//   data-scene      which scene is drawn
 
-type Particle = {
-  x: number;
-  y: number;
-  radius: number;
-  vx: number;
-  vy: number;
-  colour: 0 | 1 | 2;
-  alpha: number;
-};
+const REFERENCE_AREA = 1440 * 900;
 
-/** Small deterministic generator so the static frame is always the same. */
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function makeParticles(count: number): Particle[] {
-  const rand = mulberry32(0x4e455855);
-  return Array.from({ length: count }, () => {
-    const pick = rand();
-    return {
-      x: rand(),
-      y: rand(),
-      radius: 0.6 + rand() * 1.8,
-      vx: (rand() - 0.5) * 0.012,
-      vy: -0.004 - rand() * 0.012,
-      colour: pick < 0.4 ? 0 : pick < 0.7 ? 1 : 2,
-      alpha: 0.25 + rand() * 0.45,
-    };
-  });
-}
-
-const wrap = (v: number) => (v < 0 ? v + 1 : v > 1 ? v - 1 : v);
-
-export function AmbientField({ className }: { className?: string }) {
+export function AmbientField({
+  kind,
+  className,
+}: {
+  kind: CanvasKind;
+  className?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef(0);
   const { tier, reportFrame } = useQualityTier();
   const visible = usePageVisible();
   const reduced = usePrefersReducedMotion();
-  const count = PARTICLE_COUNT[tier];
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -70,43 +42,40 @@ export function AmbientField({ className }: { className?: string }) {
 
     // Colours come from the design tokens in globals.css, never from literals.
     const style = getComputedStyle(canvas);
-    const palette = [
-      style.getPropertyValue("--color-ytl-blue").trim(),
-      style.getPropertyValue("--color-yes-pink").trim(),
-      style.color,
-    ];
-    const particles = makeParticles(count);
+    const token = (name: string) => style.getPropertyValue(name).trim();
+    const palette: Palette = {
+      blue: token("--color-ytl-blue"),
+      pink: token("--color-yes-pink"),
+      indigo: token("--color-yes-gradient-end"),
+      violet: token("--nx-violet-ink"),
+      ink: style.color,
+    };
+
+    // Bigger screens get proportionally more particles, within limits.
+    const areaFactor = Math.min(
+      2.2,
+      Math.max(0.6, (window.innerWidth * window.innerHeight) / REFERENCE_AREA),
+    );
+    const count = Math.round(PARTICLE_COUNT[tier] * areaFactor);
     const dpr = Math.min(
       window.devicePixelRatio || 1,
       tier === "low" ? 1 : MAX_DPR,
     );
-    let width = 0;
-    let height = 0;
-
-    const paint = () => {
-      ctx.clearRect(0, 0, width, height);
-      for (const p of particles) {
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = palette[p.colour] ?? style.color;
-        ctx.beginPath();
-        ctx.arc(p.x * width, p.y * height, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    };
+    const scene = createScene(kind, ctx, palette, count, 0x4e455855);
 
     const fit = () => {
       const rect = canvas.getBoundingClientRect();
-      width = rect.width;
-      height = rect.height;
-      canvas.width = Math.max(1, Math.round(width * dpr));
-      canvas.height = Math.max(1, Math.round(height * dpr));
+      canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      canvas.height = Math.max(1, Math.round(rect.height * dpr));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      paint();
+      scene.resize(rect.width, rect.height);
+      scene.draw();
     };
 
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(canvas);
+    canvas.dataset.scene = kind;
     canvas.dataset.tier = tier;
     canvas.dataset.particles = String(count);
 
@@ -132,12 +101,8 @@ export function AmbientField({ className }: { className?: string }) {
       const delta = last === 0 ? 0 : now - last;
       last = now;
       if (delta > 0) reportFrame(delta);
-      const seconds = Math.min(delta, 50) / 1000;
-      for (const p of particles) {
-        p.x = wrap(p.x + p.vx * seconds);
-        p.y = wrap(p.y + p.vy * seconds);
-      }
-      paint();
+      scene.step(Math.min(delta, 50) / 1000);
+      scene.draw();
       framesRef.current += 1;
       canvas.dataset.frames = String(framesRef.current);
       raf = requestAnimationFrame(tick);
@@ -148,7 +113,7 @@ export function AmbientField({ className }: { className?: string }) {
       cancelAnimationFrame(raf);
       observer.disconnect();
     };
-  }, [count, tier, visible, reduced, reportFrame]);
+  }, [kind, tier, visible, reduced, reportFrame]);
 
   return (
     <canvas

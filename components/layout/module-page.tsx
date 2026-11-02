@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { Backdrop } from "@/components/backdrop/backdrop";
 import { PageTransition } from "@/components/motion/page-transition";
 import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -59,11 +60,9 @@ async function BackingStatus({ name }: { name: AdapterName }) {
 export function ModulePage({
   path,
   register,
-  ambient = false,
 }: {
   path: string;
   register: Register;
-  ambient?: boolean;
 }) {
   const page = pageInfo(path);
   const related = page.related.map(findModule);
@@ -72,7 +71,8 @@ export function ModulePage({
   return (
     <PageTransition>
       <div>
-        <ModuleHero page={page} register={register} ambient={ambient} />
+        <Backdrop path={path} />
+        <ModuleHero page={page} register={register} />
 
         <div
           className={`grid gap-x-16 gap-y-12 px-(--spacing-gutter) lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] ${

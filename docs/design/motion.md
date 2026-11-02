@@ -61,3 +61,17 @@ With `prefers-reduced-motion: reduce`:
 `AmbientField` publishes `data-state` (`running`, `paused`, `static`), `data-tier`, `data-particles` and `data-frames`. Reveal elements carry `data-reveal`, and the ribbon carries `data-signal-ribbon` with `data-runs`. `tests/e2e/motion.spec.ts` uses them. Axe measures contrast mid-fade, so end-to-end tests wait for every `[data-reveal]` to reach opacity 1 before scanning (`settle()` in `tests/e2e/helpers.ts`).
 
 Related: [Design language](../design-language.md) · [Structure](../structure.md)
+
+## Backdrops
+
+Every route has its own backdrop, registered in `lib/navigation/scenes.ts` and rendered by `components/backdrop/backdrop.tsx` as a fixed layer behind the page. A backdrop stacks up to three layers:
+
+| Layer   | What                                                                                                                                                      | Where it lives                      |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Tint    | Three coloured lights from brand tokens (`.nx-tint-*`): aurora, network, atlas, ember, orbit, signal, library, blossom, violet, flow, mail, shield, quiet | `app/globals.css`                   |
+| Pattern | Line work that fades toward the content (`.nx-pat-*`): grid, dots, rings, hex, lines, graph                                                               | `app/globals.css`                   |
+| Canvas  | A particle scene: aurora with bokeh, constellation, embers, orbit, signal waves, dust, petals                                                             | `components/motion/scene-engine.ts` |
+
+Public pages get all three, with a different canvas each: Home aurora, Platform constellation, Story embers, Tour orbit, Status waves, Library dust, Yes Experience petals. Sign in, every workspace page and Nexus Control get a tint and pattern only, so forms, tables, the inbox and Control never carry particles (Requirement 3.14). `tests/unit/scenes.test.ts` enforces this and that no two routes share a combination.
+
+Scenes are deterministic simulations built from a seed, drawn with pre-rendered glow sprites. Colours are read from tokens at start. Under reduced motion each draws one static frame.

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AmbientField } from "@/components/motion/ambient-field";
+import { Backdrop } from "@/components/backdrop/backdrop";
 import { PageTransition } from "@/components/motion/page-transition";
 import { Rise } from "@/components/motion/reveal";
 import { MODULES } from "@/lib/navigation/modules";
@@ -18,24 +18,20 @@ export default function HomePage() {
   return (
     <PageTransition>
       <div>
+        <Backdrop path="/" />
         <section
           aria-labelledby="home-title"
-          className="border-line relative isolate flex min-h-[70dvh] flex-col justify-center overflow-hidden border-b"
+          className="border-line flex min-h-[78dvh] flex-col justify-center border-b"
         >
-          <AmbientField className="absolute inset-0 -z-10" />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60rem_40rem_at_85%_5%,color-mix(in_oklab,var(--color-ytl-blue)_22%,transparent),transparent_70%),radial-gradient(50rem_36rem_at_0%_100%,color-mix(in_oklab,var(--color-yes-pink)_16%,transparent),transparent_70%)]"
-          />
           <div className="px-(--spacing-gutter) py-(--spacing-section)">
             <Rise>
               <h1
                 id="home-title"
-                className="text-display font-serif font-medium tracking-tight text-balance"
+                className="text-display font-display font-semibold tracking-tight text-balance"
               >
                 YTL Nexus
               </h1>
-              <p className="text-muted text-lead mt-6 max-w-2xl text-pretty">
+              <p className="text-ink/80 text-lead mt-6 max-w-2xl text-pretty">
                 One platform for infrastructure, intelligence and digital
                 services. An internship project built with the YTL
                 Communications IT Infrastructure team.
@@ -59,7 +55,7 @@ export default function HomePage() {
           <div className="lg:sticky lg:top-8 lg:self-start">
             <h2
               id="modules-heading"
-              className="text-heading-2 font-serif font-medium"
+              className="text-heading-2 font-display font-semibold"
             >
               Modules
             </h2>
@@ -77,7 +73,7 @@ export default function HomePage() {
             {MODULES.map((m) => {
               const body = (
                 <>
-                  <span className="text-heading-3 font-serif font-medium">
+                  <span className="text-heading-3 font-display font-semibold">
                     {m.name}
                   </span>
                   <span className="text-muted text-data sm:text-right">

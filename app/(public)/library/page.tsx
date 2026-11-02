@@ -4,5 +4,5 @@ import { ModulePage, pageMetadata } from "@/components/layout/module-page";
 export const metadata = pageMetadata("/library");
 
 export default function LibraryPage() {
-  return <ModulePage path="/library" register="public" ambient />;
+  return <ModulePage path="/library" register="public" />;
 }

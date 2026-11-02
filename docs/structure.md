@@ -21,8 +21,9 @@ ytl-nexus/
 ├── assets/source/               # Approved YTL and Yes master assets plus checksums
 ├── assets/asset-manifest.md     # Generated record of every converted brand asset
 ├── components/
+│   ├── backdrop/                # Per-route page backdrop (tint, pattern, particle canvas)
 │   ├── brand/                   # Logo
-│   ├── layout/                  # AppShell, header, mode strip, menu sheet, sidebar, footer, ModulePage, ModuleHero
+│   ├── layout/                  # AppShell, header with session chip, menu sheet, sidebar, footer, ModulePage, ModuleHero
 │   ├── motion/                  # MotionProvider, reveal primitives, SignalRibbon, PageTransition, AmbientField, hooks
 │   └── ui/                      # StatusBadge, LiveDemoLabel, EnvironmentBadge
 ├── instrumentation.ts           # Refuses to start without a valid NEXUS_MODE
@@ -30,7 +31,7 @@ ytl-nexus/
 │   ├── brand/, design/          # Brand asset catalogue, design tokens and contrast helper
 │   ├── fixtures/                # Deterministic demo data (adapter statuses, demo session)
 │   ├── motion/                  # Quality-tier and visibility rules (pure)
-│   ├── navigation/              # Module, route, navigation and footer registry
+│   ├── navigation/              # Module, route, navigation and footer registry; scenes.ts maps each route to its backdrop
 │   ├── roles.ts                 # Role model shared by menu and (from Task 6) guards
 │   └── server/                  # Server-only: mode, adapters (live and demo), session, demo-session Server Function
 ├── public/brand/                # Generated SVG logos and PNG fallbacks (committed)

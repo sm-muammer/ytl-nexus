@@ -4,6 +4,8 @@ import { useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { setDemoSession } from "@/lib/server/demo-session-actions";
 import { ROLES, ROLE_LABEL, type Role } from "@/lib/roles";
+import { EnvironmentBadge } from "@/components/ui/environment-badge";
+import type { NexusMode } from "@/lib/server/mode";
 import { NavLink } from "./nav-link";
 
 export type SheetItem = {
@@ -14,6 +16,30 @@ export type SheetItem = {
 };
 
 export type SheetGroup = { key: string; label: string; items: SheetItem[] };
+
+function Avatar({ session }: { session: SessionSummary }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`font-display grid size-9 shrink-0 place-items-center rounded-full text-base font-semibold ${
+        session.demo
+          ? "bg-pink-ink/15 text-pink-ink ring-pink-ink/40 ring-1"
+          : "bg-accent-ink/15 text-accent-ink ring-accent-ink/40 ring-1"
+      }`}
+    >
+      {session.initial ?? (
+        <svg
+          viewBox="0 0 20 20"
+          className="size-5 fill-none stroke-current stroke-[1.6]"
+          strokeLinecap="round"
+        >
+          <circle cx="10" cy="7" r="3.2" />
+          <path d="M3.5 17c.8-3.2 3.3-4.8 6.5-4.8s5.7 1.6 6.5 4.8" />
+        </svg>
+      )}
+    </span>
+  );
+}
 
 /**
  * Submit button for the demo session form. While the Server Function runs, all
@@ -47,7 +73,20 @@ function SessionButton({
   );
 }
 
+/** Who is viewing, shown on the header chip and in the menu. */
+export type SessionSummary = {
+  /** Small line above the name: "Demo session" or "Signed in". */
+  kicker: string | null;
+  name: string;
+  /** Letter on the avatar, or null for a person icon. */
+  initial: string | null;
+  demo: boolean;
+};
+
 type NavSheetProps = {
+  mode: NexusMode;
+  /** Null hides the chip (a Visitor in Live_Mode has the Sign in link). */
+  session: SessionSummary | null;
   groups: SheetGroup[];
   /** Present in Demo_Mode only: the role the presenter is viewing as, or null. */
   demoSession?: { role: Role | null };
@@ -60,7 +99,12 @@ type NavSheetProps = {
  * traps focus, closes on Escape and marks the page behind it inert; focus goes
  * back to the button that opened it.
  */
-export function NavSheet({ groups, demoSession }: NavSheetProps) {
+export function NavSheet({
+  mode,
+  session,
+  groups,
+  demoSession,
+}: NavSheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
 
@@ -72,6 +116,27 @@ export function NavSheet({ groups, demoSession }: NavSheetProps) {
 
   return (
     <>
+      {session ? (
+        <button
+          type="button"
+          onClick={open}
+          aria-haspopup="dialog"
+          data-session-label
+          className="border-line bg-surface/60 hover:bg-surface-raised/80 hidden min-h-11 items-center gap-3 rounded-full border py-1 pr-5 pl-1 text-left backdrop-blur-sm transition-colors duration-(--duration-fast) md:flex"
+        >
+          <Avatar session={session} />
+          <span className="leading-tight">
+            {session.kicker ? (
+              <span className="text-muted block text-xs whitespace-nowrap">
+                {session.kicker}
+              </span>
+            ) : null}
+            <span className="block text-sm font-medium whitespace-nowrap">
+              {session.name}
+            </span>
+          </span>
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={open}
@@ -92,7 +157,7 @@ export function NavSheet({ groups, demoSession }: NavSheetProps) {
         type="button"
         onClick={open}
         aria-haspopup="dialog"
-        className="border-border-strong hover:bg-surface-raised hidden min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors duration-(--duration-fast) md:inline-flex"
+        className="border-border-strong hover:bg-surface-raised hidden min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors duration-(--duration-fast) md:inline-flex"
       >
         All modules
         <svg
@@ -121,7 +186,7 @@ export function NavSheet({ groups, demoSession }: NavSheetProps) {
           <div className="flex items-center justify-between gap-4">
             <h2
               id="nav-sheet-title"
-              className="text-heading-3 font-serif font-medium"
+              className="text-heading-3 font-display font-semibold"
             >
               All modules
             </h2>
@@ -140,6 +205,16 @@ export function NavSheet({ groups, demoSession }: NavSheetProps) {
               </svg>
               <span className="sr-only">Close menu</span>
             </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <EnvironmentBadge mode={mode} />
+            {session ? (
+              <span className="text-muted text-sm">
+                {session.kicker ? `${session.kicker}: ` : ""}
+                {session.name}
+              </span>
+            ) : null}
           </div>
 
           <nav aria-label="All modules" className="grid gap-8 sm:grid-cols-2">

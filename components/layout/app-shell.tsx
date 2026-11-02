@@ -39,7 +39,7 @@ export async function AppShell({
           {children}
         </main>
       </div>
-      <SiteFooter actor={actor} />
+      <SiteFooter actor={actor} mode={mode} />
     </div>
   );
 }

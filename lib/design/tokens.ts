@@ -17,13 +17,13 @@ export const brandColours = {
 export type ThemeName = "dark" | "light";
 
 const dark = {
-  canvas: "#0b0d10",
-  surface: "#12151a",
-  "surface-raised": "#1a1e25",
+  canvas: "#070c19",
+  surface: "#0d1526",
+  "surface-raised": "#16213a",
   ink: "#f2f4f7",
   muted: "#a3aab5",
-  line: "#232830",
-  "border-strong": "#6b7482",
+  line: "#1d2a47",
+  "border-strong": "#6d7a92",
   "accent-ink": "#00b4f0",
   "pink-ink": "#ff4fa3",
   "violet-ink": "#b58cff",
