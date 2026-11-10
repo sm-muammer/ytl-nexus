@@ -21,6 +21,19 @@ The command exits 0 only when the new release is live and healthy. Any other exi
 4. Runs `deploy.sh` on the server.
 5. Shows the server's output, including the build log.
 
+## First-time setup for authentication
+
+Once, before the first deploy that contains Task 6 (it is safe to repeat):
+
+```bash
+infrastructure/scripts/server-run setup-auth     # BETTER_AUTH_* in /etc/ytl-nexus/web.env
+infrastructure/scripts/server-run setup-apache   # installs the X-Real-IP header
+infrastructure/scripts/deploy-remote             # migrates (auth tables), grants, restarts
+infrastructure/scripts/smoke-test                # includes the access-control checks
+```
+
+Then create the first accounts as described in [Authentication](../security/auth.md#creating-accounts-first-administrator).
+
 ## What `deploy.sh` does on the server
 
 | Step | Action                                                                                                                                                           | If it fails                                                                |

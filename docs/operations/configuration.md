@@ -7,14 +7,17 @@ Variables are added to this file in the same commit that starts reading them. Se
 
 ## Variables
 
-| Variable            | Required              | Values                                                   | Used by                                                      | Secret  |
-| ------------------- | --------------------- | -------------------------------------------------------- | ------------------------------------------------------------ | ------- |
-| `NEXUS_MODE`        | Yes                   | `live` or `demo`                                         | `instrumentation.ts`, `lib/server/mode.ts`, the adapter sets | No      |
-| `NEXUS_DB_HOST`     | Live mode, migrations | host name or IP, default `127.0.0.1`                     | `lib/server/db/connection.ts`                                | No      |
-| `NEXUS_DB_PORT`     | No                    | default `3306`                                           | same                                                         | No      |
-| `NEXUS_DB_NAME`     | No                    | default `ytl_nexus`                                      | same                                                         | No      |
-| `NEXUS_DB_USER`     | Live mode, migrations | `nexus_app` for the web app, `nexus_migrate` for scripts | same                                                         | No      |
-| `NEXUS_DB_PASSWORD` | Live mode, migrations | the user's password                                      | same                                                         | **Yes** |
+| Variable                | Required              | Values                                                           | Used by                                                      | Secret  |
+| ----------------------- | --------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------ | ------- |
+| `NEXUS_MODE`            | Yes                   | `live` or `demo`                                                 | `instrumentation.ts`, `lib/server/mode.ts`, the adapter sets | No      |
+| `NEXUS_DB_HOST`         | Live mode, migrations | host name or IP, default `127.0.0.1`                             | `lib/server/db/connection.ts`                                | No      |
+| `NEXUS_DB_PORT`         | No                    | default `3306`                                                   | same                                                         | No      |
+| `NEXUS_DB_NAME`         | No                    | default `ytl_nexus`                                              | same                                                         | No      |
+| `NEXUS_DB_USER`         | Live mode, migrations | `nexus_app` for the web app, `nexus_migrate` for scripts         | same                                                         | No      |
+| `NEXUS_DB_PASSWORD`     | Live mode, migrations | the user's password                                              | same                                                         | **Yes** |
+| `BETTER_AUTH_SECRET`    | Live mode             | at least 32 characters; `setup-auth` generates 64 hex characters | `lib/server/auth/create-auth.ts`                             | **Yes** |
+| `BETTER_AUTH_URL`       | Live mode             | the public address, `https://ytl-nexus.ytlcomms.my` on Core 01   | same                                                         | No      |
+| `NEXUS_TRUSTED_ORIGINS` | No                    | comma-separated other addresses people use                       | same                                                         | No      |
 
 ### `NEXUS_MODE`
 
@@ -23,7 +26,7 @@ Chooses which of the two adapter sets the server uses ([`lib/server/adapters`](.
 | Value  | Behaviour                                                                                                                                                                                                 |
 | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `demo` | The whole UI runs on fixtures from `lib/fixtures`. No adapter opens a network or database connection. Every value carries a "Demo data" label. A demo session switcher lets a presenter view as each role |
-| `live` | Adapters talk to the real services. In Task 3 they are placeholders that report "Not connected"; each module task connects its own. Nobody is signed in until Task 6                                      |
+| `live` | Adapters talk to the real services. Authentication is real (Task 6); the others are placeholders that report "Not connected" until their module task connects them                                        |
 
 The value must be exactly `live` or `demo` (lower case, no spaces). Anything else, or no value, stops the server at start with an error that names `NEXUS_MODE` and the accepted values. The same applies to `npm run build`, because pages read the mode while building.
 
@@ -48,8 +51,18 @@ Database connection settings, read only in `live` mode (and by the scripts under
 
 For local work in live mode against the test container: `NEXUS_DB_PORT=3307`, user and password from a scratch database (see [Database](database.md#local-test-database)). Most local work uses `NEXUS_MODE=demo` and needs none of these.
 
+### Authentication
+
+`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` and `NEXUS_TRUSTED_ORIGINS` are read in `live` mode only, the first time a request needs authentication (and by `npm run auth:create-user`). A missing or invalid value gives an error that names the variable, never its value. Demo mode never reads them.
+
+- `BETTER_AUTH_URL` decides the cookie flags: an `https` address gives `Secure` cookies with the `__Secure-` prefix; plain `http` (local development, `http://localhost:3000`) gives ordinary ones.
+- `NEXUS_TRUSTED_ORIGINS` lists the other names people reach the server by (`https://ytl-nexus.internal`, the legacy name, the IP). Better Auth's origin check accepts these for its HTTP handler.
+- `BETTER_AUTH_SECRET` encrypts the stored TOTP secrets. Back it up with `web.env` and do not change it without planning to re-enrol everyone ([Authentication](../security/auth.md#the-secret)).
+
+On Core 01 run `infrastructure/scripts/server-run setup-auth` once. It appends the three lines to `/etc/ytl-nexus/web.env` (`root:nexus`, 0640), keeps any that exist and prints only the names. For local live-mode work add the same three to `.env.local`; any 32-character string is enough for the secret there.
+
 ## Demo session cookie
 
-In demo mode the session switcher stores the chosen role in the HttpOnly cookie `nexus-demo-role` (values `viewer`, `member`, `operator`, `admin`; no cookie means Visitor). Only the demo auth adapter reads it, and the Server Function that sets it does nothing in `live` mode. It is a presentation aid: it changes menus and labels and grants nothing. Real access control arrives with `requireRole()` in Task 6.
+In demo mode the session switcher stores the chosen role in the HttpOnly cookie `nexus-demo-role` (values `viewer`, `member`, `operator`, `admin`; no cookie means Visitor). Only the demo auth adapter reads it, and the Server Function that sets it does nothing in `live` mode. It is a presentation aid: it changes menus and labels and grants nothing. Real access control is the guards in `lib/server/guards.ts`, which run in both modes: demo mode enforces the same role matrix on this cookie, and never touches a database or the audit trail.
 
 Related: [Technology](../tech.md) · [Security](../security.md) · [Nexus Tour, Project Story and demo mode](../spec/22-nexus-tour-story-and-demo-mode.md)

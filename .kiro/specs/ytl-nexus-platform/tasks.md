@@ -154,41 +154,41 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
     - `docs/operations/database.md` with the optional Oracle MySQL 8 Podman procedure
     - _Requirements: 5.1, 5.2, 5.13, 5.14_
 
-- [ ] 6. Identity, roles and audit (plan Task 6)
-  - [ ]* 6.1 Write property tests for authorization and ownership
+- [x] 6. Identity, roles and audit (plan Task 6)
+  - [x]* 6.1 Write property tests for authorization and ownership
     - **Property 3: Role-matrix authorization**
     - **Property 4: Resource ownership prevents IDOR**
     - **Validates: Requirements 3.6, 6.3, 6.4, 6.11, 6.26, 6.27, 6.28**
 
-  - [ ]* 6.2 Write the property test for session validity and lockout
+  - [x]* 6.2 Write the property test for session validity and lockout
     - **Property 7: Session validity and sign-in lockout**
     - **Validates: Requirements 6.16, 6.17, 6.18**
 
-  - [ ]* 6.3 Write the property test for audit completeness
+  - [x]* 6.3 Write the property test for audit completeness
     - **Property 5: Every mutation writes exactly one audit event**
     - **Validates: Requirements 6.19, 6.20**
 
-  - [ ] 6.4 Configure Better Auth
+  - [x] 6.4 Configure Better Auth
     - Email/password, admin plugin, TOTP, rate limiting, `nextCookies()` last; four roles; `Secure`, `HttpOnly`, `SameSite=Lax`; 30 min idle and 12 h absolute expiry; session revocation; 5 failures in 15 min lock for 15 min
     - _Requirements: 6.1, 6.2, 6.15, 6.16, 6.17, 6.18_
 
-  - [ ] 6.5 Implement the policy table, guards and audit writer
+  - [x] 6.5 Implement the policy table, guards and audit writer
     - `lib/server/policy.ts` with `ROLE_RANK`; `requireRole`, `requireStepUp` (10 min); Zod on every handler; refused requests audited with no data change; `server-only` data layer with minimal DTOs
     - _Requirements: 6.3, 6.4, 6.5, 6.6, 6.10, 6.19, 6.20, 6.21, 6.22_
 
-  - [ ] 6.6 Add the proxy redirect, sign-in page and TOTP enrolment
+  - [x] 6.6 Add the proxy redirect, sign-in page and TOTP enrolment
     - Cookie-presence redirect only (never the sole check); enforced enrolment for Operator and Administrator
     - _Requirements: 6.7, 6.8, 6.9_
 
-  - [ ] 6.7 Build the `/control` shell and administrator safeguards
+  - [x] 6.7 Build the `/control` shell and administrator safeguards
     - Non-admins get the unknown-path 404 and an audit event; Step_Up required; impersonation disabled; admin password reset with no email; first-admin CLI; session revocation action
     - _Requirements: 6.10, 6.11, 6.12, 6.13, 6.14, 6.17_
 
-  - [ ] 6.8 Implement the demo auth adapter and credential separation
+  - [x] 6.8 Implement the demo auth adapter and credential separation
     - Fixture session with no auth-database connection; account model replaceable by SSO; WordPress, mail and SFTP credentials stored separately
     - _Requirements: 6.23, 6.24, 6.25_
 
-  - [ ]* 6.9 Write role-matrix e2e tests
+  - [x]* 6.9 Write role-matrix e2e tests
     - Every page, Route Handler and Server Function for Visitor and four roles; direct POSTs without session and below minimum role; IDOR attempts
     - _Requirements: 6.26, 6.27, 6.28_
 

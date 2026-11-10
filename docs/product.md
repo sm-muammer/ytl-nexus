@@ -79,15 +79,15 @@ Details: [Identity and access](spec/10-identity-and-access.md).
 
 One hostname with path routing through Apache.
 
-| Area                       | Routes                                                                                                                                                    |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Next.js public             | `/`, `/platform`, `/story`, `/tour`, `/yes/*`, `/status`, `/library/*`, `/signin`                                                                         |
-| Next.js internal reference | `/design` (Viewer and above)                                                                                                                              |
-| Next.js workspace          | `/command`, `/command/core-01`, `/command/atlas`, `/command/metrics`, `/command/services`, `/ai`, `/transfer`, `/mail`, `/data`, `/continuity`, `/shield` |
-| Next.js hidden             | `/control/*`                                                                                                                                              |
-| Next.js APIs               | `/api/auth/*`, `/api/health/live`, `/api/health/ready`, `/api/metrics/stream` (SSE), `/api/ai/chat` (SSE), `/api/revalidate` (signed POST only)           |
-| Apache, not Next.js        | `/studio/` WordPress (admin and REST only; its frontend redirects to `/`), `/webmail/` Roundcube, `/files/` SFTPGo WebClient                              |
-| Other ports                | SFTP on 2022 (SSH stays on 22); mail submission 587; IMAPS 993                                                                                            |
+| Area                       | Routes                                                                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js public             | `/`, `/platform`, `/story`, `/tour`, `/yes/*`, `/status`, `/library/*`, `/signin`                                                                                                                                               |
+| Next.js internal reference | `/design` (Viewer and above)                                                                                                                                                                                                    |
+| Next.js workspace          | `/command`, `/command/core-01`, `/command/atlas`, `/command/metrics`, `/command/services`, `/ai`, `/transfer`, `/mail`, `/data`, `/continuity`, `/shield`                                                                       |
+| Next.js hidden             | `/control/*`                                                                                                                                                                                                                    |
+| Next.js APIs               | `/api/auth/*` (Better Auth; sign-up, email flows and account administration are switched off), `/api/health/live`, `/api/health/ready`, `/api/metrics/stream` (SSE), `/api/ai/chat` (SSE), `/api/revalidate` (signed POST only) |
+| Apache, not Next.js        | `/studio/` WordPress (admin and REST only; its frontend redirects to `/`), `/webmail/` Roundcube, `/files/` SFTPGo WebClient                                                                                                    |
+| Other ports                | SFTP on 2022 (SSH stays on 22); mail submission 587; IMAPS 993                                                                                                                                                                  |
 
 `/transfer` and `/mail` are Nexus entry pages (guides, status, help). The actual file portal and webmail live at `/files/` and `/webmail/`.
 

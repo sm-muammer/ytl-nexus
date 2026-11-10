@@ -59,7 +59,7 @@ Enabling followed requirements 4.10 and 4.11: ssh added first, an automatic `sys
 
 An internal certificate authority lives in `/etc/pki/nexus-ca/` (key in `private/`, mode 0700, never copied off the server). The CA is limited by name constraints to the three host names and the IP below, so clients that honour them will not trust it for anything else. The server certificate carries the SANs `ytl-nexus.ytlcomms.my`, `ytl-nexus.internal`, `sn1lyvx1d0002.ytlcomms.my` and `10.26.64.164`, and expires **2027-12-04**; renew by deleting `server.crt` and `server.key` and running `infrastructure/scripts/server-run setup-tls` then `setup-apache`. The public CA certificate is committed as `infrastructure/tls/nexus-internal-ca.crt`. Installing it on a client is in [`../handover/ca-install.md`](../handover/ca-install.md).
 
-Apache sends HSTS, CSP, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options` and CSP `frame-ancestors` on every HTTPS response, and `Options -Indexes` applies everywhere. The CSP allows inline scripts and styles because Next.js needs them until Task 21 adds nonces.
+Apache sends HSTS, CSP, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options` and CSP `frame-ancestors` on every HTTPS response, and `Options -Indexes` applies everywhere. The CSP allows inline scripts and styles because Next.js needs them until Task 21 adds nonces. Apache also sets `X-Real-IP` to the connecting address on every proxied request, replacing any value a client sent; the audit trail and the sign-in lockout read it ([Authentication](../security/auth.md#source-address)).
 
 ## What was removed (gate 3, approved 2026-11-02)
 
@@ -89,14 +89,15 @@ To look inside: `tar -tzf var-www.tar.gz | head`. To restore one item, extract i
 
 All live in `infrastructure/scripts/`; the ones that change the server call `verify-target --local` first. `server-run <script>` verifies the target, uploads the scripts to `/root/nexus-ops` and runs one.
 
-| Script                                                                                                        | Purpose                                                             |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `verify-target`                                                                                               | Gate 1: hostname, IP and machine-ID check                           |
-| `preflight-backup`, `preflight-backup-remote`                                                                 | Gate 2: create, copy off and verify the backup                      |
-| `remove-old-content`                                                                                          | Gate 3: itemized removal (`--list`, then `--approved <backup-dir>`) |
-| `setup-time-identity`, `setup-runtimes`, `setup-tls`, `setup-apache`, `setup-nexus-service`, `setup-firewall` | Idempotent setup steps                                              |
-| `firewall-enable`, `deploy-remote`, `smoke-test`                                                              | Run from the Mac                                                    |
-| `deploy.sh`, `rollback.sh`, `release-lib.sh`                                                                  | Run on the server; see [`deploy.md`](deploy.md)                     |
+| Script                                                                                                        | Purpose                                                                        |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `verify-target`                                                                                               | Gate 1: hostname, IP and machine-ID check                                      |
+| `preflight-backup`, `preflight-backup-remote`                                                                 | Gate 2: create, copy off and verify the backup                                 |
+| `remove-old-content`                                                                                          | Gate 3: itemized removal (`--list`, then `--approved <backup-dir>`)            |
+| `setup-time-identity`, `setup-runtimes`, `setup-tls`, `setup-apache`, `setup-nexus-service`, `setup-firewall` | Idempotent setup steps                                                         |
+| `setup-auth`                                                                                                  | Task 6: adds the `BETTER_AUTH_*` settings to `web.env` (keeps existing values) |
+| `firewall-enable`, `deploy-remote`, `smoke-test`                                                              | Run from the Mac                                                               |
+| `deploy.sh`, `rollback.sh`, `release-lib.sh`                                                                  | Run on the server; see [`deploy.md`](deploy.md)                                |
 
 ## Verification record
 

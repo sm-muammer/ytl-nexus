@@ -111,6 +111,12 @@ export const DISABLED_PATHS = [
   "/admin/has-permission",
 ] as const;
 
+/**
+ * Calls that only read. Direct `auth.api` calls report no HTTP method, so the
+ * GET check alone would audit every page render's session lookup.
+ */
+const READ_ONLY_PATHS = new Set(["/get-session", "/list-sessions"]);
+
 export type AuthRuntimeOptions = {
   db: DbConfig;
   env: AuthEnv;
@@ -267,7 +273,7 @@ export function createAuthRuntime(options: AuthRuntimeOptions) {
 
       after: createAuthMiddleware(async (ctx) => {
         // Reads are not events. Admin routes are audited by Nexus Control, once per action.
-        if (ctx.method === "GET") return;
+        if (ctx.method === "GET" || READ_ONLY_PATHS.has(ctx.path)) return;
         if (ctx.path === "/sign-out" || ctx.path.startsWith("/admin/")) return;
 
         const headers = ctx.headers ?? ctx.request?.headers;

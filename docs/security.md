@@ -95,7 +95,7 @@ If a secret may have leaked: revoke or rotate it first, then remove it from the 
 
 ## Detailed security contracts
 
-- [Identity and access](spec/10-identity-and-access.md)
+- [Identity and access](spec/10-identity-and-access.md) and how it is built and operated: [Authentication, roles and audit](security/auth.md)
 - [Status and operations agent](spec/12-nexus-status-and-operations.md)
 - [Nexus Transfer](spec/16-nexus-transfer.md)
 - [Nexus Mail](spec/17-nexus-mail.md)

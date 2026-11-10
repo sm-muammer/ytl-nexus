@@ -229,6 +229,18 @@ describe("Property 7: lockout after 5 failures in 15 minutes (requirement 6.18)"
   });
 });
 
+describe("audit noise", () => {
+  it("does not write an audit row for a session lookup", async () => {
+    const u = await makeUser(h, "viewer");
+    const jar = new Jar("10.8.9.9");
+    const r = await signIn(h, jar, u.email, u.password);
+    if (r.kind !== "session") throw new Error("sign-in failed");
+    const before = (await auditRows(h)).length;
+    for (let i = 0; i < 3; i++) await resolveIdentity(h.rt, r.headers);
+    expect((await auditRows(h)).length).toBe(before);
+  });
+});
+
 describe("sessions (requirements 6.16, 6.17)", () => {
   it("ends a session idle for 30 minutes, and keeps one that is used", async () => {
     const u = await makeUser(h, "viewer");

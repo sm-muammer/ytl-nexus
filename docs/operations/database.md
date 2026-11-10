@@ -20,7 +20,7 @@ The supervisor asked for "a MySQL database with some data". Nexus Core 01 runs *
 
 ### Tables
 
-`audit_events`, `services`, `service_dependencies`, `service_checks`, `incidents`, `incident_updates`, `backup_runs`, `restore_tests`, `shield_findings`, `data_sites`, `data_assets`, `data_tickets`, `ai_chunks`, `ai_conversations`. Better Auth tables arrive with its migration in Task 6. Columns that hold a user id (`actor_id`, `opened_by`, `author_id`, `user_id`) have no foreign key until that table exists.
+`audit_events`, `services`, `service_dependencies`, `service_checks`, `incidents`, `incident_updates`, `backup_runs`, `restore_tests`, `shield_findings`, `data_sites`, `data_assets`, `data_tickets`, `ai_chunks`, `ai_conversations`. The Task 6 migration adds six more: Better Auth's `user`, `session`, `account`, `verification` and `twoFactor` (camel-case column names, as the library expects), and `auth_failures` (the sign-in lockout). `session.stepUpAt` is our own column. `incidents.opened_by`, `incident_updates.author_id` and `ai_conversations.user_id` now reference `user.id` (cleared or deleted with the user); `audit_events.actor_id` stays free text so the trail outlives an account. Tables are created by the migration, never by Better Auth's own CLI. Details: [Authentication, roles and audit](../security/auth.md).
 
 All timestamps are UTC `DATETIME(3)`. Constraints in the database, not only in code: unique slugs and tags, enum columns, foreign keys, no service depending on itself, an incident is `resolved` exactly when it has a resolution time, and JSON text columns must be valid JSON.
 
@@ -85,7 +85,7 @@ The Mac has Homebrew `mysql` (version 26.10), which conflicts with Homebrew `mar
 
 ```bash
 npm run db:test:up        # mariadb:10.5 on 127.0.0.1:3307, data in memory
-npm run test:integration  # 32 tests: migrations, seed, constraints, grants, audit, readiness
+npm run test:integration  # 61 tests: migrations, seed, constraints, grants, audit, readiness, authentication, first-admin script
 npm run db:test:down
 ```
 
