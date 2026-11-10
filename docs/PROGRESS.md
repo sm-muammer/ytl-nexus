@@ -5,28 +5,39 @@
 
 ## Current status
 
-| Item                        | Value                                                                   |
-| --------------------------- | ----------------------------------------------------------------------- |
-| Last completed              | **Task 6:** authentication, roles, audit and Control entry (2026-11-02) |
-| Next task                   | **Task 7:** headless WordPress, Nexus Studio and Nexus Library          |
-| Recommended model           | Claude Sonnet 5.5, effort **Medium**                                    |
-| Start the next session with | `Continue YTL Nexus: run Task 7`                                        |
+| Item                        | Value                                                                       |
+| --------------------------- | --------------------------------------------------------------------------- |
+| Last completed              | **Task 7:** headless WordPress, Nexus Studio and Nexus Library (2026-11-10) |
+| Next task                   | **Task 8:** monitoring pipeline and Nexus Command                           |
+| Recommended model           | Claude Sonnet 5.5, effort **Medium**                                        |
+| Start the next session with | `Continue YTL Nexus: run Task 8`                                            |
 
 ## Owner actions waiting
 
-0. **Create the first accounts (Task 6).** Run the first-admin script on the server for Logesh, Azlin, Sonu and yourself, role `admin` (command in `docs/security/auth.md`, "Creating accounts"). It prints a password once; pass it on privately. Each person sets up an authenticator app at the first sign-in and must save the backup codes. Back up `/etc/ytl-nexus/web.env`: its `BETTER_AUTH_SECRET` encrypts the stored authenticator secrets.
-1. Ask Logesh whether exact Oracle MySQL is required or MariaDB (MySQL-compatible) is fine. Task 5 documented the optional MySQL 8 Podman procedure and proved the schema works on both servers; the answer decides whether you run it (`docs/operations/database.md`).
-2. Request the official YTL and Yes media kit and any official photos you want from Logesh or YTL Corporate Communications (Task 2 used only the logo masters already supplied).
-3. Ask Corporate Communications to confirm the clear space for the centred logo (Task 2 used half the logo height) and whether Yes has its own logo guideline.
-4. Optional: empty `~/.Trash/ytl-nexus-cleanup-2026-10-30` (see the deletion log). Task 2 did not need anything from it.
-5. Install the CA on your Mac and add the hosts line, following `docs/handover/ca-install.md` (needs your password; the agent cannot do it). Check the fingerprint first.
-6. Send the DNS request in `docs/handover/dns-request.md` to YTL IT.
-7. Keep `~/ytl-nexus-backups/nexus-preflight-backup-2026-11-02/` private (it holds password hashes and a certificate key) and keep it until the team agrees the old server content is not needed.
-8. Tell the team, if anyone scraped `:9100` (node_exporter) from another host, that it is now loopback-only.
-9. Tell teammates whose `~/Maildir` was removed (11 accounts) if they ask; the copy is in the backup (`maildirs.tar.gz`).
-10. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
+0. **Studio accounts (Task 7).** On the server run `cat /root/studio-admin-password.txt`, sign in at `https://ytl-nexus.ytlcomms.my/studio/wp-login.php` from a 10.x address as `studio-admin`, set up two-factor, create editor accounts for the team (command in `docs/operations/wordpress.md`), then delete the file. Tell me if your office addresses are not in 10.0.0.0/8 so the allowed list can change.
+
+1. **Create the first accounts (Task 6).** Run the first-admin script on the server for Logesh, Azlin, Sonu and yourself, role `admin` (command in `docs/security/auth.md`, "Creating accounts"). It prints a password once; pass it on privately. Each person sets up an authenticator app at the first sign-in and must save the backup codes. Back up `/etc/ytl-nexus/web.env`: its `BETTER_AUTH_SECRET` encrypts the stored authenticator secrets.
+2. Ask Logesh whether exact Oracle MySQL is required or MariaDB (MySQL-compatible) is fine. Task 5 documented the optional MySQL 8 Podman procedure and proved the schema works on both servers; the answer decides whether you run it (`docs/operations/database.md`).
+3. Request the official YTL and Yes media kit and any official photos you want from Logesh or YTL Corporate Communications (Task 2 used only the logo masters already supplied).
+4. Ask Corporate Communications to confirm the clear space for the centred logo (Task 2 used half the logo height) and whether Yes has its own logo guideline.
+5. Optional: empty `~/.Trash/ytl-nexus-cleanup-2026-10-30` (see the deletion log). Task 2 did not need anything from it.
+6. Install the CA on your Mac and add the hosts line, following `docs/handover/ca-install.md` (needs your password; the agent cannot do it). Check the fingerprint first.
+7. Send the DNS request in `docs/handover/dns-request.md` to YTL IT.
+8. Keep `~/ytl-nexus-backups/nexus-preflight-backup-2026-11-02/` private (it holds password hashes and a certificate key) and keep it until the team agrees the old server content is not needed.
+9. Tell the team, if anyone scraped `:9100` (node_exporter) from another host, that it is now loopback-only.
+10. Tell teammates whose `~/Maildir` was removed (11 accounts) if they ask; the copy is in the backup (`maildirs.tar.gz`).
+11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 7: headless WordPress, Nexus Studio and Nexus Library (done 2026-11-10)
+
+- **Server:** `setup-wordpress` installed WP-CLI (sha512 verified), WordPress 7.1.4 at `/var/www/studio` (`/studio`), PHP-FPM pool `wordpress` (own user, `open_basedir`), Apache include plus a loopback reader on 127.0.0.1:8081, the official Two Factor plugin, our `nexus-content` plugin and `nexus-headless` theme, a read-only `nexus-reader` account with an Application Password, and 11 seed items. Verified on the server: anonymous REST gives public items only (internal id gives 404, search empty, users 404), XML-RPC, wp-config and PHP in uploads give 403, the front end redirects to `/`.
+- **App:** `lib/content` (types, audience rule, WordPress mapping with HTML sanitizer, HMAC webhook with nonce store, preview token), `lib/server/wordpress.ts` (server-only reader, fetch tags, ISR 300 s) and `lib/server/content.ts` (the only reader pages use; filters by role). Pages `/library`, `/library/[slug]` (also `?token` preview at `/library/preview`), `/story`; `POST /api/revalidate`; `GET /api/library`. Demo mode uses `lib/fixtures/content.ts`.
+- **Tests:** 434 unit (contract with mocked WordPress JSON, webhook signature, replay, window, tamper, preview token, audience leak for every type through the API) and 263 end-to-end in demo mode pass; `smoke-test` 60 passed, 0 failed. Demo: a runbook title edited with WP-CLI showed in Library 3 seconds later.
+- **Found by running it:** the pool's `open_basedir` blocked a secrets file in `/etc/ytl-nexus` (moved to `/var/lib/wordpress/secrets.php`); WP-CLI needs `memory_limit=512M` to unpack core; Prettier cannot parse the Apache include (ignored).
+- **Docs:** `docs/operations/wordpress.md`, configuration, structure, README.
+- **Not done on purpose:** the allowed-IP restriction was not tested from a non-10.x address (no such host available); `/status` notices, `/tour` steps and the AI indexing read the same module in Tasks 9, 18 and 14; WordPress updates are manual; no `next/image` use yet.
 
 ### Task 6: authentication, roles, audit and Control entry (done 2026-11-02)
 
