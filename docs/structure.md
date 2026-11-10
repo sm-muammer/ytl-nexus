@@ -23,6 +23,7 @@ ytl-nexus/
 ├── components/
 │   ├── backdrop/                # Per-route page backdrop (tint, pattern, particle canvas)
 │   ├── brand/                   # Logo
+│   ├── command/                 # Nexus Command: dashboard, particle field, charts, service table, stream hook (Task 8)
 │   ├── layout/                  # AppShell, header with session chip, menu sheet, sidebar, footer, ModulePage, ModuleHero
 │   ├── motion/                  # MotionProvider, reveal primitives, SignalRibbon, PageTransition, AmbientField, hooks
 │   └── ui/                      # StatusBadge, LiveDemoLabel, EnvironmentBadge
@@ -31,6 +32,7 @@ ytl-nexus/
 ├── lib/
 │   ├── brand/, design/          # Brand asset catalogue, design tokens and contrast helper
 │   ├── fixtures/                # Deterministic demo data (adapter statuses, demo session)
+│   ├── monitoring/              # Nexus Command rules, pure and client-safe: query allowlist, snapshot, particle model, chart geometry, stream client (Task 8)
 │   ├── motion/                  # Quality-tier and visibility rules (pure)
 │   ├── navigation/              # Module, route, navigation and footer registry; scenes.ts maps each route to its backdrop
 │   ├── roles.ts                 # Role model shared by menu and guards
@@ -39,11 +41,14 @@ ytl-nexus/
 │       ├── guards.ts            # requirePage, requireRole, requireStepUp, guardAction, guardHandler (logic in guards-core.ts)
 │       ├── identity.ts          # Who is asking, once per request (session in live mode, fixture in demo mode)
 │       ├── control-actions.ts   # Control Server Functions: reset password, end sessions
+│       ├── prometheus.ts        # The only Prometheus client; accepts query IDs from the allowlist, never PromQL (Task 8)
+│       ├── monitoring/          # Snapshot collection, the one poller and the SSE response (Task 8)
 │       └── auth/                # Better Auth setup, rules (pure), lockout, service, Server Functions; see docs/security/auth.md
 ├── public/brand/                # Generated SVG logos and PNG fallbacks (committed)
 ├── scripts/assets/              # Asset conversion and filename check
 ├── scripts/auth/                # create-user.ts: the first-admin script
 ├── scripts/e2e/                 # prepare-live.ts: throwaway database for the live end-to-end test
+├── scripts/monitoring/          # check-live.ts: runs every allowlisted query against a real Prometheus
 ├── infrastructure/              # Task 4: scripts/ (verify, backup, setup, deploy, smoke test), apache/, systemd/, tls/ (public CA certificate)
 ├── docs/                        # Canonical guides, module specs, ADRs and progress
 ├── reference/                   # Local-only inspiration and brand extras; Git ignored
@@ -106,7 +111,7 @@ ytl-nexus/
 │   ├── firewalld/
 │   ├── mail/
 │   ├── polkit/
-│   ├── prometheus/
+│   ├── prometheus/              # prometheus.yml (Task 8)
 │   ├── scripts/
 │   ├── sftpgo/
 │   └── systemd/

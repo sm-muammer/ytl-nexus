@@ -8,6 +8,8 @@ import {
 } from "@/lib/server/adapters";
 import { DEMO_ROLE_COOKIE } from "@/lib/fixtures/session";
 import { ROLES } from "@/lib/roles";
+import { createLivePrometheus } from "@/lib/server/adapters/live";
+import type { PrometheusClient } from "@/lib/server/prometheus";
 
 const noCookie = async () => undefined;
 
@@ -113,7 +115,10 @@ describe("live adapters (Live_Mode)", () => {
     const connectSpy = vi.spyOn(net, "connect");
 
     const set = createAdapters("live", { readDemoRole: noCookie });
-    for (const name of ADAPTER_NAMES.filter((n) => n !== "auth")) {
+    // auth is real since Task 6 and prometheus since Task 8 (own tests below).
+    for (const name of ADAPTER_NAMES.filter(
+      (n) => n !== "auth" && n !== "prometheus",
+    )) {
       const status = await set[name].status();
       expect(status.source).toBe("live");
       expect(status.state).toBe("warn");
@@ -122,6 +127,41 @@ describe("live adapters (Live_Mode)", () => {
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(connectSpy).not.toHaveBeenCalled();
+  });
+
+  it("report the Prometheus adapter from its answers, and never throw when it is down", async () => {
+    const answer = (value: string) =>
+      ({
+        instant: async () => [{ labels: {}, value: Number(value) }],
+        range: async () => [],
+      }) as unknown as PrometheusClient;
+    expect((await createLivePrometheus(answer("1")).status()).state).toBe("ok");
+    expect((await createLivePrometheus(answer("0")).status()).state).toBe(
+      "warn",
+    );
+
+    const down = {
+      instant: async () => {
+        throw new Error("ECONNREFUSED");
+      },
+      range: async () => {
+        throw new Error("ECONNREFUSED");
+      },
+    } as unknown as PrometheusClient;
+    const adapter = createLivePrometheus(down, () => 42);
+    expect(await adapter.status()).toMatchObject({
+      source: "live",
+      state: "bad",
+      label: "Unreachable",
+    });
+    const snap = await adapter.snapshot();
+    expect(snap).toMatchObject({
+      reachable: false,
+      takenAt: 42,
+      source: "live",
+    });
+    expect(snap.services.every((s) => s.state === "unknown")).toBe(true);
+    expect(await adapter.range("cpu_used_pct", "1h")).toBeNull();
   });
 
   it("report the auth adapter as configured or not, without a connection", async () => {

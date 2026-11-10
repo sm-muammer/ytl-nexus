@@ -256,7 +256,7 @@ type MetricsFrame = {
 };
 ```
 
-- `GET /api/metrics/stream` (SSE): `requireRole("viewer")`, max 3 open streams per session, `X-Accel-Buffering: no`. Client reconnects with backoff 1 s to 30 s. Data is stale after 3 missed intervals (15 s) and shown with a stale indicator, never as healthy.
+- `GET /api/stream/metrics` (SSE): `requireRole("viewer")`, max 3 open streams per session, `X-Accel-Buffering: no`. Client reconnects with backoff 1 s to 30 s. Data is stale after 3 missed intervals (15 s) and shown with a stale indicator, never as healthy.
 - Pages: `/command`, `/command/core-01`, `/command/metrics` (ranges 1 h, 6 h, 24 h, 7 d), `/command/services`. Charts have legend, tooltip on hover and focus, 3:1 contrast and a data-table alternative. Visitors see no host, IP or path.
 - Prometheus: loopback `:9090`, 15-day retention, scrapes node_exporter `:9100` with the systemd collector.
 - Demo adapter emits the same `MetricsFrame` shape from deterministic fixtures.

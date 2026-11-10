@@ -165,6 +165,12 @@ export const HANDLER_POLICY: readonly HandlerPolicy[] = [
     note: "Lists content already filtered for the caller's role: a Visitor receives public items only.",
   },
   {
+    id: "metrics.stream",
+    method: "GET",
+    path: "/api/stream/metrics",
+    minRole: "viewer",
+  },
+  {
     id: "auth.api",
     method: "POST",
     path: "/api/auth/[...all]",
@@ -172,6 +178,12 @@ export const HANDLER_POLICY: readonly HandlerPolicy[] = [
     note: "Better Auth applies its own checks, lockout, rate limits and audit hooks; the routes that change accounts are disabled.",
   },
 ];
+
+export function policyForHandler(id: string): HandlerPolicy {
+  const found = HANDLER_POLICY.find((h) => h.id === id);
+  if (!found) throw new Error(`No access policy is registered for ${id}`);
+  return found;
+}
 
 // ---- Server Functions ----------------------------------------------------------
 

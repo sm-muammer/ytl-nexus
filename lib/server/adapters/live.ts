@@ -4,12 +4,24 @@ import type { Actor } from "@/lib/roles";
 import { authIsConfigured, getAuthRuntime } from "@/lib/server/auth/runtime";
 import { resolveIdentity } from "@/lib/server/auth/service";
 import { identityToActor } from "@/lib/server/policy";
+import {
+  emptySnapshot,
+  type HostInfo,
+  type Snapshot,
+} from "@/lib/monitoring/snapshot";
+import { collectHost, collectSnapshot } from "@/lib/server/monitoring/collect";
+import {
+  createPrometheusClient,
+  readPrometheusConfig,
+  type PrometheusClient,
+} from "@/lib/server/prometheus";
 import type {
   AdapterName,
   AdapterStatus,
   Adapters,
   ServiceAdapter,
   AuthAdapter,
+  PrometheusAdapter,
 } from "./types";
 import { ADAPTER_NAMES } from "./types";
 
@@ -33,6 +45,64 @@ function stub(name: AdapterName): ServiceAdapter {
     name,
     source: "live",
     status: async () => notConnected(name),
+  };
+}
+
+/** Poll interval of the live metrics poller; also what "stale" is measured in. */
+export const LIVE_INTERVAL_MS = 5000;
+
+export function createLivePrometheus(
+  client: PrometheusClient = createPrometheusClient(readPrometheusConfig()),
+  now: () => number = Date.now,
+): PrometheusAdapter {
+  return {
+    name: "prometheus",
+    source: "live",
+    async status(): Promise<AdapterStatus> {
+      try {
+        const up = (await client.instant("node_up"))[0]?.value;
+        return up === 1
+          ? {
+              name: "prometheus",
+              source: "live",
+              state: "ok",
+              label: "Connected",
+              detail: "Prometheus is collecting metrics from Nexus Core 01.",
+            }
+          : {
+              name: "prometheus",
+              source: "live",
+              state: "warn",
+              label: "No data",
+              detail: "Prometheus answers but is not receiving server metrics.",
+            };
+      } catch {
+        return {
+          name: "prometheus",
+          source: "live",
+          state: "bad",
+          label: "Unreachable",
+          detail: "Prometheus does not answer.",
+        };
+      }
+    },
+    async snapshot(): Promise<Snapshot> {
+      try {
+        return await collectSnapshot(client, now(), LIVE_INTERVAL_MS);
+      } catch {
+        return emptySnapshot("live", now(), LIVE_INTERVAL_MS);
+      }
+    },
+    async range(id, range) {
+      try {
+        return await client.range(id, range);
+      } catch {
+        return null;
+      }
+    },
+    async host(): Promise<HostInfo> {
+      return collectHost(client);
+    },
   };
 }
 
@@ -71,5 +141,5 @@ export function createLiveAdapters(): Adapters {
     },
   };
 
-  return { ...base, auth };
+  return { ...base, auth, prometheus: createLivePrometheus() };
 }

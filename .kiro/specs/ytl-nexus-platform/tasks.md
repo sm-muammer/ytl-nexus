@@ -225,37 +225,37 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
   - [ ]* 8.7 Write contract tests against mocked WordPress JSON
     - _Requirements: 7.8, 7.13, 7.15_
 
-- [ ] 9. Monitoring and Nexus Command (plan Task 8)
-  - [ ]* 9.1 Write property tests for the query allowlist and poller
+- [x] 9. Monitoring and Nexus Command (plan Task 8)
+  - [x]* 9.1 Write property tests for the query allowlist and poller
     - **Property 15: Metrics query allowlist**
     - **Property 16: Poller backoff, staleness and stream cap**
     - **Validates: Requirements 8.2, 8.3, 8.4, 8.5, 8.9, 8.18**
 
-  - [ ] 9.2 Install Prometheus and rebind node_exporter
+  - [x] 9.2 Install Prometheus and rebind node_exporter
     - Official release with verified checksum, own user and unit, 127.0.0.1:9090, 15-day retention, scrape 127.0.0.1:9100 with the systemd collector; `docs/operations/monitoring.md`
     - _Requirements: 8.1_
 
-  - [ ] 9.3 Implement the PromQL allowlist adapter
+  - [x] 9.3 Implement the PromQL allowlist adapter
     - Fixed queries by ID only; unknown ID rejected, nothing sent, audit result "rejected"
     - _Requirements: 8.2, 8.3, 8.4_
 
-  - [ ] 9.4 Implement the poller and SSE stream
-    - One in-process poller at 5 s with backoff to 60 s; `/api/metrics/stream` behind `requireRole("viewer")`; 3 streams per session; client reconnect backoff 1 s to 30 s; stale after 15 s
+  - [x] 9.4 Implement the poller and SSE stream
+    - One in-process poller at 5 s with backoff to 60 s; `/api/stream/metrics` behind `requireRole("viewer")`; 3 streams per session; client reconnect backoff 1 s to 30 s; stale after 15 s
     - _Requirements: 8.5, 8.6, 8.7, 8.8, 8.9, 8.18, 8.19_
 
-  - [ ] 9.5 Build Command pages and charts
+  - [x] 9.5 Build Command pages and charts
     - `/command`, `/command/core-01`, `/command/metrics` (1 h, 6 h, 24 h, 7 d), `/command/services`; Live/Demo labels; charts with legend, focusable tooltip, 3:1 contrast and data-table alternative; no hostnames or IPs for Visitors
     - _Requirements: 8.10, 8.11, 8.12, 8.20, 8.21_
 
-  - [ ] 9.6 Build the particle field
+  - [x] 9.6 Build the particle field
     - One cluster per tracked service, health-driven colour and motion, pointer response within 100 px, tier step-down below 30 fps, static frame under reduced motion, pause when hidden
     - _Requirements: 8.13, 8.14, 8.15, 8.16, 8.17_
 
-  - [ ] 9.7 Add demo fixtures for metrics
+  - [x] 9.7 Add demo fixtures for metrics
     - Same `MetricsFrame` and SSE shape, deterministic, no Prometheus calls
     - _Requirements: 8.22_
 
-  - [ ]* 9.8 Write e2e tests for SSE and reduced motion
+  - [x]* 9.8 Write e2e tests for SSE and reduced motion
     - Reconnect, role rejection, stale indicator, static frame
     - _Requirements: 8.8, 8.16, 8.18, 8.19_
 

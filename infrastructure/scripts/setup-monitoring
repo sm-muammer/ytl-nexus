@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# setup-monitoring: task 8 (CMD-01). Runs on the server (use server-run).
+#
+#   infrastructure/scripts/server-run setup-monitoring
+#
+# Installs Prometheus from the official release (sha256 verified against the
+# published sums), as its own user with a systemd unit bound to 127.0.0.1:9090 and
+# 15 days of retention, and turns on node_exporter's systemd collector for the
+# tracked units. node_exporter stays on 127.0.0.1:9100.
+#
+# Safe to run again: the same version is not downloaded twice, the node_exporter
+# unit is changed only once (its previous version is kept as *.nexus-bak-task8),
+# and nothing is restarted when nothing changed.
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+CONF_DIR=/etc/prometheus
+DATA_DIR=/var/lib/prometheus
+UNIT=/etc/systemd/system/prometheus.service
+NODE_UNIT=/etc/systemd/system/node_exporter.service
+
+# Keep in sync with lib/monitoring/services.ts (a unit test compares them).
+TRACKED_UNITS="httpd nexus-web mariadb php-fpm postfix dovecot sftpgo ollama prometheus node_exporter chronyd"
+
+for f in prometheus.yml prometheus.service; do
+  [ -e "$OPS_DIR/$f" ] || { echo "setup-monitoring: $OPS_DIR/$f is missing (run through server-run)." >&2; exit 1; }
+done
+[ -f "$NODE_UNIT" ] || { echo "setup-monitoring: $NODE_UNIT not found. node_exporter must be installed first." >&2; exit 1; }
+
+# ---- 1. Prometheus release, checksum verified -----------------------------------
+tag="$(curl -fsS https://api.github.com/repos/prometheus/prometheus/releases/latest | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -1)"
+[ -n "$tag" ] || { echo "setup-monitoring: could not read the Prometheus version" >&2; exit 1; }
+installed="$(/usr/local/bin/prometheus --version 2>/dev/null | sed -n 's/^prometheus, version \([^ ]*\) .*/\1/p' | head -1 || true)"
+if [ "$installed" = "$tag" ]; then
+  echo "setup-monitoring: Prometheus ${tag} already installed"
+else
+  base="https://github.com/prometheus/prometheus/releases/download/v${tag}"
+  file="prometheus-${tag}.linux-amd64.tar.gz"
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL -o "$tmp/$file" "${base}/${file}"
+  curl -fsSL -o "$tmp/sha256sums.txt" "${base}/sha256sums.txt"
+  expected="$(awk -v f="$file" '$2 == f {print $1}' "$tmp/sha256sums.txt")"
+  actual="$(sha256sum "$tmp/$file" | awk '{print $1}')"
+  [ -n "$expected" ] && [ "$expected" = "$actual" ] || { echo "setup-monitoring: checksum mismatch for ${file}, nothing installed" >&2; exit 1; }
+  tar -xzf "$tmp/$file" -C "$tmp"
+  install -m 0755 -o root -g root "$tmp/prometheus-${tag}.linux-amd64/prometheus" /usr/local/bin/prometheus
+  install -m 0755 -o root -g root "$tmp/prometheus-${tag}.linux-amd64/promtool" /usr/local/bin/promtool
+  echo "setup-monitoring: Prometheus ${tag} installed, sha256 verified"
+  RESTART_PROMETHEUS=1
+fi
+
+# ---- 2. User, folders, configuration ---------------------------------------------
+id prometheus >/dev/null 2>&1 || useradd --system --shell /sbin/nologin --home-dir "$DATA_DIR" --no-create-home prometheus
+install -d -m 0750 -o root -g prometheus "$CONF_DIR"
+install -d -m 0750 -o prometheus -g prometheus "$DATA_DIR"
+if ! cmp -s "$OPS_DIR/prometheus.yml" "$CONF_DIR/prometheus.yml"; then
+  install -m 0640 -o root -g prometheus "$OPS_DIR/prometheus.yml" "$CONF_DIR/prometheus.yml"
+  RELOAD_PROMETHEUS=1
+fi
+/usr/local/bin/promtool check config "$CONF_DIR/prometheus.yml"
+command -v restorecon >/dev/null 2>&1 && restorecon -R "$CONF_DIR" "$DATA_DIR" /usr/local/bin/prometheus /usr/local/bin/promtool || true
+
+# ---- 3. systemd unit ----------------------------------------------------------------
+if ! cmp -s "$OPS_DIR/prometheus.service" "$UNIT"; then
+  install -m 0644 -o root -g root "$OPS_DIR/prometheus.service" "$UNIT"
+  systemctl daemon-reload
+  RESTART_PROMETHEUS=1
+fi
+systemctl enable prometheus >/dev/null 2>&1
+if ! systemctl is-active --quiet prometheus; then
+  systemctl start prometheus
+elif [ "${RESTART_PROMETHEUS:-0}" = 1 ]; then
+  systemctl restart prometheus
+elif [ "${RELOAD_PROMETHEUS:-0}" = 1 ]; then
+  systemctl reload prometheus
+fi
+
+# ---- 4. node_exporter: systemd collector for the tracked units -----------------------
+# node_exporter anchors the pattern itself. No "$" or backslash: systemd expands
+# "$" in ExecStart lines and treats backslashes as escapes.
+regex="($(echo "$TRACKED_UNITS" | tr ' ' '|'))[.]service"
+# node_exporter 1.4 renamed unit-whitelist to unit-include.
+flag=unit-include
+/usr/local/bin/node_exporter --help 2>&1 | grep -q -- '--collector.systemd.unit-include' || flag=unit-whitelist
+add=""
+grep -q -E -- '--collector\.systemd( |$)' "$NODE_UNIT" || add="--collector.systemd"
+grep -q -E -- '--collector\.systemd\.unit-(include|whitelist)' "$NODE_UNIT" || add="$add --collector.systemd.${flag}='${regex}'"
+if [ -z "$add" ]; then
+  echo "setup-monitoring: node_exporter already reports the tracked systemd units"
+else
+  cp -p "$NODE_UNIT" "${NODE_UNIT}.nexus-bak-task8"
+  # Append to the existing ExecStart line, keeping every flag it already has.
+  sed -i "s#^\(ExecStart=/usr/local/bin/node_exporter.*\)\$#\1 ${add}#" "$NODE_UNIT"
+  grep -q -E -- '--collector\.systemd( |$)' "$NODE_UNIT" && grep -q -E -- 'unit-(include|whitelist)' "$NODE_UNIT" || {
+    echo "setup-monitoring: could not edit the node_exporter unit; restoring" >&2
+    mv "${NODE_UNIT}.nexus-bak-task8" "$NODE_UNIT"
+    exit 1
+  }
+  systemctl daemon-reload
+  systemctl restart node_exporter
+  echo "setup-monitoring: node_exporter now reports the tracked systemd units"
+fi
+
+# ---- 5. Verify: loopback only, data arriving -------------------------------------------
+for p in 9090 9100; do
+  line=""
+  # Prometheus takes a few seconds to open its port after (re)start.
+  for _ in $(seq 1 20); do
+    line="$(ss -H -tln | awk -v p=":$p" '$4 ~ p"$" {print $4}' | head -1)"
+    [ -n "$line" ] && break
+    sleep 1
+  done
+  case "$line" in
+    127.0.0.1:*) echo "setup-monitoring: port $p listens on loopback only ($line)" ;;
+    *) echo "setup-monitoring: port $p is not on loopback only: '${line:-nothing}'" >&2; exit 1 ;;
+  esac
+done
+
+echo "setup-monitoring: waiting for the first scrape (up to 60 s)"
+ok=0
+for _ in $(seq 1 30); do
+  up="$(curl -fsS --get 'http://127.0.0.1:9090/api/v1/query' --data-urlencode 'query=up{job="node"}' 2>/dev/null | sed -n 's/.*"value":\[[^,]*,"\([01]\)"\].*/\1/p' | head -1 || true)"
+  if [ "$up" = 1 ]; then ok=1; break; fi
+  sleep 2
+done
+[ "$ok" = 1 ] || { echo "setup-monitoring: Prometheus is not scraping node_exporter (up != 1)" >&2; exit 1; }
+
+units="$(curl -fsS --get 'http://127.0.0.1:9090/api/v1/query' --data-urlencode 'query=count(node_systemd_unit_state{state="active"} == 1)' | sed -n 's/.*"value":\[[^,]*,"\([0-9]*\)"\].*/\1/p' | head -1 || true)"
+echo "setup-monitoring: node is up; active tracked units reported: ${units:-0}"
+[ "${units:-0}" -ge 1 ] || { echo "setup-monitoring: the systemd collector reports no active units yet (check 'journalctl -u node_exporter')" >&2; exit 1; }
+
+systemctl is-active prometheus node_exporter
+echo "setup-monitoring: done. Retention: 15 days. Config: $CONF_DIR/prometheus.yml"

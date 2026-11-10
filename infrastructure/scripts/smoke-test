@@ -108,7 +108,7 @@ done
 
 echo "Loopback-only listeners (on the server)"
 listeners=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "ss -H -tlnp | awk '{print \$4, \$6}'" 2>/dev/null)
-for p in 3000 3306 8081 9100 11434; do
+for p in 3000 3306 8081 9090 9100 11434; do
   line=$(printf '%s\n' "$listeners" | grep -E "[:.]$p " | head -1)
   case "$line" in
     127.0.0.1:$p* | \[::1\]:$p*) ok "port $p listens on loopback only" ;;
@@ -127,6 +127,12 @@ case "$list" in *'"audience":"internal"'*) bad "anonymous REST list contains an 
 [ "$(code https://ytl-nexus.ytlcomms.my/library 2>/dev/null)" = 200 ] && ok "/library answers 200" || bad "/library does not answer 200"
 lib=$(c https://ytl-nexus.ytlcomms.my/api/library?type=runbook 2>/dev/null)
 case "$lib" in *'"audience":"internal"'*) bad "/api/library leaks an internal item to a visitor" ;; *'"items"'*) ok "/api/library gives a visitor public items only" ;; *) bad "/api/library did not answer" ;; esac
+echo "Monitoring (Task 8)"
+[ "$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" 'curl -s -o /dev/null -w %{http_code} http://127.0.0.1:9090/-/healthy' 2>/dev/null)" = 200 ] && ok "Prometheus is healthy" || bad "Prometheus is not healthy"
+ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "curl -s --get http://127.0.0.1:9090/api/v1/query --data-urlencode 'query=up{job=\"node\"}'" 2>/dev/null | grep -q '"value":\[[^]]*"1"\]' && ok "Prometheus scrapes node_exporter" || bad "Prometheus does not scrape node_exporter"
+ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "curl -s --get http://127.0.0.1:9090/api/v1/query --data-urlencode 'query=node_systemd_unit_state{name=\"nexus-web.service\",state=\"active\"} == 1'" 2>/dev/null | grep -q 'nexus-web.service' && ok "the systemd collector reports nexus-web" || bad "the systemd collector does not report nexus-web"
+[ "$(code https://ytl-nexus.ytlcomms.my/api/stream/metrics 2>/dev/null)" = 401 ] && ok "the metrics stream refuses a Visitor (401)" || bad "the metrics stream does not answer 401 to a Visitor"
+[ "$(code https://ytl-nexus.ytlcomms.my/api/stream/metrics?q=up 2>/dev/null)" = 401 ] && ok "the metrics stream ignores a query in the URL" || bad "the metrics stream answered a query in the URL"
 echo "SSH"
 check "SSH login works with the firewall on" ssh -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -o ControlPath=none "$SSH_TARGET" true
 

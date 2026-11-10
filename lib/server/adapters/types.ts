@@ -3,6 +3,12 @@
 // shared baseline (identity plus a status probe). The task that builds each
 // module extends its own interface with the real operations.
 
+import type { RangeId, RangeQueryId } from "@/lib/monitoring/queries";
+import type {
+  HostInfo,
+  SeriesPoint,
+  Snapshot,
+} from "@/lib/monitoring/snapshot";
 import type { Actor } from "@/lib/roles";
 
 export const ADAPTER_NAMES = [
@@ -39,7 +45,14 @@ export interface ServiceAdapter {
 
 export type DbAdapter = ServiceAdapter;
 export type WordPressAdapter = ServiceAdapter;
-export type PrometheusAdapter = ServiceAdapter;
+export interface PrometheusAdapter extends ServiceAdapter {
+  /** One reading of the host and the tracked services. Never throws: an unreachable Prometheus gives `reachable: false`. */
+  snapshot(): Promise<Snapshot>;
+  /** A range series for a chart, or null when Prometheus cannot be reached. */
+  range(id: RangeQueryId, range: RangeId): Promise<SeriesPoint[] | null>;
+  /** Server identity and size, or null fields when unknown. */
+  host(): Promise<HostInfo>;
+}
 export type OllamaAdapter = ServiceAdapter;
 export type SftpgoAdapter = ServiceAdapter;
 export type OpsAdapter = ServiceAdapter;

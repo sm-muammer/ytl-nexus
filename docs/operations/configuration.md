@@ -70,6 +70,12 @@ Read in `live` mode only, by `lib/server/wordpress.ts`. Written to `/etc/ytl-nex
 - `NEXUS_WP_APP_PASSWORD`: its Application Password.
 - `NEXUS_WP_WEBHOOK_SECRET`: the shared secret for `/api/revalidate` and preview links (at least 32 characters).
 
+## Prometheus (Nexus Command)
+
+Read in `live` mode only, by `lib/server/prometheus.ts`. Optional.
+
+- `NEXUS_PROMETHEUS_URL`: where Prometheus listens, default `http://127.0.0.1:9090`. Installed by `setup-monitoring`; see [Monitoring](monitoring.md). Demo mode never connects.
+
 ## Demo session cookie
 
 In demo mode the session switcher stores the chosen role in the HttpOnly cookie `nexus-demo-role` (values `viewer`, `member`, `operator`, `admin`; no cookie means Visitor). Only the demo auth adapter reads it, and the Server Function that sets it does nothing in `live` mode. It is a presentation aid: it changes menus and labels and grants nothing. Real access control is the guards in `lib/server/guards.ts`, which run in both modes: demo mode enforces the same role matrix on this cookie, and never touches a database or the audit trail.

@@ -1,5 +1,6 @@
 import "server-only";
 import { adapterStatusFixtures } from "@/lib/fixtures/adapter-status";
+import { DEMO_HOST, demoRange, demoSnapshot } from "@/lib/fixtures/metrics";
 import { demoActor, parseDemoRole } from "@/lib/fixtures/session";
 import type { Actor } from "@/lib/roles";
 import type {
@@ -7,6 +8,7 @@ import type {
   AdapterName,
   Adapters,
   AuthAdapter,
+  PrometheusAdapter,
   ServiceAdapter,
 } from "./types";
 import { ADAPTER_NAMES } from "./types";
@@ -39,5 +41,12 @@ export function createDemoAdapters(deps: AdapterDeps): Adapters {
     },
   };
 
-  return { ...base, auth };
+  const prometheus: PrometheusAdapter = {
+    ...base.prometheus,
+    snapshot: async () => demoSnapshot(Date.now()),
+    range: async (id, range) => demoRange(id, range, Date.now()),
+    host: async () => DEMO_HOST,
+  };
+
+  return { ...base, auth, prometheus };
 }

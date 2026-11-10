@@ -238,7 +238,7 @@ Scope, roles, security and design are fixed by `docs/product.md`, `docs/tech.md`
 3. WHEN a caller requests metrics, THE Nexus_Web SHALL accept only allowlisted query IDs and SHALL NOT accept PromQL text (CMD-02).
 4. IF a requested query ID is not in the allowlist, THEN THE Nexus_Web SHALL reject the request with an error indicating an unknown query, SHALL NOT send any query to Prometheus, and SHALL record an Audit_Event with result "rejected".
 5. THE Nexus_Web SHALL run exactly one in-process poller that polls Prometheus at a fixed 5-second interval and, after a failed poll, retries with backoff doubling from 5 seconds up to a 60-second maximum (CMD-03).
-6. WHEN the poller obtains new data, THE Nexus_Web SHALL fan it out to all connected browsers over SSE at `/api/metrics/stream` (CMD-03).
+6. WHEN the poller obtains new data, THE Nexus_Web SHALL fan it out to all connected browsers over SSE at `/api/stream/metrics` (CMD-03).
 7. THE SSE route SHALL require the Viewer role or above through Role_Guard.
 8. IF a request to the SSE route has no valid session or a role below Viewer, THEN THE Nexus_Web SHALL reject it and SHALL NOT open a stream.
 9. IF a session already holds 3 open SSE connections, THEN THE Nexus_Web SHALL reject a further connection from that session with an error indicating the connection limit.
