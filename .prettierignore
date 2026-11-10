@@ -10,3 +10,6 @@ next-env.d.ts
 reference/
 yes-website-redesign/
 assets/source/
+
+# Apache include (not HTML)
+infrastructure/apache/studio.inc

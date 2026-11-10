@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# setup-wordpress: task 7 (LIB-01 to LIB-03, LIB-09). Runs on the server (use server-run).
+#
+#   infrastructure/scripts/server-run setup-wordpress
+#
+# Installs WP-CLI (checksum verified), a fresh WordPress at /var/www/studio served
+# at /studio, a PHP-FPM pool under its own user, the nexus-content plugin, the
+# headless theme and the official Two Factor plugin, then seeds the initial content.
+#
+# Safe to run again: existing secrets, the database and edited content are kept.
+# Secrets never appear on a command line or in output:
+#   /var/lib/wordpress/secrets.php  DB password, salts, webhook secret (root:wordpress 0640)
+#   /etc/ytl-nexus/web.env         NEXUS_WP_* for the Next.js server
+#   /root/studio-admin-password.txt  first administrator password (read once, then delete)
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+PUBLIC_HOST="${NEXUS_PUBLIC_HOST:-ytl-nexus.ytlcomms.my}"
+SITE_URL="https://${PUBLIC_HOST}/studio"
+WEB_ROOT=/var/www/studio
+STATE=/var/lib/wordpress
+DB_ENV=/etc/ytl-nexus/nexus_wordpress.env
+WEB_ENV=/etc/ytl-nexus/web.env
+CONFIG_INC=/var/lib/wordpress/secrets.php
+ADMIN_USER=studio-admin
+READER_USER=nexus-reader
+umask 022
+
+for f in "$DB_ENV" "$WEB_ENV"; do
+  [ -f "$f" ] || { echo "setup-wordpress: $f is missing. Run setup-database and setup-nexus-service first." >&2; exit 1; }
+done
+for f in studio.inc wordpress.conf wordpress/seed.php wordpress/seed-content.json; do
+  [ -e "$OPS_DIR/$f" ] || { echo "setup-wordpress: $OPS_DIR/$f is missing (run through server-run)." >&2; exit 1; }
+done
+
+envval() { grep -m1 "^$2=" "$1" | cut -d= -f2-; }
+add_once() { # file key value
+  if ! grep -q "^$2=" "$1"; then printf '%s=%s\n' "$2" "$3" >>"$1"; echo "setup-wordpress: added $2 to $(basename "$1")"; fi
+}
+# WP-CLI's default PHP memory limit (128M) is too small to unpack WordPress.
+WP_BIN() { php -d memory_limit=512M /usr/local/bin/wp "$@"; }
+wp() { WP_BIN --allow-root --path="$WEB_ROOT" --url="$SITE_URL" "$@"; }
+
+# ---- 1. WP-CLI, checksum verified --------------------------------------------
+if [ ! -x /usr/local/bin/wp ]; then
+  tag="$(curl -fsS https://api.github.com/repos/wp-cli/wp-cli/releases/latest | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -1)"
+  [ -n "$tag" ] || { echo "setup-wordpress: could not read the WP-CLI version" >&2; exit 1; }
+  base="https://github.com/wp-cli/wp-cli/releases/download/v${tag}"
+  tmp="$(mktemp -d)"
+  curl -fsSL -o "$tmp/wp-cli.phar" "${base}/wp-cli-${tag}.phar"
+  curl -fsSL -o "$tmp/wp-cli.phar.sha512" "${base}/wp-cli-${tag}.phar.sha512"
+  expected="$(awk '{print $1}' "$tmp/wp-cli.phar.sha512")"
+  actual="$(sha512sum "$tmp/wp-cli.phar" | awk '{print $1}')"
+  [ "$expected" = "$actual" ] || { echo "setup-wordpress: WP-CLI checksum mismatch, nothing installed" >&2; exit 1; }
+  install -m 0755 -o root -g root "$tmp/wp-cli.phar" /usr/local/bin/wp
+  rm -rf "$tmp"
+  echo "setup-wordpress: WP-CLI ${tag} installed, sha512 verified"
+fi
+
+# ---- 2. System user and state folders ------------------------------------------
+id wordpress >/dev/null 2>&1 || useradd --system --shell /sbin/nologin --home-dir "$STATE" --no-create-home wordpress
+install -d -m 0750 -o wordpress -g wordpress "$STATE" "$STATE/tmp" "$STATE/sessions"
+
+# ---- 3. PHP-FPM pool (its own user and socket) ---------------------------------
+install -m 0644 -o root -g root "$OPS_DIR/wordpress.conf" /etc/php-fpm.d/wordpress.conf
+# The stock pool runs as apache and is not needed; the pool above replaces it.
+if [ -f /etc/php-fpm.d/www.conf ]; then mv /etc/php-fpm.d/www.conf /etc/php-fpm.d/www.conf.disabled-by-nexus; fi
+php-fpm -t
+systemctl enable php-fpm
+systemctl restart php-fpm
+
+# ---- 4. WordPress core ---------------------------------------------------------
+if [ ! -f "$WEB_ROOT/wp-load.php" ]; then
+  install -d -m 0755 "$WEB_ROOT"
+  WP_BIN --allow-root core download --path="$WEB_ROOT" --locale=en_US
+fi
+
+# ---- 5. Secrets and wp-config -----------------------------------------------------
+# (The secrets file lives under the pool's open_basedir; /etc/ytl-nexus is not readable by that user.)
+if [ -f /etc/ytl-nexus/wordpress.php ] && [ ! -f "$CONFIG_INC" ]; then mv /etc/ytl-nexus/wordpress.php "$CONFIG_INC"; fi
+if [ ! -f "$CONFIG_INC" ]; then
+  umask 077
+  {
+    echo "<?php"
+    echo "// Written by setup-wordpress. Secrets for WordPress; root:wordpress 0640."
+    echo "define('DB_PASSWORD', '$(envval "$DB_ENV" NEXUS_DB_PASSWORD)');"
+    echo "define('NEXUS_WEBHOOK_SECRET', '$(openssl rand -hex 32)');"
+    for k in AUTH_KEY SECURE_AUTH_KEY LOGGED_IN_KEY NONCE_KEY AUTH_SALT SECURE_AUTH_SALT LOGGED_IN_SALT NONCE_SALT; do
+      echo "define('$k', '$(openssl rand -hex 48)');"
+    done
+  } >"$CONFIG_INC"
+  umask 022
+  echo "setup-wordpress: created $CONFIG_INC"
+fi
+chown root:wordpress "$CONFIG_INC"
+chmod 0640 "$CONFIG_INC"
+
+cat >"$WEB_ROOT/wp-config.php" <<PHP
+<?php
+// Written by setup-wordpress; do not edit by hand (rerun the script instead).
+require '/var/lib/wordpress/secrets.php';
+define('DB_NAME', '$(envval "$DB_ENV" NEXUS_DB_NAME)');
+define('DB_USER', '$(envval "$DB_ENV" NEXUS_DB_USER)');
+define('DB_HOST', '127.0.0.1');
+define('DB_CHARSET', 'utf8mb4');
+define('DB_COLLATE', '');
+\$table_prefix = 'wp_';
+define('WP_HOME', '${SITE_URL}');
+define('WP_SITEURL', '${SITE_URL}');
+define('WP_DEBUG', false);
+define('DISALLOW_FILE_EDIT', true);
+define('AUTOMATIC_UPDATER_DISABLED', true);
+define('WP_ENVIRONMENT_TYPE', 'production');
+define('NEXUS_REVALIDATE_URL', 'http://127.0.0.1:3000/api/revalidate');
+define('NEXUS_PUBLIC_URL', 'https://${PUBLIC_HOST}');
+if (!defined('ABSPATH')) { define('ABSPATH', __DIR__ . '/'); }
+require_once ABSPATH . 'wp-settings.php';
+PHP
+chown root:wordpress "$WEB_ROOT/wp-config.php"
+chmod 0640 "$WEB_ROOT/wp-config.php"
+
+# ---- 6. Apache (the include file and the loopback reader) --------------------------
+install -m 0644 -o root -g root "$OPS_DIR/studio.inc" /etc/httpd/conf.d/studio.inc
+install -m 0644 -o root -g root "$OPS_DIR/ytl-nexus.conf" /etc/httpd/conf.d/00-ytl-nexus.conf
+httpd -t
+systemctl reload httpd
+
+# ---- 7. Install WordPress (first run only) ----------------------------------------------
+if ! wp core is-installed 2>/dev/null; then
+  admin_pw="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)"
+  wp core install --title="Nexus Studio" --admin_user="$ADMIN_USER" --admin_password="$(openssl rand -hex 16)" \
+    --admin_email="${ADMIN_USER}@ytl-nexus.internal" --skip-email
+  NEXUS_PW="$admin_pw" wp eval 'wp_set_password(getenv("NEXUS_PW"), get_user_by("login", "'"$ADMIN_USER"'")->ID);'
+  (umask 077; printf 'user: %s\npassword: %s\n' "$ADMIN_USER" "$admin_pw" >/root/studio-admin-password.txt)
+  echo "setup-wordpress: first administrator '$ADMIN_USER' created. Password is in /root/studio-admin-password.txt"
+fi
+
+# ---- 8. Theme, plugins, settings -----------------------------------------------------------
+rm -rf "$WEB_ROOT/wp-content/themes/nexus-headless" "$WEB_ROOT/wp-content/plugins/nexus-content"
+cp -r "$OPS_DIR/wordpress/themes/nexus-headless" "$WEB_ROOT/wp-content/themes/"
+cp -r "$OPS_DIR/wordpress/plugins/nexus-content" "$WEB_ROOT/wp-content/plugins/"
+chown -R root:root "$WEB_ROOT/wp-content/themes/nexus-headless" "$WEB_ROOT/wp-content/plugins/nexus-content"
+wp theme activate nexus-headless
+wp plugin is-installed two-factor || wp plugin install two-factor
+wp plugin activate two-factor
+wp plugin activate nexus-content
+for p in hello akismet; do wp plugin is-installed "$p" 2>/dev/null && wp plugin delete "$p" || true; done
+for t in $(wp theme list --field=name --status=inactive); do wp theme delete "$t" || true; done
+wp rewrite structure '/%postname%/'
+wp option update blog_public 0
+wp option update users_can_register 0
+wp option update default_comment_status closed
+wp option update default_ping_status closed
+wp option update blogdescription "Content for YTL Nexus"
+
+# ---- 9. Server-to-server reader (Application Password) -----------------------------------
+if ! wp user get "$READER_USER" --field=ID >/dev/null 2>&1; then
+  wp user create "$READER_USER" "${READER_USER}@ytl-nexus.internal" --role=nexus_reader --user_pass="$(openssl rand -hex 24)"
+fi
+if ! grep -q '^NEXUS_WP_APP_PASSWORD=' "$WEB_ENV"; then
+  app_pw="$(wp user application-password create "$READER_USER" nexus-web --porcelain)"
+  umask 077
+  printf 'NEXUS_WP_APP_PASSWORD=%s\n' "$app_pw" >>"$WEB_ENV"
+  echo "setup-wordpress: reader Application Password stored in web.env"
+fi
+add_once "$WEB_ENV" NEXUS_WP_URL http://127.0.0.1:8081/studio
+add_once "$WEB_ENV" NEXUS_WP_USER "$READER_USER"
+secret="$(grep -m1 "NEXUS_WEBHOOK_SECRET" "$CONFIG_INC" | sed "s/.*', '\(.*\)');/\1/")"
+add_once "$WEB_ENV" NEXUS_WP_WEBHOOK_SECRET "$secret"
+chown root:nexus "$WEB_ENV"
+chmod 0640 "$WEB_ENV"
+
+# ---- 10. Initial content (LIB-09) ---------------------------------------------------------------
+wp eval-file "$OPS_DIR/wordpress/seed.php" "$OPS_DIR/wordpress/seed-content.json"
+
+# ---- 11. Permissions -------------------------------------------------------------------------------
+find "$WEB_ROOT" -path "$WEB_ROOT/wp-content/uploads" -prune -o -type d -exec chmod 0755 {} +
+find "$WEB_ROOT" -path "$WEB_ROOT/wp-content/uploads" -prune -o -type f ! -name wp-config.php -exec chmod 0644 {} +
+chown -R root:root "$WEB_ROOT"
+chown root:wordpress "$WEB_ROOT/wp-config.php"
+chmod 0640 "$WEB_ROOT/wp-config.php"
+install -d -m 0755 -o wordpress -g wordpress "$WEB_ROOT/wp-content/uploads"
+
+systemctl restart nexus-web 2>/dev/null || true
+echo "setup-wordpress: done. Sign-in page: ${SITE_URL}/wp-login.php (allowed addresses only)."
+sed -n 's/^\(NEXUS_WP_[A-Z_]*\)=.*/  \1 is set/p' "$WEB_ENV"

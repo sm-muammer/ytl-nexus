@@ -57,6 +57,7 @@ const SCENES: Record<string, SceneConfig> = {
   "/tour": { tint: "orbit", pattern: "rings", canvas: "orbit" },
   "/status": { tint: "signal", pattern: "grid", canvas: "waves" },
   "/library": { tint: "library", pattern: "lines", canvas: "dust" },
+  "/library/[slug]": { tint: "library", pattern: "lines" },
   "/yes": { tint: "blossom", canvas: "petals" },
   // Public form page: still.
   "/signin": { tint: "quiet", pattern: "dots" },

@@ -108,6 +108,8 @@ const CONTROL: Requirement = { minRole: "admin", hidden: true, stepUp: true };
 export const PAGE_POLICY: readonly PagePolicy[] = [
   { path: "/", minRole: null },
   { path: "/design", minRole: "viewer" },
+  // Public shell; the item itself is filtered for the actor (lib/server/content.ts).
+  { path: "/library/[slug]", minRole: null },
   ...PAGES.map((p): PagePolicy => {
     if (p.path === "/control") return { path: p.path, ...CONTROL };
     return { path: p.path, minRole: p.minRole };
@@ -147,6 +149,20 @@ export const HANDLER_POLICY: readonly HandlerPolicy[] = [
     path: "/api/health/ready",
     minRole: null,
     note: "Reports ok or unavailable per dependency, with no detail.",
+  },
+  {
+    id: "content.revalidate",
+    method: "POST",
+    path: "/api/revalidate",
+    minRole: null,
+    note: "Authenticated by an HMAC signature with timestamp and single-use nonce; changes no data, only drops cache entries.",
+  },
+  {
+    id: "library.list",
+    method: "GET",
+    path: "/api/library",
+    minRole: null,
+    note: "Lists content already filtered for the caller's role: a Visitor receives public items only.",
   },
   {
     id: "auth.api",

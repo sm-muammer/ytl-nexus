@@ -108,7 +108,7 @@ done
 
 echo "Loopback-only listeners (on the server)"
 listeners=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "ss -H -tlnp | awk '{print \$4, \$6}'" 2>/dev/null)
-for p in 3000 3306 9100 11434; do
+for p in 3000 3306 8081 9100 11434; do
   line=$(printf '%s\n' "$listeners" | grep -E "[:.]$p " | head -1)
   case "$line" in
     127.0.0.1:$p* | \[::1\]:$p*) ok "port $p listens on loopback only" ;;
@@ -117,6 +117,16 @@ for p in 3000 3306 9100 11434; do
   esac
 done
 
+echo "Nexus Studio (Task 7)"
+[ "$(code -o /dev/null https://ytl-nexus.ytlcomms.my/studio/xmlrpc.php 2>/dev/null)" = 403 ] && ok "XML-RPC is denied" || bad "XML-RPC is not denied"
+[ "$(code https://ytl-nexus.ytlcomms.my/studio/wp-config.php 2>/dev/null)" = 403 ] && ok "wp-config.php is denied" || bad "wp-config.php is not denied"
+[ "$(code https://ytl-nexus.ytlcomms.my/studio/wp-content/uploads/x.php 2>/dev/null)" = 403 ] && ok "PHP in uploads is denied" || bad "PHP in uploads is not denied"
+[ "$(code https://ytl-nexus.ytlcomms.my/studio/wp-json/ 2>/dev/null)" = 200 ] && ok "wp-json answers" || bad "wp-json does not answer"
+list=$(c "https://ytl-nexus.ytlcomms.my/studio/wp-json/wp/v2/nexus-runbooks?per_page=100" 2>/dev/null)
+case "$list" in *'"audience":"internal"'*) bad "anonymous REST list contains an internal item" ;; *'"audience":"public"'*) ok "anonymous REST list holds public items only" ;; *) bad "anonymous REST list is empty or unreadable" ;; esac
+[ "$(code https://ytl-nexus.ytlcomms.my/library 2>/dev/null)" = 200 ] && ok "/library answers 200" || bad "/library does not answer 200"
+lib=$(c https://ytl-nexus.ytlcomms.my/api/library?type=runbook 2>/dev/null)
+case "$lib" in *'"audience":"internal"'*) bad "/api/library leaks an internal item to a visitor" ;; *'"items"'*) ok "/api/library gives a visitor public items only" ;; *) bad "/api/library did not answer" ;; esac
 echo "SSH"
 check "SSH login works with the firewall on" ssh -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -o ControlPath=none "$SSH_TARGET" true
 

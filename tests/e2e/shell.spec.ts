@@ -11,6 +11,7 @@ import { ROLES, meetsRole, type Actor, type Role } from "@/lib/roles";
 import {
   WIDTHS,
   blockingViolations,
+  concreteRoute,
   escapeRegExp,
   horizontalOverflow,
   settle,
@@ -21,6 +22,7 @@ import {
 // group, plus /design and /control (Requirement 3.9).
 const publicPaths = new Set([
   "/",
+  "/library/[slug]",
   ...PAGES.filter((p) => p.group === "explore").map((p) => p.path),
 ]);
 const isNoindexRoute = (path: string) => !publicPaths.has(path);
@@ -36,7 +38,7 @@ test.describe("every route", () => {
     test(`${route} renders the shell without a not-found response`, async ({
       page,
     }) => {
-      const response = await page.goto(route);
+      const response = await page.goto(concreteRoute(route));
       expect(response?.status()).toBeLessThan(400);
 
       // Requirement 3.2: one skip link, one h1, the four landmarks.
@@ -362,7 +364,7 @@ test.describe("accessibility and layout at 390, 1440 and 3840 px", () => {
         page,
       }) => {
         await page.setViewportSize({ width, height: 1000 });
-        await page.goto(route);
+        await page.goto(concreteRoute(route));
         await settle(page);
 
         expect(await blockingViolations(page)).toEqual([]);
@@ -413,5 +415,50 @@ test.describe("robots.txt", () => {
       expect(body, p).toContain(`Disallow: ${p}`);
     }
     expect(body).not.toContain("/control");
+  });
+});
+
+test.describe("Library and Story content (demo fixtures)", () => {
+  test("a visitor sees public items only; a viewer also sees internal ones", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await page.goto("/library");
+    await expect(
+      page.getByRole("link", { name: /Platform overview/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Restart the web application/ }),
+    ).toHaveCount(0);
+    const hidden = await page.goto("/library/restart-the-web-application");
+    expect(hidden?.status()).toBe(404);
+
+    await signInAs(context, baseURL, "viewer");
+    await page.goto("/library");
+    await expect(
+      page.getByRole("link", { name: /Restart the web application/ }),
+    ).toBeVisible();
+    const shown = await page.goto("/library/restart-the-web-application");
+    expect(shown?.status()).toBe(200);
+    await expect(
+      page.locator("article").getByText("Use Nexus Control"),
+    ).toBeVisible();
+  });
+
+  test("the API gives a visitor no internal item", async ({ request }) => {
+    const res = await request.get("/api/library?type=runbook");
+    expect(res.status()).toBe(200);
+    expect(await res.text()).not.toContain("restart-the-web-application");
+  });
+
+  test("the story page renders chapters and the internship statement", async ({
+    page,
+  }) => {
+    await page.goto("/story");
+    await expect(
+      page.getByRole("heading", { name: "The starting point" }),
+    ).toBeVisible();
+    await expect(page.getByText(/internship project/).first()).toBeVisible();
   });
 });

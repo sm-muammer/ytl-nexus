@@ -502,6 +502,8 @@ export const PAGES: readonly PageInfo[] = [
 export const ROUTE_PATHS: readonly string[] = [
   "/",
   "/design",
+  // A content page: the slug is a Library item (Task 7).
+  "/library/[slug]",
   ...PAGES.map((p) => p.path),
 ];
 

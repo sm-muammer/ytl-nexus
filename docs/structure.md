@@ -96,12 +96,11 @@ ytl-nexus/
 ├── services/
 │   ├── ops-agent/               # Allowlisted host operations
 │   └── worker/                  # Checks, indexing and report ingestion
-├── wordpress/
-│   ├── plugins/nexus-content/
-│   └── themes/nexus-headless/
 ├── roundcube/skins/nexus/
 ├── infrastructure/
 │   ├── apache/
+│   ├── php-fpm/                 # WordPress pool (Task 7)
+│   ├── wordpress/               # nexus-content plugin, nexus-headless theme, seed
 │   ├── database/
 │   ├── fail2ban/
 │   ├── firewalld/

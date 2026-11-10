@@ -23,8 +23,12 @@ shift
 # shellcheck disable=SC2086
 ssh $SSH_OPTS "$SSH_TARGET" 'install -d -m 700 /root/nexus-ops' 2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2)
 # shellcheck disable=SC2086
-scp -q $SSH_OPTS "$HERE"/* "$INFRA/apache/ytl-nexus.conf" "$INFRA/systemd/nexus-web.service" \
+scp -q $SSH_OPTS "$HERE"/* "$INFRA/apache/ytl-nexus.conf" "$INFRA/apache/studio.inc" \
+  "$INFRA/php-fpm/wordpress.conf" "$INFRA/systemd/nexus-web.service" \
   "$SSH_TARGET:/root/nexus-ops/" 2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2)
+# shellcheck disable=SC2086
+scp -q -r $SSH_OPTS "$INFRA/wordpress" "$SSH_TARGET:/root/nexus-ops/" \
+  2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2)
 # shellcheck disable=SC2086
 ssh $SSH_OPTS "$SSH_TARGET" "chmod 700 /root/nexus-ops/* && /root/nexus-ops/$script $*" \
   2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2)

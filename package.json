@@ -28,6 +28,7 @@
     "db:seed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db/seed.ts",
     "db:provision": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db/provision.ts",
     "auth:create-user": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/auth/create-user.ts",
+    "content:seed-json": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/content/seed-json.ts && prettier --write infrastructure/wordpress/seed-content.json",
     "db:test:up": "docker compose -f infrastructure/database/docker-compose.yml up -d --wait",
     "db:test:down": "docker compose -f infrastructure/database/docker-compose.yml down",
     "test:integration": "vitest run --config vitest.integration.config.mts"
@@ -41,6 +42,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "sanitize-html": "^2.18.1",
     "server-only": "^0.0.1",
     "zod": "^4.6.7"
   },
@@ -55,6 +57,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.2",
     "@vitejs/plugin-react": "^6.1.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",

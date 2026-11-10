@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   // Enables forbidden(), which the guards call for a signed-in user whose role
   // is too low. It renders app/forbidden.tsx with a 403.
+  // WordPress media (LIB-08): only the uploads folder of Studio.
+  images: {
+    remotePatterns: [
+      new URL("https://ytl-nexus.ytlcomms.my/studio/wp-content/uploads/**"),
+    ],
+  },
   experimental: { authInterrupts: true },
 };
 
