@@ -67,7 +67,10 @@ describe("proxy in Live_Mode", () => {
       const res = proxy(request(path));
       expect(res.status, path).toBe(200);
       expect(res.headers.get("location")).toBeNull();
+      // Always http: the Node server listens on plain http behind Apache, and
+      // Next.js fetches a rewrite to any other scheme as an external request.
       const rewrite = new URL(res.headers.get("x-middleware-rewrite") ?? "");
+      expect(rewrite.protocol).toBe("http:");
       expect(rewrite.pathname).toMatch(/^\/not-a-route\/?$/);
     }
   });

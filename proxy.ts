@@ -46,6 +46,24 @@ function isHiddenPath(pathname: string): boolean {
   return HIDDEN.some((p) => path === p || path.startsWith(`${p}/`));
 }
 
+/**
+ * A rewrite to the unknown path, on the origin Next.js recognises as its own.
+ *
+ * NextResponse.rewrite() takes an absolute URL, and Next.js treats a rewrite to
+ * any other origin as an external request to fetch. Behind Apache the request
+ * carries `X-Forwarded-Proto: https`, so `request.url` says https while the Node
+ * server itself listens on plain http (loopback); a URL built from `request.url`
+ * then names an origin Next.js does not own and it tries to fetch the page over
+ * TLS (a 500 on Nexus Core 01). The server always listens on http, so the
+ * rewrite is given that scheme. The smoke test and the local reproduction in
+ * docs/security/auth.md catch a change.
+ */
+function rewriteToUnknownPath(request: NextRequest): NextResponse {
+  const url = new URL(UNKNOWN_PATH, request.url);
+  url.protocol = "http:";
+  return NextResponse.rewrite(url);
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const live = process.env.NEXUS_MODE === "live";
@@ -55,13 +73,7 @@ export function proxy(request: NextRequest) {
     : request.cookies.has(DEMO_ROLE_COOKIE);
 
   if (isHiddenPath(pathname) && !hasSession) {
-    // Clone the incoming URL instead of building one from request.url: behind
-    // Apache the scheme and port can differ, and a rewrite to another origin is
-    // fetched as an external request (a 500 on Nexus Core 01).
-    const url = request.nextUrl.clone();
-    url.pathname = UNKNOWN_PATH;
-    url.search = "";
-    return NextResponse.rewrite(url);
+    return rewriteToUnknownPath(request);
   }
 
   if (live && isProtectedPath(pathname) && !hasSession) {
