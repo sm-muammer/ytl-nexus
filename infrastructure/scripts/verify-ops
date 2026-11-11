@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# verify-ops: task 9 acceptance checks on the server (OPS-01 to OPS-05).
+# Runs on the server (use server-run). Changes nothing except restarting
+# nexus-worker once, which is allowed and harmless. Exits non-zero on any failure.
+#
+#   infrastructure/scripts/server-run verify-ops
+set -u
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local >/dev/null || exit 1
+APP=/opt/ytl-nexus/current
+pass=0
+fail=0
+ok() { pass=$((pass + 1)); printf '  PASS  %s\n' "$1"; }
+bad() { fail=$((fail + 1)); printf '  FAIL  %s\n' "$1"; }
+expect() { # description, expected substring, actual text
+  case "$3" in *"$2"*) ok "$1" ;; *) bad "$1 (got: $3)" ;; esac
+}
+set -a
+# shellcheck disable=SC1091
+. /etc/ytl-nexus/ops.env
+set +a
+send() { # user, json [ENV=VALUE ...]  -> "status body"
+  local user="$1" json="$2"
+  shift 2
+  runuser -u "$user" -- env NEXUS_OPS_SECRET="$NEXUS_OPS_SECRET" "$@" \
+    /usr/bin/node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON "$APP/scripts/ops/send.ts" "$json" 2>&1
+}
+
+echo "Socket and users"
+expect "socket is owned by nexus-ops:nexus-ops-clients, mode 0660" "srw-rw---- 1 nexus-ops nexus-ops-clients" "$(ls -l /run/nexus-ops/ops.sock)"
+expect "clients group has only nexus as a member" "nexus-ops-clients:x:" "$(getent group nexus-ops-clients)"
+[ "$(getent group nexus-ops-clients | cut -d: -f4)" = nexus ] && ok "the only listed member is nexus" || bad "the only listed member is nexus"
+expect "an unrelated user cannot connect" "connect-failed EACCES" "$(send apache '{"op":"health","check":"web"}')"
+expect "a signed request from nexus is answered" '"op":"health"' "$(send nexus '{"op":"health","check":"web"}')"
+
+echo "Allowlist (agent)"
+for unit in sshd mariadb httpd '../sshd' 'nexus-web@1' 'nexus-*' 'nexus-web.service' 'NEXUS-WEB' 'nexus-ops'; do
+  expect "restart of '$unit' is refused" "400 " "$(send nexus "{\"op\":\"restart\",\"unit\":\"$unit\"}")"
+done
+expect "logs with 501 lines are refused" "400 " "$(send nexus '{"op":"logs","unit":"nexus-web","lines":501}')"
+expect "an unknown operation is refused" "400 " "$(send nexus '{"op":"exec","cmd":"id"}')"
+
+echo "Authentication (agent)"
+expect "a bad signature is refused" "401 " "$(send nexus '{"op":"health","check":"web"}' NEXUS_OPS_BAD_SIG=1)"
+expect "a timestamp 60 s old is refused" "401 " "$(send nexus '{"op":"health","check":"web"}' NEXUS_OPS_TS_SHIFT_MS=-60000)"
+expect "another secret is refused" "401 " "$(send nexus '{"op":"health","check":"web"}' NEXUS_OPS_SECRET_OVERRIDE=0123456789abcdef0123456789abcdef0123456789abcdef)"
+nonce="verify-nonce-$(date +%s%N)"
+expect "a fresh nonce is accepted" "200 " "$(send nexus '{"op":"health","check":"web"}' NEXUS_OPS_NONCE="$nonce")"
+expect "the same nonce again is refused" "401 " "$(send nexus '{"op":"health","check":"web"}' NEXUS_OPS_NONCE="$nonce")"
+
+echo "Health checks and logs"
+for check in web database prometheus ollama mail; do
+  expect "health check '$check' answers" '"state":"healthy"' "$(send nexus "{\"op\":\"health\",\"check\":\"$check\"}")"
+done
+logs="$(send nexus '{"op":"logs","unit":"nexus-web","lines":50}')"
+expect "logs for nexus-web return lines" '"op":"logs"' "$logs"
+case "$logs" in *"10.26.64.164"*) bad "the server address is masked in logs" ;; *) ok "the server address is masked in logs" ;; esac
+
+echo "Restart through the agent"
+before="$(systemctl show nexus-worker -p ActiveEnterTimestampMonotonic --value)"
+expect "restart of nexus-worker is accepted" '"accepted":true' "$(send nexus '{"op":"restart","unit":"nexus-worker"}')"
+sleep 4
+after="$(systemctl show nexus-worker -p ActiveEnterTimestampMonotonic --value)"
+[ "$after" != "$before" ] && ok "nexus-worker was restarted" || bad "nexus-worker was restarted"
+systemctl is-active --quiet nexus-worker && ok "nexus-worker is active again" || bad "nexus-worker is active again"
+
+echo "polkit (the last gate), as user nexus-ops"
+pk() { # unit verb -> exit code of pkcheck
+  runuser -u nexus-ops -- sh -c \
+    "pkcheck --action-id org.freedesktop.systemd1.manage-units --process \$\$ --detail verb '$2' --detail unit '$1' >/dev/null 2>&1; echo \$?"
+}
+for unit in nexus-web nexus-worker sftpgo prometheus; do
+  [ "$(pk "$unit.service" restart)" = 0 ] && ok "polkit allows restart of $unit.service" || bad "polkit allows restart of $unit.service"
+done
+for unit in sshd mariadb httpd firewalld nexus-ops polkit; do
+  [ "$(pk "$unit.service" restart)" != 0 ] && ok "polkit denies restart of $unit.service" || bad "polkit denies restart of $unit.service"
+done
+for verb in start stop reload; do
+  [ "$(pk nexus-web.service "$verb")" != 0 ] && ok "polkit denies '$verb' of nexus-web.service" || bad "polkit denies '$verb' of nexus-web.service"
+done
+# A real attempt through systemctl on a harmless, non-allowlisted unit.
+out="$(runuser -u nexus-ops -- systemctl restart --no-block systemd-tmpfiles-clean.service 2>&1)"
+case "$out" in *"Access denied"*|*"authentication"*|*"Interactive"*|*"not authorized"*) ok "systemctl restart of a non-allowlisted unit is denied" ;; *) bad "systemctl restart of a non-allowlisted unit is denied (got: $out)" ;; esac
+
+echo
+echo "Result: $pass passed, $fail failed"
+[ "$fail" -eq 0 ]
