@@ -232,6 +232,14 @@ export const ACTION_POLICY: readonly ActionPolicy[] = [
   { id: "data.record.delete", minRole: "operator" },
   { id: "control.user.reset-password", ...CONTROL },
   { id: "control.user.revoke-sessions", ...CONTROL },
+  // Nexus Transfer accounts (requirement 12.16). Administrators in Control, with a fresh Step_Up.
+  { id: "transfer.account.create", ...CONTROL },
+  { id: "transfer.account.set-enabled", ...CONTROL },
+  { id: "transfer.account.set-quota", ...CONTROL },
+  { id: "transfer.account.reset-password", ...CONTROL },
+  { id: "transfer.account.delete", ...CONTROL },
+  { id: "transfer.key.add", ...CONTROL },
+  { id: "transfer.key.remove", ...CONTROL },
 ];
 
 export function policyForAction(id: string): ActionPolicy {

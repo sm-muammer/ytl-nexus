@@ -102,13 +102,13 @@ for p in $open_ports; do
   case " $ALLOWED_PORTS " in *" $p "*) ;; *) unexpected="$unexpected $p" ;; esac
 done
 [ -z "$unexpected" ] && ok "open ports among the ${probe_ports// /,} probe list: ${open_ports:-none}" || bad "unexpected open ports:$unexpected"
-for p in 22 80 443; do
+for p in 22 80 443 2022; do
   case " $open_ports " in *" $p "*) ok "port $p is reachable" ;; *) bad "port $p is not reachable" ;; esac
 done
 
 echo "Loopback-only listeners (on the server)"
 listeners=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "ss -H -tlnp | awk '{print \$4, \$6}'" 2>/dev/null)
-for p in 3000 3306 8081 9090 9100 11434; do
+for p in 3000 3306 8081 8090 8091 9090 9100 10000 11434; do
   line=$(printf '%s\n' "$listeners" | grep -E "[:.]$p " | head -1)
   case "$line" in
     127.0.0.1:$p* | \[::1\]:$p*) ok "port $p listens on loopback only" ;;
@@ -141,6 +141,20 @@ sock=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" 'stat -c "%U:%G %
 status=$(c https://ytl-nexus.ytlcomms.my/status 2>/dev/null)
 case "$status" in *'data-public-list'*) ok "/status gives a visitor the public service list" ;; *) bad "/status did not show the public list to a visitor" ;; esac
 case "$status" in *'data-history'*|*'data-incidents'*|*'Uptime 24h'*) bad "/status leaks history or incidents to a visitor" ;; *) ok "/status shows a visitor no history or incidents" ;; esac
+echo "Nexus Transfer (Task 12)"
+ssh_banner=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" 'timeout 3 bash -c "exec 3<>/dev/tcp/127.0.0.1/2022; head -c 40 <&3"' 2>/dev/null | head -1 | tr -d '\r')
+case "$ssh_banner" in SSH-2.0-SFTPGo*) ok "port 2022 answers with the SFTPGo SSH banner" ;; *) bad "port 2022 banner was: $ssh_banner" ;; esac
+[ "$(code https://ytl-nexus.ytlcomms.my/files/ 2>/dev/null)" = 302 ] && ok "/files/ redirects a visitor to the portal sign-in" || bad "/files/ does not redirect to the sign-in"
+[ "$(code https://ytl-nexus.ytlcomms.my/files/web/client/login 2>/dev/null)" = 200 ] && ok "the file portal sign-in answers 200" || bad "the file portal sign-in does not answer 200"
+files_server=$(c -D - -o /dev/null https://ytl-nexus.ytlcomms.my/files/web/admin/login 2>/dev/null | tr -d '\r' | grep -i '^server:')
+case "$files_server" in *SFTPGo*) bad "the SFTPGo WebAdmin is reachable through Apache" ;; *) ok "the SFTPGo WebAdmin is not published (/files/web/admin/login)" ;; esac
+api_server=$(c -D - -o /dev/null https://ytl-nexus.ytlcomms.my/api/v2/token 2>/dev/null | tr -d '\r' | grep -i '^server:')
+case "$api_server" in *SFTPGo*) bad "the SFTPGo REST API is reachable through Apache" ;; *) ok "the SFTPGo REST API is not published (/api/v2/token)" ;; esac
+for p in 21 990 2121 8080 8010; do
+  case " $open_ports " in *" $p "*) bad "port $p (FTP or WebDAV) is open" ;; *) ok "port $p (FTP or WebDAV) is closed" ;; esac
+done
+[ "$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" 'systemctl is-active sftpgo; ps -o user= -C sftpgo | sort -u' 2>/dev/null | tr '\n' ' ')" = "active sftpgo " ] && ok "sftpgo is active and runs as the user sftpgo" || bad "sftpgo is not active or does not run as sftpgo"
+ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "curl -s --get http://127.0.0.1:9090/api/v1/query --data-urlencode 'query=up{job=\"sftpgo\"}'" 2>/dev/null | grep -q '"value":\[[^]]*"1"\]' && ok "Prometheus scrapes SFTPGo" || bad "Prometheus does not scrape SFTPGo"
 echo "SSH"
 check "SSH login works with the firewall on" ssh -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -o ControlPath=none "$SSH_TARGET" true
 

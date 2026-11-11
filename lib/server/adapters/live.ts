@@ -4,6 +4,7 @@ import type { Actor } from "@/lib/roles";
 import { authIsConfigured, getAuthRuntime } from "@/lib/server/auth/runtime";
 import { resolveIdentity } from "@/lib/server/auth/service";
 import { callOps } from "@/lib/server/ops-client";
+import { createSftpgoClient, readSftpgoConfig } from "@/lib/server/sftpgo";
 import { identityToActor } from "@/lib/server/policy";
 import {
   emptySnapshot,
@@ -169,5 +170,39 @@ export function createLiveAdapters(): Adapters {
       };
     },
   };
-  return { ...base, auth, ops, prometheus: createLivePrometheus() };
+  const sftpgo: ServiceAdapter = {
+    name: "sftpgo",
+    source: "live",
+    status: async (): Promise<AdapterStatus> => {
+      const config = readSftpgoConfig();
+      if (!config) return notConnected("sftpgo");
+      const health = await createSftpgoClient(config).health();
+      if (health === "ok") {
+        return {
+          name: "sftpgo",
+          source: "live",
+          state: "ok",
+          label: "Connected",
+          detail: "SFTP is listening and the account database answers.",
+        };
+      }
+      return health === "degraded"
+        ? {
+            name: "sftpgo",
+            source: "live",
+            state: "warn",
+            label: "Degraded",
+            detail:
+              "The file transfer service answers but is not fully working.",
+          }
+        : {
+            name: "sftpgo",
+            source: "live",
+            state: "bad",
+            label: "Unreachable",
+            detail: "The file transfer service does not answer.",
+          };
+    },
+  };
+  return { ...base, auth, ops, sftpgo, prometheus: createLivePrometheus() };
 }

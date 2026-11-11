@@ -33,7 +33,16 @@ describe("monitoring configuration (CMD-01)", () => {
     const targets = [...config.matchAll(/targets:\s*\["([^"]+)"\]/g)].map(
       (m) => m[1],
     );
-    expect(targets).toEqual(["127.0.0.1:9090", "127.0.0.1:9100"]);
+    // Prometheus itself, node_exporter and SFTPGo's telemetry listener (Task 12).
+    expect(targets).toEqual([
+      "127.0.0.1:9090",
+      "127.0.0.1:9100",
+      "127.0.0.1:10000",
+    ]);
+    // TRF-11 / requirement 12.20: SFTPGo is scraped every 60 seconds.
+    expect(config).toMatch(
+      /job_name: sftpgo\s+scrape_interval: 60s\s+static_configs:/,
+    );
     expect(config).toContain("job_name: node");
     expect(QUERIES.node_up).toContain('job="node"');
   });

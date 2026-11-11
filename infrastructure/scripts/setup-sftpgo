@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# setup-sftpgo: task 12 (TRF-01 to TRF-08, TRF-11). Runs on the server (use server-run).
+#
+#   infrastructure/scripts/server-run setup-sftpgo
+#
+# Installs SFTPGo from the official YUM repository (it runs as the package's
+# unprivileged user `sftpgo`), points it at the MariaDB database `nexus_sftpgo`,
+# applies infrastructure/sftpgo/overrides.json to the package configuration,
+# sandboxes the unit, publishes the WebClient at /files/ through Apache, creates a
+# least-privilege REST API administrator with an API key for nexus-web, and
+# writes NEXUS_SFTPGO_URL and NEXUS_SFTPGO_API_KEY to /etc/ytl-nexus/web.env.
+#
+# Safe to run again: existing secrets, users and the API key are kept. Nothing
+# secret is printed or put on a command line. Files it writes:
+#   /etc/sftpgo/sftpgo.env             DB password, signing passphrase (root only, read by systemd)
+#   /root/sftpgo-admin-password.txt    password of the break-glass WebAdmin account (read once)
+#   /etc/ytl-nexus/web.env             NEXUS_SFTPGO_* for the Next.js server
+# It does not delete anything. The SQLite file the package created at
+# /var/lib/sftpgo/sftpgo.db is no longer used and stays in place.
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+ENV_DIR=/etc/ytl-nexus
+DB_ENV="$ENV_DIR/nexus_sftpgo.env"
+WEB_ENV="$ENV_DIR/web.env"
+CONF=/etc/sftpgo/sftpgo.json
+SG_ENV=/etc/sftpgo/sftpgo.env
+HOME_BASE=/srv/nexus-transfer
+STATE=/var/lib/sftpgo
+ADMIN_FILE=/root/sftpgo-admin-password.txt
+BREAK_GLASS=nexus-admin
+API_ADMIN=nexus-api
+umask 022
+
+for f in "$DB_ENV" "$WEB_ENV"; do
+  [ -f "$f" ] || { echo "setup-sftpgo: $f is missing. Run setup-database and setup-nexus-service first." >&2; exit 1; }
+done
+for f in sftpgo/overrides.json sftpgo/merge-config.py sftpgo-nexus.conf files.inc ytl-nexus.conf; do
+  [ -e "$OPS_DIR/$f" ] || { echo "setup-sftpgo: $OPS_DIR/$f is missing (run through server-run)." >&2; exit 1; }
+done
+findmnt -n "$HOME_BASE" >/dev/null 2>&1 ||
+  { echo "setup-sftpgo: $HOME_BASE is not a mount point. Run setup-runtimes disk first." >&2; exit 1; }
+
+envval() { grep -m1 "^$2=" "$1" | cut -d= -f2-; }
+add_once() { # file key value
+  if ! grep -q "^$2=" "$1"; then printf '%s=%s\n' "$2" "$3" >>"$1"; echo "setup-sftpgo: added $2 to $(basename "$1")"; fi
+}
+setenvline() { # file key value: replace or add
+  if grep -q "^$2=" "$1"; then
+    local tmp; tmp="$(mktemp)"; grep -v "^$2=" "$1" >"$tmp"; printf '%s=%s\n' "$2" "$3" >>"$tmp"
+    cat "$tmp" >"$1"; rm -f "$tmp"
+  else
+    printf '%s=%s\n' "$2" "$3" >>"$1"
+  fi
+}
+
+# ---- 1. Package from the official repository --------------------------------------
+if ! rpm -q sftpgo >/dev/null 2>&1; then
+  curl -fsS "https://oss.sftpgo.com/yum/$(uname -m)/sftpgo.repo" -o /etc/yum.repos.d/sftpgo.repo
+  dnf -y install sftpgo
+fi
+id sftpgo >/dev/null 2>&1 || { echo "setup-sftpgo: user sftpgo is missing after the install." >&2; exit 1; }
+echo "setup-sftpgo: $(rpm -q sftpgo)"
+
+# ---- 2. Secrets file (root only; systemd reads it) -------------------------------
+if [ ! -f "$SG_ENV" ]; then
+  umask 077
+  admin_pass="$(openssl rand -base64 36 | tr -d '/+=\n' | cut -c1-32)"
+  {
+    echo "# Written by setup-sftpgo. Read by systemd as root (mode 0600)."
+    echo "SFTPGO_HTTPD__SIGNING_PASSPHRASE=$(openssl rand -hex 32)"
+    echo "SFTPGO_DEFAULT_ADMIN_USERNAME=$BREAK_GLASS"
+    echo "SFTPGO_DEFAULT_ADMIN_PASSWORD=$admin_pass"
+  } >"$SG_ENV"
+  printf 'SFTPGo WebAdmin (break-glass, reach it through an SSH tunnel; see docs/operations/sftp.md)\nuser: %s\npassword: %s\n' \
+    "$BREAK_GLASS" "$admin_pass" >"$ADMIN_FILE"
+  chmod 0600 "$ADMIN_FILE"
+  unset admin_pass
+  umask 022
+  echo "setup-sftpgo: created $SG_ENV and $ADMIN_FILE"
+fi
+grep -q '^SFTPGO_LOG_LEVEL=' "$SG_ENV" || echo "SFTPGO_LOG_LEVEL=info" >>"$SG_ENV"
+# The database password follows the file written by setup-database.
+setenvline "$SG_ENV" SFTPGO_DATA_PROVIDER__PASSWORD "$(envval "$DB_ENV" NEXUS_DB_PASSWORD)"
+chown root:root "$SG_ENV"
+chmod 0600 "$SG_ENV"
+
+# ---- 3. Folders and host keys --------------------------------------------------------
+install -d -m 0750 -o sftpgo -g sftpgo "$HOME_BASE"
+install -d -m 0700 -o sftpgo -g sftpgo "$STATE/hostkeys" "$STATE/backups"
+[ -f "$STATE/hostkeys/ssh_host_ed25519_key" ] ||
+  ssh-keygen -q -t ed25519 -N '' -C "nexus-transfer" -f "$STATE/hostkeys/ssh_host_ed25519_key"
+[ -f "$STATE/hostkeys/ssh_host_rsa_key" ] ||
+  ssh-keygen -q -t rsa -b 3072 -N '' -C "nexus-transfer" -f "$STATE/hostkeys/ssh_host_rsa_key"
+chown -R sftpgo:sftpgo "$STATE/hostkeys"
+chmod 0600 "$STATE"/hostkeys/ssh_host_*_key
+chmod 0644 "$STATE"/hostkeys/*.pub
+
+# ---- 4. Configuration: package default + Nexus overrides -----------------------------
+[ -f "$CONF.nexus-orig" ] || cp -p "$CONF" "$CONF.nexus-orig"
+tmp_conf="$(mktemp)"
+python3 "$OPS_DIR/sftpgo/merge-config.py" "$CONF.nexus-orig" "$OPS_DIR/sftpgo/overrides.json" "$tmp_conf"
+install -m 0640 -o sftpgo -g sftpgo "$tmp_conf" "$CONF"
+rm -f "$tmp_conf"
+
+# ---- 5. Unit sandbox -------------------------------------------------------------------
+install -d -m 0755 -o root -g root /etc/systemd/system/sftpgo.service.d
+install -m 0644 -o root -g root "$OPS_DIR/sftpgo-nexus.conf" /etc/systemd/system/sftpgo.service.d/10-nexus.conf
+systemctl daemon-reload
+
+# ---- 6. Apache: /files/ -> WebClient on 127.0.0.1:8090 ---------------------------------
+install -m 0644 -o root -g root "$OPS_DIR/files.inc" /etc/httpd/conf.d/files.inc
+install -m 0644 -o root -g root "$OPS_DIR/ytl-nexus.conf" /etc/httpd/conf.d/00-ytl-nexus.conf
+httpd -t
+
+# ---- 7. Start -----------------------------------------------------------------------------
+systemctl enable sftpgo >/dev/null 2>&1
+systemctl restart sftpgo
+for _ in $(seq 1 40); do
+  curl -fsS -m 2 http://127.0.0.1:10000/healthz >/dev/null 2>&1 && break
+  sleep 1
+done
+curl -fsS -m 2 http://127.0.0.1:10000/healthz >/dev/null 2>&1 ||
+  { echo "setup-sftpgo: SFTPGo did not become healthy. See: journalctl -u sftpgo -n 50" >&2; exit 1; }
+systemctl reload httpd || systemctl restart httpd
+
+# ---- 8. REST API administrator and API key for nexus-web ---------------------------------
+# curl reads its settings from stdin, so no secret is ever on a command line.
+curl_auth() { # basic-user-pass-or-token-kind value method url [json-body]
+  local kind="$1" secret="$2" method="$3" url="$4" body="${5:-}"
+  local cfg
+  if [ "$kind" = basic ]; then cfg="user = \"$secret\""; else cfg="header = \"Authorization: Bearer $secret\""; fi
+  if [ -n "$body" ]; then
+    printf '%s\nheader = "Content-Type: application/json"\ndata = "%s"\n' "$cfg" "$(printf '%s' "$body" | sed 's/\\/\\\\/g; s/"/\\"/g')" |
+      curl -sS -m 20 -X "$method" -K - "$url"
+  else
+    printf '%s\n' "$cfg" | curl -sS -m 20 -X "$method" -K - "$url"
+  fi
+}
+jsonget() { python3 -c 'import json,sys
+try: print(json.load(sys.stdin).get(sys.argv[1],""))
+except Exception: print("")' "$1"; }
+
+BASE=http://127.0.0.1:8091/api/v2
+have_key=0
+grep -q '^NEXUS_SFTPGO_API_KEY=.' "$WEB_ENV" && have_key=1
+
+if [ "$have_key" = 0 ]; then
+  admin_pass="$(grep -m1 '^password: ' "$ADMIN_FILE" 2>/dev/null | cut -d' ' -f2- || true)"
+  [ -n "$admin_pass" ] || admin_pass="$(envval "$SG_ENV" SFTPGO_DEFAULT_ADMIN_PASSWORD)"
+  [ -n "$admin_pass" ] || { echo "setup-sftpgo: no WebAdmin password is known; cannot create the API key." >&2; exit 1; }
+  token="$(curl_auth basic "$BREAK_GLASS:$admin_pass" GET "$BASE/token" | jsonget access_token)"
+  unset admin_pass
+  [ -n "$token" ] || { echo "setup-sftpgo: could not sign in to the REST API as $BREAK_GLASS." >&2; exit 1; }
+
+  api_pass="$(openssl rand -base64 36 | tr -d '/+=\n' | cut -c1-32)"
+  admin_json="{\"username\":\"$API_ADMIN\",\"status\":1,\"password\":\"$api_pass\",\"permissions\":[\"add_users\",\"edit_users\",\"del_users\",\"view_users\",\"quota_scans\",\"view_status\",\"view_defender\",\"manage_defender\"],\"filters\":{\"allow_api_key_auth\":true,\"allow_list\":[\"127.0.0.1/32\"]},\"description\":\"Used by nexus-web only, through its API key\"}"
+  unset api_pass
+  code="$(curl_auth bearer "$token" POST "$BASE/admins" "$admin_json" | jsonget message)"
+  echo "setup-sftpgo: API administrator: ${code:-created}"
+
+  # Replace any earlier key of the same name, then create a new one.
+  old_ids="$(curl_auth bearer "$token" GET "$BASE/apikeys" | python3 -c 'import json,sys
+try:
+    for k in json.load(sys.stdin):
+        if k.get("name") == "nexus-web": print(k["id"])
+except Exception: pass')"
+  for id in $old_ids; do curl_auth bearer "$token" DELETE "$BASE/apikeys/$id" >/dev/null; done
+  key="$(curl_auth bearer "$token" POST "$BASE/apikeys" "{\"name\":\"nexus-web\",\"scope\":1,\"admin\":\"$API_ADMIN\",\"description\":\"nexus-web server-side client\"}" | jsonget key)"
+  unset token
+  [ -n "$key" ] || { echo "setup-sftpgo: the API key was not created." >&2; exit 1; }
+  setenvline "$WEB_ENV" NEXUS_SFTPGO_API_KEY "$key"
+  unset key
+  echo "setup-sftpgo: wrote NEXUS_SFTPGO_API_KEY to web.env"
+fi
+setenvline "$WEB_ENV" NEXUS_SFTPGO_URL "$BASE"
+setenvline "$WEB_ENV" NEXUS_SFTPGO_HOST "${NEXUS_PUBLIC_HOST:-ytl-nexus.ytlcomms.my}"
+chown root:nexus "$WEB_ENV"
+chmod 0640 "$WEB_ENV"
+
+# The default administrator is created on the first start only; take the
+# bootstrap values out of the environment once it exists.
+if grep -q '^SFTPGO_DEFAULT_ADMIN_PASSWORD=' "$SG_ENV"; then
+  sed -i '/^SFTPGO_DEFAULT_ADMIN_USERNAME=/d; /^SFTPGO_DEFAULT_ADMIN_PASSWORD=/d' "$SG_ENV"
+  echo "setup-sftpgo: removed the bootstrap administrator values from $SG_ENV"
+fi
+
+echo "---- result"
+systemctl is-active sftpgo
+ss -ltnH | awk '{print $4}' | grep -E ':(2022|8090|8091|10000|21|2121)$' | sort || true
+ls -ld "$HOME_BASE"

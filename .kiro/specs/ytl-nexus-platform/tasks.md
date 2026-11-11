@@ -339,25 +339,25 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
     - SQL fragments and markup in every field
     - _Requirements: 11.2, 11.6_
 
-- [ ] 14. Nexus Transfer (plan Task 12)
-  - [ ]* 14.1 Write ownership tests for Transfer
+- [x] 14. Nexus Transfer (plan Task 12)
+  - [x] 14.1 Write ownership tests for Transfer
     - **Property 4: Resource ownership prevents IDOR** (Transfer account)
     - **Validates: Requirements 12.17, 12.18**
 
-  - [ ] 14.2 Install and configure SFTPGo
+  - [x] 14.2 Install and configure SFTPGo
     - YUM install as `sftpgo`, provider `nexus_sftpgo`, SFTP on 2022, FTP/WebDAV off, max 10 keys per user, homes under `/srv/nexus-transfer`, `chmod`/`chown` denied, quotas, defender 5 failures in 10 min blocks 30 min; WebClient 127.0.0.1:8090 at `/files/`; admin 127.0.0.1:8091 not proxied; Prometheus scrape every 60 s; `docs/operations/sftp.md`
     - Run after verify-target; no Destructive_Action beyond new configuration
     - _Requirements: 4.13, 12.16_
 
-  - [ ] 14.3 Implement the server-only SFTPGo client and Control account management
+  - [x] 14.3 Implement the server-only SFTPGo client and Control account management
     - API key server-side; create, disable, delete accounts, quotas, keys, password reset; every action audited
     - _Requirements: 12.16, 12.17_
 
-  - [ ] 14.4 Build `/transfer`
+  - [x] 14.4 Build `/transfer`
     - Account derived from the session; mismatched identifiers refused; client guides; fixture account in demo with controls disabled
     - _Requirements: 12.17, 12.18, 12.22_
 
-  - [ ]* 14.5 Write integration tests
+  - [x] 14.5 Write integration tests
     - Password and key login, path escape, quota, defender lockout
     - _Requirements: 12.16, 12.17_
 

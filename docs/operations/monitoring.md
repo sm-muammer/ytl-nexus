@@ -25,19 +25,19 @@ flowchart LR
 
 The list is `lib/monitoring/services.ts`. Each entry becomes one particle cluster and one table row.
 
-| Service       | systemd unit            | Expected today              |
-| ------------- | ----------------------- | --------------------------- |
-| Apache        | `httpd.service`         | Running                     |
-| Nexus Web     | `nexus-web.service`     | Running                     |
-| MariaDB       | `mariadb.service`       | Running                     |
-| PHP-FPM       | `php-fpm.service`       | Running                     |
-| Postfix       | `postfix.service`       | Running                     |
-| Dovecot       | `dovecot.service`       | Not running until Task 13   |
-| SFTPGo        | `sftpgo.service`        | Not installed until Task 12 |
-| Ollama        | `ollama.service`        | Running                     |
-| Prometheus    | `prometheus.service`    | Running                     |
-| node_exporter | `node_exporter.service` | Running                     |
-| chrony        | `chronyd.service`       | Running                     |
+| Service       | systemd unit            | Expected today            |
+| ------------- | ----------------------- | ------------------------- |
+| Apache        | `httpd.service`         | Running                   |
+| Nexus Web     | `nexus-web.service`     | Running                   |
+| MariaDB       | `mariadb.service`       | Running                   |
+| PHP-FPM       | `php-fpm.service`       | Running                   |
+| Postfix       | `postfix.service`       | Running                   |
+| Dovecot       | `dovecot.service`       | Not running until Task 13 |
+| SFTPGo        | `sftpgo.service`        | Running (Task 12)         |
+| Ollama        | `ollama.service`        | Running                   |
+| Prometheus    | `prometheus.service`    | Running                   |
+| node_exporter | `node_exporter.service` | Running                   |
+| chrony        | `chronyd.service`       | Running                   |
 
 "Not installed" (no series) and "Stopped" are shown as neutral, not as faults. A unit in `failed` state is shown as a fault. If the systemd collector reports nothing at all, every state reads "Unknown" and is drawn as "No recent data", never as running.
 

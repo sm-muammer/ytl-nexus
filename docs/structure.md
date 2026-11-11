@@ -36,11 +36,15 @@ ytl-nexus/
 │   ├── motion/                  # Quality-tier and visibility rules (pure)
 │   ├── navigation/              # Module, route, navigation and footer registry; scenes.ts maps each route to its backdrop
 │   ├── roles.ts                 # Role model shared by menu and guards
+│   ├── transfer/                # Nexus Transfer rules, pure: input schemas, SSH key parsing and fingerprints, ownership, guides (Task 12)
 │   └── server/                  # Server-only: mode, adapters (live and demo), readiness checks (health.ts), demo-session Server Function
 │       ├── policy.ts            # The access policy table and decide(): one row per page, handler and Server Function (Task 6)
 │       ├── guards.ts            # requirePage, requireRole, requireStepUp, guardAction, guardHandler (logic in guards-core.ts)
 │       ├── identity.ts          # Who is asking, once per request (session in live mode, fixture in demo mode)
 │       ├── control-actions.ts   # Control Server Functions: reset password, end sessions
+│       ├── sftpgo.ts            # The only SFTPGo client: REST API key in a header, loopback only, minimal DTOs (Task 12)
+│       ├── transfer.ts          # Readers for /transfer (own account by session id) and Control
+│       ├── transfer-actions.ts  # Control Server Functions for file transfer accounts, keys, quotas, passwords
 │       ├── prometheus.ts        # The only Prometheus client; accepts query IDs from the allowlist, never PromQL (Task 8)
 │       ├── monitoring/          # Snapshot collection, the one poller and the SSE response (Task 8)
 │       └── auth/                # Better Auth setup, rules (pure), lockout, service, Server Functions; see docs/security/auth.md
@@ -103,7 +107,8 @@ ytl-nexus/
 │   └── worker/                  # Service checks (Task 9); indexing and report ingestion later
 ├── roundcube/skins/nexus/
 ├── infrastructure/
-│   ├── apache/
+│   ├── apache/                  # ytl-nexus.conf, studio.inc, files.inc (the /files/ portal, Task 12)
+│   ├── sftpgo/                  # overrides.json and merge-config.py for the package configuration (Task 12)
 │   ├── php-fpm/                 # WordPress pool (Task 7)
 │   ├── wordpress/               # nexus-content plugin, nexus-headless theme, seed
 │   ├── database/

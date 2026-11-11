@@ -1,0 +1,249 @@
+#!/usr/bin/env bash
+# verify-sftp: task 12 acceptance checks on the server (TRF-01 to TRF-08).
+# Runs on the server (use server-run). It creates one throwaway account named
+# `nxtest`, runs the checks below against the real SFTP port and the real file
+# portal, then deletes the account and its folder. Nothing else is touched. Exits
+# non-zero on any failure.
+#
+#   infrastructure/scripts/server-run verify-sftp
+#
+# Checks: password and key login, wrong password refused, upload and download
+# intact, path escape over SFTP and the browser portal, chmod/chown/symlink
+# denied, quota enforced (and the stored data kept), FTP and WebDAV absent, a
+# disabled account refused, and the defender (5 failures in 10 minutes block the
+# address for 30 minutes; the script lifts its own ban at the end).
+set -u
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local >/dev/null || exit 1
+
+WEB_ENV=/etc/ytl-nexus/web.env
+BASE=http://127.0.0.1:8091/api/v2
+USER_NAME=nxtest
+HOME_DIR=/srv/nexus-transfer/$USER_NAME
+HOST=10.26.64.164
+PORTAL=https://127.0.0.1
+PUBLIC_HOST=ytl-nexus.ytlcomms.my
+pass=0
+fail=0
+ok() { pass=$((pass + 1)); printf '  PASS  %s\n' "$1"; }
+bad() { fail=$((fail + 1)); printf '  FAIL  %s\n' "$1"; }
+expect() { # description, expected substring, actual text
+  case "$3" in *"$2"*) ok "$1" ;; *) bad "$1 (got: $(printf '%s' "$3" | head -c 200 | tr '\n' ' '))" ;; esac
+}
+
+work="$(mktemp -d /root/verify-sftp.XXXXXX)"
+chmod 700 "$work"
+KEY="$(grep -m1 '^NEXUS_SFTPGO_API_KEY=' "$WEB_ENV" | cut -d= -f2-)"
+[ -n "$KEY" ] || { echo "verify-sftp: NEXUS_SFTPGO_API_KEY is missing from web.env" >&2; rm -rf "$work"; exit 1; }
+PASSWORD="$(openssl rand -base64 36 | tr -d '/+=\n' | cut -c1-24)Aa1"
+
+# The API key goes to curl on stdin, never on a command line.
+api() { # method path [json]
+  local method="$1" path="$2" body="${3:-}"
+  if [ -n "$body" ]; then
+    printf 'header = "X-SFTPGO-API-KEY: %s"\nheader = "Content-Type: application/json"\ndata = "%s"\n' "$KEY" \
+      "$(printf '%s' "$body" | sed 's/\\/\\\\/g; s/"/\\"/g')" | curl -sS -m 20 -X "$method" -K - "$BASE$path"
+  else
+    printf 'header = "X-SFTPGO-API-KEY: %s"\n' "$KEY" | curl -sS -m 20 -X "$method" -K - "$BASE$path"
+  fi
+}
+
+# ---- askpass for password logins -----------------------------------------------------
+cat >"$work/askpass" <<'EOF'
+#!/bin/sh
+printf '%s\n' "$VERIFY_SFTP_PASSWORD"
+EOF
+chmod 700 "$work/askpass"
+ssh-keygen -q -t ed25519 -N '' -C verify-sftp -f "$work/key"
+
+COMMON=(-P 2022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=10)
+# sftp -b forces BatchMode, which switches password prompts off, so password
+# logins read their commands from standard input instead and the outcome is read
+# from the output ($FAILED matches the messages the client prints on a refusal).
+FAILED='Couldn.t|ermission denied|Failure|No such file|not allowed|Connection closed|Connection reset|quota|space limit|nsupported'
+sftp_password() { # password; sftp commands on stdin; prints output
+  local pw="$1"
+  VERIFY_SFTP_PASSWORD="$pw" SSH_ASKPASS="$work/askpass" SSH_ASKPASS_REQUIRE=force DISPLAY=none \
+    setsid sftp "${COMMON[@]}" -o PreferredAuthentications=password -o PubkeyAuthentication=no \
+    -o NumberOfPasswordPrompts=1 "$USER_NAME@$HOST" 2>&1
+}
+sftp_key() {
+  sftp "${COMMON[@]}" -i "$work/key" -o IdentitiesOnly=yes -o PreferredAuthentications=publickey \
+    -o BatchMode=yes -b - "$USER_NAME@$HOST" 2>&1
+}
+run() { # command text for the sftp batch, using the password login; prints output, sets $rc
+  output="$(printf '%s\n' "$1" | sftp_password "$PASSWORD")"
+  if printf '%s' "$output" | grep -q -E "$FAILED"; then rc=1; else rc=0; fi
+}
+
+# The defender names a host by the hex of its address. Removing it lifts the ban
+# and forgets its failure score.
+defender_reset() {
+  local id
+  for id in $(api GET /defender/hosts | python3 -c 'import json,sys
+try:
+    for h in json.load(sys.stdin) or []: print(h["id"])
+except Exception: pass'); do
+    api DELETE "/defender/hosts/$id" >/dev/null 2>&1
+  done
+}
+
+cleanup() {
+  api DELETE "/users/$USER_NAME" >/dev/null 2>&1
+  # Only the test account's own folder, never anything else.
+  [ "$HOME_DIR" = /srv/nexus-transfer/nxtest ] && [ -d "$HOME_DIR" ] && rm -rf --one-file-system "$HOME_DIR"
+  # Lift any ban this script caused.
+  defender_reset
+  rm -rf "$work" /tmp/nx-escape-test
+}
+trap cleanup EXIT
+
+echo "Setup"
+defender_reset
+existing="$(api GET "/users/$USER_NAME")"
+case "$existing" in
+  *'"username"'*)
+    case "$existing" in
+      *'verify-sftp test account'*) api DELETE "/users/$USER_NAME" >/dev/null; rm -rf --one-file-system /srv/nexus-transfer/nxtest ;;
+      *) echo "verify-sftp: an account named $USER_NAME exists and was not made by this script. Stopping." >&2; trap - EXIT; rm -rf "$work"; exit 1 ;;
+    esac ;;
+esac
+pub="$(cat "$work/key.pub")"
+created="$(api POST /users "{\"status\":1,\"username\":\"$USER_NAME\",\"password\":\"$PASSWORD\",\"description\":\"verify-sftp test account\",\"public_keys\":[\"$pub\"],\"home_dir\":\"$HOME_DIR\",\"uid\":0,\"gid\":0,\"max_sessions\":10,\"quota_size\":5242880,\"quota_files\":0,\"permissions\":{\"/\":[\"list\",\"download\",\"upload\",\"overwrite\",\"delete\",\"rename\",\"create_dirs\",\"chtimes\",\"copy\"]},\"filters\":{\"denied_protocols\":[\"FTP\",\"DAV\"],\"web_client\":[\"publickey-change-disabled\",\"api-key-auth-change-disabled\",\"info-change-disabled\",\"shares-disabled\"]},\"filesystem\":{\"provider\":0}}")"
+expect "the test account was created through the API key" "$USER_NAME" "$created"
+
+echo "Services and listeners"
+[ "$(ps -o user= -C sftpgo | sort -u | tr -d ' \n')" = sftpgo ] && ok "sftpgo runs as the user sftpgo" || bad "sftpgo does not run as sftpgo"
+listeners="$(ss -H -tlnp | grep sftpgo | awk '{print $4}' | sort | tr '\n' ' ')"
+expect "SFTP listens on 2022" ":2022" "$listeners"
+expect "the WebClient listens on 127.0.0.1:8090" "127.0.0.1:8090" "$listeners"
+expect "the WebAdmin and REST API listen on 127.0.0.1:8091" "127.0.0.1:8091" "$listeners"
+extra="$(printf '%s\n' $listeners | grep -v -E ':(2022|8090|8091|10000)$' | tr '\n' ' ')"
+[ -z "$extra" ] && ok "sftpgo has no other listener (no FTP, no WebDAV)" || bad "sftpgo has other listeners: $extra"
+for p in 21 990 2121 8010; do
+  ss -H -tln | awk '{print $4}' | grep -q ":$p\$" && bad "port $p (FTP or WebDAV) listens" || ok "port $p (FTP or WebDAV) does not listen"
+done
+[ "$(grep -c '"port": 0' /etc/sftpgo/sftpgo.json)" -ge 2 ] && ok "the FTP and WebDAV bindings are switched off in the configuration" || bad "FTP or WebDAV is not switched off in the configuration"
+
+echo "SFTP login"
+run "pwd"
+expect "password login works" "Remote working directory: /" "$output"
+output="$(printf 'pwd\n' | sftp_key)"
+expect "key login works" "Remote working directory: /" "$output"
+output="$(printf 'pwd\n' | sftp_password "wrong-password-$$")"
+case "$output" in *"Remote working directory"*) bad "a wrong password is refused" ;; *) ok "a wrong password is refused" ;; esac
+ssh -p 2022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o BatchMode=yes -i "$work/key" -o IdentitiesOnly=yes "$USER_NAME@$HOST" 'id' >"$work/shell.out" 2>&1
+case "$(cat "$work/shell.out")" in *uid=*) bad "the account cannot run shell commands" ;; *) ok "the account cannot run shell commands" ;; esac
+
+echo "Transfers"
+[ "$(stat -c %U "$HOME_DIR" 2>/dev/null)" = sftpgo ] && ok "the home folder (made at the first login) is owned by the unprivileged user sftpgo" || bad "the home folder is not owned by sftpgo ($(stat -c %U "$HOME_DIR" 2>&1))"
+expect "the home folder is under /srv/nexus-transfer" "/srv/nexus-transfer/$USER_NAME" "$(readlink -f "$HOME_DIR")"
+head -c 1048576 /dev/urandom >"$work/one.bin"
+run "put $work/one.bin one.bin"
+[ $rc -eq 0 ] && ok "a 1 MB upload succeeds" || bad "a 1 MB upload succeeds ($output)"
+run "get one.bin $work/one.back"
+[ "$(sha256sum <"$work/one.bin")" = "$(sha256sum <"$work/one.back" 2>/dev/null)" ] && ok "the download is byte-identical" || bad "the download is not identical"
+[ "$(stat -c %U "$HOME_DIR/one.bin" 2>/dev/null)" = sftpgo ] && ok "uploaded files belong to sftpgo, not to a login user" || bad "uploaded file owner is wrong"
+
+echo "Path escape over SFTP"
+before="$(find /srv/nexus-transfer -mindepth 1 -not -path "$HOME_DIR*" | sort | tr '\n' ' ')"
+run "ls /etc"
+case "$output" in *passwd*|*shadow*) bad "ls /etc shows the real /etc" ;; *) ok "ls /etc does not show the real /etc" ;; esac
+run "get ../../../../etc/passwd $work/passwd.try"
+{ [ ! -s "$work/passwd.try" ] || ! grep -q '^root:' "$work/passwd.try"; } && ok "get ../../../../etc/passwd does not return the real file" || bad "get ../../../../etc/passwd returned the real file"
+run "put $work/one.bin ../../../../tmp/nx-escape-test"
+[ ! -e /tmp/nx-escape-test ] && ok "put ../../../../tmp/... writes nothing outside the home" || bad "put wrote /tmp/nx-escape-test"
+run "put $work/one.bin ../escape.bin"
+[ ! -e /srv/nexus-transfer/escape.bin ] && ok "put ../escape.bin writes nothing outside the home" || bad "put wrote /srv/nexus-transfer/escape.bin"
+[ -f "$HOME_DIR/escape.bin" ] && ok "the .. was resolved inside the home: the file landed in the account's own folder" || bad "the .. upload landed nowhere"
+run "rm escape.bin"
+run "ls .."
+case "$output" in *one.bin*) ok "ls .. stays inside the account's own folder" ;; *) bad "ls .. left the account's own folder ($output)" ;; esac
+after="$(find /srv/nexus-transfer -mindepth 1 -not -path "$HOME_DIR*" | sort | tr '\n' ' ')"
+[ "$before" = "$after" ] && ok "no file outside the home was created or changed" || bad "files outside the home changed"
+run "ln -s /etc/passwd evil"
+[ $rc -ne 0 ] && [ ! -L "$HOME_DIR/evil" ] && ok "creating a symlink is denied" || bad "creating a symlink was allowed"
+
+echo "chmod and chown are denied"
+run "chmod 777 one.bin"
+[ $rc -ne 0 ] && expect "chmod is refused with a permission error" "ermission" "$output" || bad "chmod was allowed"
+run "chown 0 one.bin"
+[ $rc -ne 0 ] && expect "chown is refused with a permission error" "ermission" "$output" || bad "chown was allowed"
+[ "$(stat -c %a "$HOME_DIR/one.bin")" != 777 ] && ok "the file mode did not change" || bad "the file mode changed to 777"
+
+echo "Quota (5 MB)"
+head -c 3145728 /dev/urandom >"$work/three.bin"
+run "put $work/three.bin three.bin"
+[ $rc -eq 0 ] && ok "a 3 MB upload fits (4 MB of 5 MB used)" || bad "a 3 MB upload fits ($output)"
+run "put $work/three.bin four.bin"
+[ $rc -ne 0 ] && ok "a further 3 MB upload (7 MB in total) is rejected" || bad "an upload over the quota was accepted"
+[ ! -s "$HOME_DIR/four.bin" ] && ok "the rejected upload left no partial file" || bad "a partial file remains ($(stat -c %s "$HOME_DIR/four.bin"))"
+[ "$(sha256sum <"$work/one.bin")" = "$(sha256sum <"$HOME_DIR/one.bin")" ] && [ -s "$HOME_DIR/three.bin" ] && ok "the data stored before is kept" || bad "stored data changed"
+used="$(api GET "/users/$USER_NAME" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("used_quota_size",""))')"
+[ "$used" = 4194304 ] && ok "SFTPGo reports exactly 4194304 bytes used: the rejected upload left nothing behind" || bad "used quota is $used, expected 4194304"
+
+echo "File portal (browser) through Apache"
+jar="$work/jar"
+page="$(curl -sk -m 15 -c "$jar" -H "Host: $PUBLIC_HOST" "$PORTAL/files/web/client/login")"
+token="$(printf '%s' "$page" | grep -o 'name="_form_token" value="[^"]*"' | head -1 | sed 's/.*value="//; s/"$//')"
+[ -n "$token" ] && ok "the portal sign-in page loads with a form token" || bad "the portal sign-in page has no form token"
+printf 'data-urlencode = "username=%s"\ndata-urlencode = "password=%s"\ndata-urlencode = "_form_token=%s"\n' "$USER_NAME" "$PASSWORD" "$token" |
+  curl -sk -m 15 -b "$jar" -c "$jar" -K - -H "Host: $PUBLIC_HOST" -o /dev/null -w '%{http_code}' "$PORTAL/files/web/client/login" >"$work/login.code"
+case "$(cat "$work/login.code")" in 302|303) ok "portal sign-in succeeds (redirect)" ;; *) bad "portal sign-in failed ($(cat "$work/login.code"))" ;; esac
+grep -q '__Secure-\|jwt' "$jar" && ok "the portal sets a session cookie" || bad "the portal set no session cookie"
+grep -E 'jwt' "$jar" | awk '{print $1}' | grep -q '^#HttpOnly_' && ok "the portal session cookie is HttpOnly" || bad "the portal session cookie is not HttpOnly"
+files_page="$(curl -sk -m 15 -b "$jar" -H "Host: $PUBLIC_HOST" "$PORTAL/files/web/client/files?path=%2F")"
+csrf="$(printf '%s' "$files_page" | grep -o "'X-CSRF-TOKEN': '[^']*'" | head -1 | sed "s/.*: '//; s/'$//")"
+curl -sk -m 30 -b "$jar" -H "Host: $PUBLIC_HOST" -o "$work/one.portal" "$PORTAL/files/web/client/files?path=%2Fone.bin"
+[ "$(sha256sum <"$work/one.bin")" = "$(sha256sum <"$work/one.portal")" ] && ok "a browser download of the SFTP upload is byte-identical" || bad "the browser download differs"
+[ -n "$csrf" ] && ok "the file list carries a CSRF token" || bad "no CSRF token on the file list"
+head -c 2048 /dev/urandom >"$work/small.bin"
+code="$(printf 'header = "X-CSRF-TOKEN: %s"\n' "$csrf" | curl -sk -m 30 -b "$jar" -K - -H "Host: $PUBLIC_HOST" -X POST --data-binary @"$work/small.bin" -o /dev/null -w '%{http_code}' "$PORTAL/files/web/client/file?path=%2Fportal.bin")"
+[ "$code" = 201 ] || [ "$code" = 200 ] && ok "a browser upload succeeds ($code)" || bad "a browser upload failed ($code)"
+[ -s "$HOME_DIR/portal.bin" ] && ok "the browser upload is in the account's folder" || bad "the browser upload is missing"
+head -c 6291456 /dev/urandom >"$work/big.bin"
+code="$(printf 'header = "X-CSRF-TOKEN: %s"\n' "$csrf" | curl -sk -m 60 -b "$jar" -K - -H "Host: $PUBLIC_HOST" -X POST --data-binary @"$work/big.bin" -o "$work/big.out" -w '%{http_code}' "$PORTAL/files/web/client/file?path=%2Fover-quota.bin")"
+case "$code" in 2*) bad "a browser upload over the quota was accepted ($code)" ;; *) ok "a browser upload over the quota is rejected ($code)" ;; esac
+[ ! -s "$HOME_DIR/over-quota.bin" ] && ok "the rejected browser upload left no file" || bad "a file remains after the rejected browser upload"
+esc="$(curl -sk -m 15 -b "$jar" -H "Host: $PUBLIC_HOST" "$PORTAL/files/web/client/files?path=%2F..%2F..%2F..%2Fetc%2Fpasswd")"
+case "$esc" in *root:*) bad "the portal returned /etc/passwd for a traversal path" ;; *) ok "the portal does not return /etc/passwd for a traversal path" ;; esac
+esc="$(curl -sk -m 15 -b "$jar" -H "Host: $PUBLIC_HOST" "$PORTAL/files/web/client/files?path=%2F%2e%2e%2f%2e%2e%2fetc%2fpasswd")"
+case "$esc" in *root:*) bad "the portal returned /etc/passwd for an encoded traversal path" ;; *) ok "the portal does not return /etc/passwd for an encoded traversal path" ;; esac
+[ "$(curl -sk -m 10 -o /dev/null -w '%{http_code}' -b "$jar" -H "Host: $PUBLIC_HOST" "$PORTAL/files/api/v2/user/profile")" = 404 ] && ok "the portal binding has no REST API" || bad "the portal binding answers REST calls"
+[ "$(curl -sk -m 10 -o /dev/null -w '%{http_code}' -H "Host: $PUBLIC_HOST" "$PORTAL/files/web/admin/login")" = 404 ] && ok "the WebAdmin is not reachable through Apache" || bad "the WebAdmin is reachable through Apache"
+[ "$(curl -sk -m 10 -o /dev/null -w '%{http_code}' --resolve "$PUBLIC_HOST:8091:127.0.0.1" "http://127.0.0.1:8090/files/web/admin/login")" = 404 ] && ok "the portal binding on 8090 does not serve the WebAdmin" || bad "port 8090 serves the WebAdmin"
+
+echo "Disabled account"
+api PUT "/users/$USER_NAME?disconnect=1" "$(api GET "/users/$USER_NAME" | python3 -c 'import json,sys; u=json.load(sys.stdin); u["status"]=0; print(json.dumps(u))')" >/dev/null
+output="$(printf 'pwd\n' | sftp_password "$PASSWORD")"
+case "$output" in *"Remote working directory"*) bad "a disabled account cannot sign in" ;; *) ok "a disabled account cannot sign in" ;; esac
+api PUT "/users/$USER_NAME" "$(api GET "/users/$USER_NAME" | python3 -c 'import json,sys; u=json.load(sys.stdin); u["status"]=1; print(json.dumps(u))')" >/dev/null
+run "pwd"
+expect "the account works again once enabled" "Remote working directory: /" "$output"
+
+echo "Defender (5 failures in 10 minutes block for 30 minutes)"
+defender_reset
+for i in 1 2 3 4; do printf 'pwd\n' | sftp_password "bad-$i-$$" >/dev/null; done
+run "pwd"
+expect "4 failures do not block the address" "Remote working directory: /" "$output"
+defender_reset
+for i in 1 2 3 4 5; do printf 'pwd\n' | sftp_password "bad-$i-$$" >/dev/null; done
+hosts="$(api GET /defender/hosts)"
+output="$(printf 'pwd\n' | sftp_password "$PASSWORD")"
+case "$output" in *"Remote working directory"*) bad "after 5 failures the address is blocked (login still worked)" ;; *) ok "after 5 failures even the right password is refused" ;; esac
+expect "the defender lists the blocked address" "$HOST" "$hosts"
+minutes="$(printf '%s' "$hosts" | python3 -c 'import json,sys,datetime
+try:
+    h = [x for x in json.load(sys.stdin) if x.get("ban_time")][0]
+    t = datetime.datetime.strptime(h["ban_time"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    print(round((t - datetime.datetime.now(datetime.timezone.utc)).total_seconds() / 60))
+except Exception:
+    print("none")')"
+{ [ "$minutes" != none ] && [ "$minutes" -ge 25 ] && [ "$minutes" -le 35 ]; } && ok "the block lasts about 30 minutes ($minutes)" || bad "the block does not last about 30 minutes ($minutes)"
+defender_reset
+run "pwd"
+expect "the address works again once the ban is lifted" "Remote working directory: /" "$output"
+
+echo
+echo "Passed: $pass   Failed: $fail"
+[ "$fail" -eq 0 ]

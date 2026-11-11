@@ -389,7 +389,7 @@ export function DataView(props: DataViewProps) {
   const exportParams = hrefFor(query).split("?")[1] ?? "";
   return (
     <div className="flex flex-col gap-10 px-(--spacing-gutter) py-10">
-      <header className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-heading-2 font-semibold">Nexus Data</h1>
           <LiveDemoLabel source={list.source} />
@@ -402,7 +402,7 @@ export function DataView(props: DataViewProps) {
           change and delete records, and every change is written to the audit
           trail below.
         </p>
-      </header>
+      </div>
 
       <Tabs current={query.table} />
 

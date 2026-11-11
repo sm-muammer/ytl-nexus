@@ -46,7 +46,7 @@
 | 22   | SSH (`ssh` service, added first) | Yes               |
 | 80   | HTTP (redirects to HTTPS)        | Yes               |
 | 443  | HTTPS                            | Yes               |
-| 2022 | SFTP (SFTPGo)                    | No, until Task 12 |
+| 2022 | SFTP (SFTPGo)                    | Yes (Task 12)     |
 | 587  | Mail submission (Postfix)        | No, until Task 13 |
 | 993  | IMAPS (Dovecot)                  | No, until Task 13 |
 

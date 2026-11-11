@@ -27,10 +27,10 @@ scp -q $SSH_OPTS "$HERE"/* "$INFRA/apache/ytl-nexus.conf" "$INFRA/apache/studio.
   "$INFRA/php-fpm/wordpress.conf" "$INFRA/systemd/nexus-web.service" \
   "$INFRA/systemd/prometheus.service" "$INFRA/prometheus/prometheus.yml" \
   "$INFRA/systemd/nexus-ops.service" "$INFRA/systemd/nexus-worker.service" \
-  "$INFRA/polkit/50-nexus-ops.rules" \
+  "$INFRA/polkit/50-nexus-ops.rules" "$INFRA/apache/files.inc" "$INFRA/systemd/sftpgo-nexus.conf" \
   "$SSH_TARGET:/root/nexus-ops/" 2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2)
 # shellcheck disable=SC2086
-scp -q -r $SSH_OPTS "$INFRA/wordpress" "$SSH_TARGET:/root/nexus-ops/" \
+scp -q -r $SSH_OPTS "$INFRA/wordpress" "$INFRA/sftpgo" "$SSH_TARGET:/root/nexus-ops/" \
   2> >(grep -v -E 'post-quantum|store now|may need to be upgraded' >&2)
 # shellcheck disable=SC2086
 ssh $SSH_OPTS "$SSH_TARGET" "chmod 700 /root/nexus-ops/* && /root/nexus-ops/$script $*" \

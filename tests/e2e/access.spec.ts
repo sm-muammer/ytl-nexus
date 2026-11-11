@@ -105,7 +105,9 @@ test.describe("/control (requirement 6.11)", () => {
       "content",
       /noindex/,
     );
-    await expect(page.getByRole("heading", { name: "Accounts" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Accounts", exact: true }),
+    ).toBeVisible();
     // Visitor navigation never lists it.
     await context.clearCookies();
     await page.goto("/");

@@ -86,6 +86,15 @@ Read in `live` mode only. `NEXUS_OPS_SECRET` is **secret**: at least 32 characte
 
 `nexus-worker` reads only `/etc/ytl-nexus/app-db.env` (the `NEXUS_DB_*` settings of `nexus_app`), through its unit.
 
+## SFTPGo (Nexus Transfer)
+
+Read in `live` mode only, by `lib/server/sftpgo.ts`. Written to `/etc/ytl-nexus/web.env` by `setup-sftpgo`. If one is missing, `/transfer` and the Control section say the file transfer service does not answer. Demo mode reads none of them. See [Nexus Transfer](sftp.md).
+
+- `NEXUS_SFTPGO_URL`: the REST API, `http://127.0.0.1:8091/api/v2`. The client accepts only `localhost`, `127.0.0.1` or `::1`, so a wrong value cannot send the key to another host.
+- `NEXUS_SFTPGO_API_KEY`: **secret.** The key of the limited administrator `nexus-api`. Sent only in a request header, never in a URL, a log line or an error.
+- `NEXUS_SFTPGO_HOST`: the name shown in the connection guides; defaults to the host of `BETTER_AUTH_URL`.
+- `NEXUS_SFTPGO_HOME_BASE`: optional, the parent folder of account homes, default `/srv/nexus-transfer`.
+
 ## Demo session cookie
 
 In demo mode the session switcher stores the chosen role in the HttpOnly cookie `nexus-demo-role` (values `viewer`, `member`, `operator`, `admin`; no cookie means Visitor). Only the demo auth adapter reads it, and the Server Function that sets it does nothing in `live` mode. It is a presentation aid: it changes menus and labels and grants nothing. Real access control is the guards in `lib/server/guards.ts`, which run in both modes: demo mode enforces the same role matrix on this cookie, and never touches a database or the audit trail.
