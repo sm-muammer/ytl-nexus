@@ -212,6 +212,14 @@ export const ACTION_POLICY: readonly ActionPolicy[] = [
   { id: "auth.start-enrolment", minRole: "viewer", allowUnenrolled: true },
   { id: "auth.confirm-enrolment", minRole: "viewer", allowUnenrolled: true },
   { id: "auth.step-up", minRole: "admin", hidden: true },
+  // Operations through the nexus-ops agent (requirement 9.11). Operators and
+  // Administrators only; the agent re-checks the request on its own.
+  { id: "ops.restart", minRole: "operator" },
+  { id: "ops.logs", minRole: "operator" },
+  { id: "ops.health", minRole: "operator" },
+  // Incidents (requirement 9.17).
+  { id: "status.incident.open", minRole: "operator" },
+  { id: "status.incident.update", minRole: "operator" },
   { id: "control.user.reset-password", ...CONTROL },
   { id: "control.user.revoke-sessions", ...CONTROL },
 ];

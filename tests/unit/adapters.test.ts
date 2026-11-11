@@ -115,9 +115,10 @@ describe("live adapters (Live_Mode)", () => {
     const connectSpy = vi.spyOn(net, "connect");
 
     const set = createAdapters("live", { readDemoRole: noCookie });
-    // auth is real since Task 6 and prometheus since Task 8 (own tests below).
+    // auth is real since Task 6, prometheus since Task 8 and ops since Task 9
+    // (own tests below and in ops-client.test.ts).
     for (const name of ADAPTER_NAMES.filter(
-      (n) => n !== "auth" && n !== "prometheus",
+      (n) => n !== "auth" && n !== "prometheus" && n !== "ops",
     )) {
       const status = await set[name].status();
       expect(status.source).toBe("live");

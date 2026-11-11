@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import type { Actor } from "@/lib/roles";
 import { authIsConfigured, getAuthRuntime } from "@/lib/server/auth/runtime";
 import { resolveIdentity } from "@/lib/server/auth/service";
+import { callOps } from "@/lib/server/ops-client";
 import { identityToActor } from "@/lib/server/policy";
 import {
   emptySnapshot,
@@ -141,5 +142,32 @@ export function createLiveAdapters(): Adapters {
     },
   };
 
-  return { ...base, auth, prometheus: createLivePrometheus() };
+  const ops: ServiceAdapter = {
+    name: "ops",
+    source: "live",
+    status: async (): Promise<AdapterStatus> => {
+      // A harmless health check proves the socket, the secret and the clock.
+      const result = await callOps({ op: "health", check: "web" });
+      if (result.ok) {
+        return {
+          name: "ops",
+          source: "live",
+          state: "ok",
+          label: "Connected",
+          detail: "The operations agent answers signed requests.",
+        };
+      }
+      return {
+        name: "ops",
+        source: "live",
+        state: result.error === "unavailable" ? "bad" : "warn",
+        label: result.error === "unavailable" ? "Unreachable" : "Refused",
+        detail:
+          result.error === "unavailable"
+            ? "The operations agent does not answer."
+            : "The operations agent refused the request.",
+      };
+    },
+  };
+  return { ...base, auth, ops, prometheus: createLivePrometheus() };
 }

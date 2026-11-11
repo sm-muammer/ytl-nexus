@@ -12,7 +12,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NEXUS_ROOT="${NEXUS_ROOT:-/opt/ytl-nexus}"
 NEXUS_RUN_AS="${NEXUS_RUN_AS-nexus}"
 NEXUS_VERIFY_CMD="${NEXUS_VERIFY_CMD:-$HERE/verify-target --local}"
-NEXUS_RESTART_CMD="${NEXUS_RESTART_CMD:-systemctl restart nexus-web}"
+# nexus-worker and nexus-ops run code from `current` too, so they restart with it
+# when they are installed and enabled (task 9). A failure of those two does not
+# fail the deploy; the web health check decides.
+DEFAULT_RESTART_CMD='systemctl restart nexus-web && { for u in nexus-worker nexus-ops; do if systemctl is-enabled --quiet "$u" 2>/dev/null; then systemctl restart "$u" || true; fi; done; true; }'
+NEXUS_RESTART_CMD="${NEXUS_RESTART_CMD:-$DEFAULT_RESTART_CMD}"
 NEXUS_HEALTH_CMD="${NEXUS_HEALTH_CMD:-curl -fsS --max-time 3 -o /dev/null http://127.0.0.1:3000/api/health/ready}"
 NEXUS_HEALTH_TIMEOUT="${NEXUS_HEALTH_TIMEOUT:-60}"
 NEXUS_HEALTH_INTERVAL="${NEXUS_HEALTH_INTERVAL:-2}"

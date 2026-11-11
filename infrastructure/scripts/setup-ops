@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# setup-ops: task 9 (OPS-01 to OPS-05, STA-01). Runs on the server (use server-run).
+#
+#   infrastructure/scripts/server-run setup-ops
+#
+# Run it after a release that contains services/ops-agent and services/worker is
+# deployed (infrastructure/scripts/deploy-remote), because the units start
+# code from /opt/ytl-nexus/current.
+#
+# Creates the `nexus-ops` user and the `nexus-ops-clients` group (sole member:
+# `nexus`), the shared HMAC secret in /etc/ytl-nexus/ops.env (root only, read by
+# systemd), the polkit rule, and the units nexus-ops and nexus-worker. Restarts
+# nexus-web once so it picks up the new group and the secret.
+#
+# Safe to run again: existing users, groups and the secret are kept. The secret
+# is never printed.
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+ENV_DIR=/etc/ytl-nexus
+for f in nexus-ops.service nexus-worker.service nexus-web.service 50-nexus-ops.rules; do
+  [ -e "$OPS_DIR/$f" ] || { echo "setup-ops: $OPS_DIR/$f is missing (run through server-run)." >&2; exit 1; }
+done
+[ -d /opt/ytl-nexus/current/services/ops-agent ] ||
+  { echo "setup-ops: deploy a release with services/ops-agent first." >&2; exit 1; }
+[ -f "$ENV_DIR/app-db.env" ] ||
+  { echo "setup-ops: $ENV_DIR/app-db.env is missing; run setup-database first." >&2; exit 1; }
+getent passwd nexus >/dev/null || { echo "setup-ops: user nexus is missing; run setup-nexus-service first." >&2; exit 1; }
+[ -x /usr/bin/node ] || { echo "setup-ops: /usr/bin/node not found." >&2; exit 1; }
+
+# ---- 1. Group and user ----------------------------------------------------------
+getent group nexus-ops-clients >/dev/null || groupadd --system nexus-ops-clients
+if ! getent passwd nexus-ops >/dev/null; then
+  useradd --system --user-group --home-dir /nonexistent --no-create-home --shell /sbin/nologin \
+    --comment "YTL Nexus operations agent" nexus-ops
+fi
+# The only member of the clients group is the web service user.
+for member in $(getent group nexus-ops-clients | cut -d: -f4 | tr ',' ' '); do
+  [ "$member" = nexus ] || gpasswd --delete "$member" nexus-ops-clients >/dev/null
+done
+id -nG nexus | tr ' ' '\n' | grep -qx nexus-ops-clients || usermod --append --groups nexus-ops-clients nexus
+
+# ---- 2. Shared secret ------------------------------------------------------------
+# Read by systemd (as root) for nexus-ops and nexus-web; no user can read the file.
+if [ ! -f "$ENV_DIR/ops.env" ]; then
+  umask 077
+  {
+    echo "# Shared HMAC secret between nexus-web and the operations agent (nexus-ops)."
+    echo "# Rotate by replacing the value and restarting both units. See docs/security/ops-agent.md."
+    echo "# Optional: NEXUS_OPS_REDACT_RANGES=10.0.0.0/8,192.168.0.0/16 (IPv4 CIDRs masked in logs)."
+    echo "NEXUS_OPS_SECRET=$(openssl rand -hex 32)"
+  } >"$ENV_DIR/ops.env"
+fi
+chown root:root "$ENV_DIR/ops.env"
+chmod 0600 "$ENV_DIR/ops.env"
+
+# ---- 3. polkit rule and units -----------------------------------------------------
+install -d -m 0755 -o root -g root /etc/polkit-1/rules.d
+install -m 0644 -o root -g root "$OPS_DIR/50-nexus-ops.rules" /etc/polkit-1/rules.d/50-nexus-ops.rules
+install -m 0644 -o root -g root "$OPS_DIR/nexus-ops.service" /etc/systemd/system/nexus-ops.service
+install -m 0644 -o root -g root "$OPS_DIR/nexus-worker.service" /etc/systemd/system/nexus-worker.service
+install -m 0644 -o root -g root "$OPS_DIR/nexus-web.service" /etc/systemd/system/nexus-web.service
+systemctl daemon-reload
+systemctl enable nexus-ops nexus-worker >/dev/null 2>&1
+systemctl restart polkit 2>/dev/null || true
+systemctl restart nexus-ops nexus-worker
+# nexus-web joins the clients group and reads the secret at start.
+systemctl restart nexus-web
+
+sleep 2
+echo "---- result"
+echo "nexus-ops user:    $(id nexus-ops)"
+echo "nexus user:        $(id nexus)"
+echo "clients group:     $(getent group nexus-ops-clients)"
+ls -ld /run/nexus-ops /run/nexus-ops/ops.sock
+ls -l "$ENV_DIR/ops.env"
+systemctl is-active nexus-ops nexus-worker nexus-web

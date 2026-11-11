@@ -1,0 +1,51 @@
+# YTL Nexus worker: the scheduled service checks (STA-01). Later tasks add AI
+# indexing and report ingestion to this process. Installed as
+# /etc/systemd/system/nexus-worker.service by `setup-ops`. Check the sandbox with:
+#   systemd-analyze security nexus-worker
+[Unit]
+Description=YTL Nexus worker (service checks)
+Documentation=https://github.com/sm-muammer/ytl-nexus
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nexus
+Group=nexus
+# Only the application's database settings; read by systemd as root.
+EnvironmentFile=/etc/ytl-nexus/app-db.env
+Environment=NODE_ENV=production
+WorkingDirectory=/opt/ytl-nexus/current
+ExecStart=/usr/bin/node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON /opt/ytl-nexus/current/services/worker/main.ts
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+# Sandbox.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# MariaDB, Ollama, Prometheus and the other checked services are all on loopback.
+IPAddressDeny=any
+IPAddressAllow=localhost
+SystemCallFilter=@system-service
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

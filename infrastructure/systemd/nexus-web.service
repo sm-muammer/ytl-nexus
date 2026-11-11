@@ -15,6 +15,9 @@ Group=nexus
 # `current` is a symlink to the active release; deploy.sh swaps it and restarts the unit.
 WorkingDirectory=/opt/ytl-nexus/current/.next/standalone
 EnvironmentFile=/etc/ytl-nexus/web.env
+# The HMAC secret for the operations agent (task 9). systemd reads it as root; the
+# leading dash lets the unit start before `setup-ops` has created it.
+EnvironmentFile=-/etc/ytl-nexus/ops.env
 Environment=NODE_ENV=production
 Environment=PORT=3000
 # Loopback only (requirement 4.13): Apache is the public entry point.

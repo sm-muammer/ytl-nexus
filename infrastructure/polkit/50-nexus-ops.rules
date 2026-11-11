@@ -1,0 +1,31 @@
+// YTL Nexus operations agent (requirements 9.7 and 9.8, OPS-05).
+// Installed as /etc/polkit-1/rules.d/50-nexus-ops.rules by `setup-ops`.
+//
+// The user `nexus-ops` may restart exactly four systemd units and may do
+// nothing else through polkit. Every other action it asks for is denied, so a
+// compromised agent cannot start, stop, enable or edit any unit, reload
+// systemd, or restart sshd, mariadb or anything not listed here.
+//
+// Keep this list in step with lib/ops/units.ts; a unit test compares them.
+polkit.addRule(function (action, subject) {
+  if (subject.user !== "nexus-ops") {
+    return polkit.Result.NOT_HANDLED;
+  }
+
+  var allowed = [
+    "nexus-web.service",
+    "nexus-worker.service",
+    "sftpgo.service",
+    "prometheus.service",
+  ];
+
+  if (action.id === "org.freedesktop.systemd1.manage-units") {
+    var verb = action.lookup("verb");
+    var unit = action.lookup("unit");
+    if (verb === "restart" && allowed.indexOf(unit) !== -1) {
+      return polkit.Result.YES;
+    }
+  }
+
+  return polkit.Result.NO;
+});
