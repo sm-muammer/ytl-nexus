@@ -5,15 +5,16 @@
 
 ## Current status
 
-| Item                        | Value                                 |
-| --------------------------- | ------------------------------------- |
-| Last completed              | **Task 10:** Nexus Atlas (2026-11-11) |
-| Next task                   | **Task 11:** Nexus Data               |
-| Recommended model           | Claude Haiku 5.5 (Sonnet 5.5 review)  |
-| Start the next session with | `Continue YTL Nexus: run Task 11`     |
+| Item                        | Value                                |
+| --------------------------- | ------------------------------------ |
+| Last completed              | **Task 11:** Nexus Data (2026-11-11) |
+| Next task                   | **Task 12:** Nexus Transfer (SFTPGo) |
+| Recommended model           | Sonnet 5.5, High effort              |
+| Start the next session with | `Continue YTL Nexus: run Task 12`    |
 
 ## Owner actions waiting
 
+- **Task 11, check in a browser (optional):** after the next deploy, sign in as an Operator on `https://ytl-nexus.ytlcomms.my`, open `/data`, add a site with a new code, then check that "Recent changes" lists it. The Operator controls are not reachable in a demo session.
 - **Task 9, needs your OK:** the Task 5 seed put invented health checks and incidents into the live database, and `/status` now shows those tables as Live. Review the plan (`infrastructure/scripts/server-run clear-sample-status-data` deletes nothing and prints 624 checks, 3 incidents, 7 updates), then approve and run it with `--yes`. It writes a backup to `/root` first. Until then Viewers and above see invented incidents and 30-day uptime partly built from invented checks on `/status`. Visitors see only real states.
 - **Task 9, check in a browser:** sign in as an Operator or Administrator on `https://ytl-nexus.ytlcomms.my`, open `/command/services`, run a health check and read the log of `nexus-worker`; restart `nexus-worker` through the dialog. Then open `/status`, open a test incident, post an update and resolve it. I could not do this myself (no account with an authenticator).
 - **Task 9, back up** `/etc/ytl-nexus/ops.env` with the other env files (it holds the shared secret for the operations agent).
@@ -33,6 +34,15 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 11: Nexus Data (done 2026-11-11)
+
+- **Built:** `/data` with three tabs (Sites, Assets, Maintenance tickets), search, enum filters, 25 rows per page, a CSV download of the filtered view (`/api/data/export`, up to 5,000 rows), Operator add, edit and delete with a confirm step, a recent changes list from the audit trail, and a read-only schema view from `information_schema`. Definitions and validation: `lib/data/tables.ts`. List parsing: `lib/data/query.ts`. CSV: `lib/data/csv.ts`. Reads: `lib/server/data.ts`. Writes: `lib/server/data-writes.ts`. Server Functions (guarded and audited): `lib/server/data-actions.ts`. Demo rows reuse the database seed generator (`lib/fixtures/data.ts`).
+- **Decisions:** D-043 to D-045.
+- **Tests:** 41 new unit tests (validation, hostile input, list parsing, CSV formula escaping, policy rows). 17 integration tests against MariaDB 10.5 (paging, search with literal `%` and `_`, filters, export, schema, CRUD, duplicate, missing reference, in-use delete, SET NULL on asset delete, SQL text stored literally, append-only audit denial). 8 end-to-end tests in demo mode (lists, tabs, search, CSV header, viewer sees no write controls, operator sees the disabled form, axe at 390 px). `npm run check` passes (738 unit tests) and `next build` passes.
+- **Found by running it:** a `"use server"` file cannot export a synchronous helper (the helper is now private). A component that builds JSX inside `try` fails the lint rule, so the page loads data inside `try` and renders outside it.
+- **Not done:** property tests 13.1 (pagination and CSV properties) are example-based instead. No live check with a real Operator account on Core 01, and no deploy in this task. The export writes no audit event because it is a read. The recent-changes list shows the latest 10 entries only.
+- **Docs:** `docs/operations/database.md` (Nexus Data section). Spec tasks 13.2 to 13.6 ticked in `.kiro/specs/ytl-nexus-platform/tasks.md`.
 
 ### Task 10: Nexus Atlas (done 2026-11-11)
 
@@ -183,6 +193,9 @@
 | D-040 | 2026-11-11 | The agent is the authority on its allowlist; the web layer sends plain text for the unit and check and lets the agent refuse                                                                                                                                                                                        | A refused request is then audited with the name that was asked for, and the allowlist has one home                                                                                                        |
 | D-041 | 2026-11-11 | `nexus-ops` runs with primary group `nexus-ops-clients` (`Group=` in the unit) without being a listed member                                                                                                                                                                                                        | The group's only listed member stays `nexus`, as the requirement says                                                                                                                                     |
 | D-042 | 2026-11-11 | A service with no predefined check reads Unknown, never Operational or Down                                                                                                                                                                                                                                         | A check for something not installed would be noise or a false "up"                                                                                                                                        |
+| D-043 | 2026-11-11 | Nexus Data changes rows with bound parameters only. Table and column names come from `lib/data/tables.ts`, never from the request. Each change runs in a transaction that locks the row first                                                                                                                       | One definition feeds the form, the validation and the SQL, so they cannot drift. The lock turns a missing row into a plain outcome instead of a silent no-op                                              |
+| D-044 | 2026-11-11 | Demo rows come from the database seed generator, and demo writes are refused before any database call                                                                                                                                                                                                               | The demo shows the same rows a live session shows after the seed, with no second set of fixtures                                                                                                          |
+| D-045 | 2026-11-11 | The CSV export is a Route Handler (`/api/data/export`) capped at 5,000 rows, and it carries the page's search and filters                                                                                                                                                                                           | A file download needs a plain GET response. The cap keeps one request from reading the whole database                                                                                                     |
 
 ## Open issues
 

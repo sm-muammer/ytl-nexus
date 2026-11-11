@@ -151,3 +151,14 @@ NEXUS_DB_ADMIN_PASSWORD="$(cat /root/nexus-mysql8-root.pw)" \
 Re-running the migrations and the seed is preferred to copying a MariaDB dump: it avoids dump-format differences between the two servers. To make the app use MySQL 8, change `NEXUS_DB_PORT` and the password in `web.env` and restart `nexus-web`. Replace the `...` placeholders with generated values; do not paste passwords into chat or tickets.
 
 Related: [Configuration](configuration.md) · [Deploy](deploy.md) · [Rollback](rollback.md) · [Nexus Data spec](../spec/14-nexus-data.md)
+
+## Nexus Data (`/data`)
+
+Nexus Data reads and changes the three demonstration tables `data_sites`, `data_assets` and `data_tickets`. Viewers read them and can download a CSV of the filtered view. Operators and Administrators add, change and delete records. Every change writes one `audit_events` row with the action `data.record.create`, `data.record.update` or `data.record.delete` and the target `table` or `table:id`.
+
+- **Writes:** `nexus_app` runs them with bound parameters. Table and column names come from `lib/data/tables.ts`. A row locked for update or delete returns "not found" if it has gone. Deleting a site that still has assets is refused. Deleting an asset clears it from the tickets that point at it.
+- **CSV:** `/api/data/export` returns the search and filters of the page, up to 5,000 rows. Cells that start with `=`, `+`, `-`, `@`, tab or carriage return get a leading apostrophe, so a spreadsheet shows them as text.
+- **Schema:** the page reads `information_schema` for the three tables. `nexus_app` can see them because it holds privileges on them.
+- **Re-seeding:** the seed refuses to run over existing rows, so records changed in Nexus Data are not overwritten. Use `--reset` only with the owner's approval (see "Rebuilding the database" above).
+
+Tests: `tests/unit/data-module.test.ts`, `tests/integration/data-records.test.ts` (needs `npm run db:test:up`), `tests/e2e/data.spec.ts`.

@@ -171,6 +171,12 @@ export const HANDLER_POLICY: readonly HandlerPolicy[] = [
     minRole: "viewer",
   },
   {
+    id: "data.export",
+    method: "GET",
+    path: "/api/data/export",
+    minRole: "viewer",
+  },
+  {
     id: "auth.api",
     method: "POST",
     path: "/api/auth/[...all]",
@@ -220,6 +226,10 @@ export const ACTION_POLICY: readonly ActionPolicy[] = [
   // Incidents (requirement 9.17).
   { id: "status.incident.open", minRole: "operator" },
   { id: "status.incident.update", minRole: "operator" },
+  // Nexus Data records (requirement 11.2).
+  { id: "data.record.create", minRole: "operator" },
+  { id: "data.record.update", minRole: "operator" },
+  { id: "data.record.delete", minRole: "operator" },
   { id: "control.user.reset-password", ...CONTROL },
   { id: "control.user.revoke-sessions", ...CONTROL },
 ];

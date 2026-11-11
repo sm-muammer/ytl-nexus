@@ -319,23 +319,23 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
     - **Property 12: CSV export neutralizes formulas and preserves content**
     - **Validates: Requirements 11.1, 11.7, 11.8**
 
-  - [ ] 13.2 Implement search, filter and paginated queries
+  - [x] 13.2 Implement search, filter and paginated queries
     - 25 rows per page over `data_assets`, `data_sites`, `data_tickets`
     - _Requirements: 11.1_
 
-  - [ ] 13.3 Implement audited create, update and delete
+  - [x] 13.3 Implement audited create, update and delete
     - Operator and above; Zod validation before writes; one audit event per attempt
     - _Requirements: 11.2, 11.4, 11.5, 11.6_
 
-  - [ ] 13.4 Implement CSV export
+  - [x] 13.4 Implement CSV export
     - Formula neutralization, all rows of the filtered view
     - _Requirements: 11.7, 11.8_
 
-  - [ ] 13.5 Add schema view, supervisor-request explanation and demo mode
+  - [x] 13.5 Add schema view, supervisor-request explanation and demo mode
     - Read-only ER view; demo writes disabled with a "Demo session" explanation
     - _Requirements: 11.11, 11.12_
 
-  - [ ]* 13.6 Write hostile-input and role-gating tests
+  - [x]* 13.6 Write hostile-input and role-gating tests
     - SQL fragments and markup in every field
     - _Requirements: 11.2, 11.6_
 
