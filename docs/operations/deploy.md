@@ -69,15 +69,15 @@ The service starts `node server.js` from `current/.next/standalone` as the `nexu
 
 `deploy.sh` reads these environment variables. The defaults are the production values; the tests in `tests/unit/infrastructure/deploy.test.ts` replace them with stubs.
 
-| Variable                                         | Default                                        | Meaning                                    |
-| ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------ |
-| `NEXUS_ROOT`                                     | `/opt/ytl-nexus`                               | Base directory                             |
-| `NEXUS_REPO`                                     | `$NEXUS_ROOT/repo.git`                         | Source repository                          |
-| `NEXUS_RUN_AS`                                   | `nexus`                                        | User that builds and migrates; empty = you |
-| `NEXUS_KEEP_RELEASES`                            | `3`                                            | Newest releases to keep                    |
-| `NEXUS_HEALTH_TIMEOUT` / `NEXUS_HEALTH_INTERVAL` | `60` / `2` seconds                             | Health-check patience                      |
-| `NEXUS_BUILD_CMD`, `NEXUS_MIGRATE_CMD`           | see `deploy.sh`                                | Build and migration commands               |
-| `NEXUS_RESTART_CMD`, `NEXUS_HEALTH_CMD`          | `systemctl restart nexus-web`, `curl` to ready | Restart and health check                   |
+| Variable                                         | Default                                                                              | Meaning                                    |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------ |
+| `NEXUS_ROOT`                                     | `/opt/ytl-nexus`                                                                     | Base directory                             |
+| `NEXUS_REPO`                                     | `$NEXUS_ROOT/repo.git`                                                               | Source repository                          |
+| `NEXUS_RUN_AS`                                   | `nexus`                                                                              | User that builds and migrates; empty = you |
+| `NEXUS_KEEP_RELEASES`                            | `3`                                                                                  | Newest releases to keep                    |
+| `NEXUS_HEALTH_TIMEOUT` / `NEXUS_HEALTH_INTERVAL` | `60` / `2` seconds                                                                   | Health-check patience                      |
+| `NEXUS_BUILD_CMD`, `NEXUS_MIGRATE_CMD`           | see `deploy.sh`                                                                      | Build and migration commands               |
+| `NEXUS_RESTART_CMD`, `NEXUS_HEALTH_CMD`          | restart `nexus-web`, then `nexus-worker` and `nexus-ops` if enabled; `curl` to ready | Restart and health check                   |
 
 ## When a deploy fails
 

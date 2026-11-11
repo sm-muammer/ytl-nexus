@@ -133,6 +133,14 @@ ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "curl -s --get http://12
 ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" "curl -s --get http://127.0.0.1:9090/api/v1/query --data-urlencode 'query=node_systemd_unit_state{name=\"nexus-web.service\",state=\"active\"} == 1'" 2>/dev/null | grep -q 'nexus-web.service' && ok "the systemd collector reports nexus-web" || bad "the systemd collector does not report nexus-web"
 [ "$(code https://ytl-nexus.ytlcomms.my/api/stream/metrics 2>/dev/null)" = 401 ] && ok "the metrics stream refuses a Visitor (401)" || bad "the metrics stream does not answer 401 to a Visitor"
 [ "$(code https://ytl-nexus.ytlcomms.my/api/stream/metrics?q=up 2>/dev/null)" = 401 ] && ok "the metrics stream ignores a query in the URL" || bad "the metrics stream answered a query in the URL"
+echo "Operations agent and Status (Task 9)"
+units=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" 'systemctl is-active nexus-ops nexus-worker nexus-web | tr "\n" " "' 2>/dev/null)
+[ "$units" = "active active active " ] && ok "nexus-ops, nexus-worker and nexus-web are active" || bad "nexus-ops, nexus-worker or nexus-web is not active ($units)"
+sock=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$SSH_TARGET" 'stat -c "%U:%G %a" /run/nexus-ops/ops.sock' 2>/dev/null)
+[ "$sock" = "nexus-ops:nexus-ops-clients 660" ] && ok "the agent socket is nexus-ops:nexus-ops-clients 0660" || bad "the agent socket has the wrong owner or mode ($sock)"
+status=$(c https://ytl-nexus.ytlcomms.my/status 2>/dev/null)
+case "$status" in *'data-public-list'*) ok "/status gives a visitor the public service list" ;; *) bad "/status did not show the public list to a visitor" ;; esac
+case "$status" in *'data-history'*|*'data-incidents'*|*'Uptime 24h'*) bad "/status leaks history or incidents to a visitor" ;; *) ok "/status shows a visitor no history or incidents" ;; esac
 echo "SSH"
 check "SSH login works with the firewall on" ssh -o BatchMode=yes -o ConnectTimeout=10 -o ControlMaster=no -o ControlPath=none "$SSH_TARGET" true
 

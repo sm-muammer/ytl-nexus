@@ -64,11 +64,17 @@ after="$(systemctl show nexus-worker -p ActiveEnterTimestampMonotonic --value)"
 [ "$after" != "$before" ] && ok "nexus-worker was restarted" || bad "nexus-worker was restarted"
 systemctl is-active --quiet nexus-worker && ok "nexus-worker is active again" || bad "nexus-worker is active again"
 
-echo "polkit (the last gate), as user nexus-ops"
-pk() { # unit verb -> exit code of pkcheck
-  runuser -u nexus-ops -- sh -c \
-    "pkcheck --action-id org.freedesktop.systemd1.manage-units --process \$\$ --detail verb '$2' --detail unit '$1' >/dev/null 2>&1; echo \$?"
+echo "polkit (the last gate), asked about the user nexus-ops"
+# pkcheck passes details only for root, so root asks polkit about the agent's own
+# process (its user is nexus-ops). The action is checked, never performed.
+agent_pid="$(systemctl show nexus-ops -p MainPID --value)"
+pk() { # unit verb -> exit code of pkcheck (0 means authorized)
+  pkcheck --action-id org.freedesktop.systemd1.manage-units --process "$agent_pid" \
+    --detail verb "$2" --detail unit "$1" >/dev/null 2>&1
+  echo $?
 }
+[ -n "$agent_pid" ] && [ "$agent_pid" != 0 ] && ok "the agent runs as pid $agent_pid" || bad "the agent runs"
+expect "the agent process runs as nexus-ops" "nexus-ops" "$(ps -o user= -p "$agent_pid")"
 for unit in nexus-web nexus-worker sftpgo prometheus; do
   [ "$(pk "$unit.service" restart)" = 0 ] && ok "polkit allows restart of $unit.service" || bad "polkit allows restart of $unit.service"
 done

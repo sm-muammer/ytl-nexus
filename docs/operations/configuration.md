@@ -76,6 +76,16 @@ Read in `live` mode only, by `lib/server/prometheus.ts`. Optional.
 
 - `NEXUS_PROMETHEUS_URL`: where Prometheus listens, default `http://127.0.0.1:9090`. Installed by `setup-monitoring`; see [Monitoring](monitoring.md). Demo mode never connects.
 
+## Operations agent (Nexus Status and Command)
+
+Read in `live` mode only. `NEXUS_OPS_SECRET` is **secret**: at least 32 characters, shared by `nexus-web` and `nexus-ops`. It lives in `/etc/ytl-nexus/ops.env` (`root:root`, mode 0600), which systemd reads for both units, and nowhere else. `setup-ops` creates it. See [Operations agent](../security/ops-agent.md).
+
+- `NEXUS_OPS_SECRET`: the shared HMAC secret. Read by `lib/server/ops-client.ts` and `services/ops-agent/main.ts`. Without it the Operator controls report that the agent is unavailable.
+- `NEXUS_OPS_SOCKET`: the agent socket, default `/run/nexus-ops/ops.sock`.
+- `NEXUS_OPS_REDACT_RANGES`: comma-separated IPv4 CIDRs masked in logs by the agent; default the private ranges and loopback.
+
+`nexus-worker` reads only `/etc/ytl-nexus/app-db.env` (the `NEXUS_DB_*` settings of `nexus_app`), through its unit.
+
 ## Demo session cookie
 
 In demo mode the session switcher stores the chosen role in the HttpOnly cookie `nexus-demo-role` (values `viewer`, `member`, `operator`, `admin`; no cookie means Visitor). Only the demo auth adapter reads it, and the Server Function that sets it does nothing in `live` mode. It is a presentation aid: it changes menus and labels and grants nothing. Real access control is the guards in `lib/server/guards.ts`, which run in both modes: demo mode enforces the same role matrix on this cookie, and never touches a database or the audit trail.

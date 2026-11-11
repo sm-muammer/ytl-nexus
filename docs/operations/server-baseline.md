@@ -90,15 +90,18 @@ To look inside: `tar -tzf var-www.tar.gz | head`. To restore one item, extract i
 
 All live in `infrastructure/scripts/`; the ones that change the server call `verify-target --local` first. `server-run <script>` verifies the target, uploads the scripts to `/root/nexus-ops` and runs one.
 
-| Script                                                                                                        | Purpose                                                                        |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `verify-target`                                                                                               | Gate 1: hostname, IP and machine-ID check                                      |
-| `preflight-backup`, `preflight-backup-remote`                                                                 | Gate 2: create, copy off and verify the backup                                 |
-| `remove-old-content`                                                                                          | Gate 3: itemized removal (`--list`, then `--approved <backup-dir>`)            |
-| `setup-time-identity`, `setup-runtimes`, `setup-tls`, `setup-apache`, `setup-nexus-service`, `setup-firewall` | Idempotent setup steps                                                         |
-| `setup-auth`                                                                                                  | Task 6: adds the `BETTER_AUTH_*` settings to `web.env` (keeps existing values) |
-| `firewall-enable`, `deploy-remote`, `smoke-test`                                                              | Run from the Mac                                                               |
-| `deploy.sh`, `rollback.sh`, `release-lib.sh`                                                                  | Run on the server; see [`deploy.md`](deploy.md)                                |
+| Script                                                                                                        | Purpose                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `verify-target`                                                                                               | Gate 1: hostname, IP and machine-ID check                                                                 |
+| `preflight-backup`, `preflight-backup-remote`                                                                 | Gate 2: create, copy off and verify the backup                                                            |
+| `remove-old-content`                                                                                          | Gate 3: itemized removal (`--list`, then `--approved <backup-dir>`)                                       |
+| `setup-time-identity`, `setup-runtimes`, `setup-tls`, `setup-apache`, `setup-nexus-service`, `setup-firewall` | Idempotent setup steps                                                                                    |
+| `setup-auth`                                                                                                  | Task 6: adds the `BETTER_AUTH_*` settings to `web.env` (keeps existing values)                            |
+| `setup-ops`                                                                                                   | Task 9: `nexus-ops` user and group, secret, polkit rule, `nexus-ops` and `nexus-worker` units             |
+| `verify-ops`                                                                                                  | Task 9: 47 acceptance checks of the agent, socket and polkit ([`ops-agent.md`](../security/ops-agent.md)) |
+| `clear-sample-status-data`                                                                                    | Task 9: removes the Task 5 sample checks and incidents (plan first, `--yes` to delete)                    |
+| `firewall-enable`, `deploy-remote`, `smoke-test`                                                              | Run from the Mac                                                                                          |
+| `deploy.sh`, `rollback.sh`, `release-lib.sh`                                                                  | Run on the server; see [`deploy.md`](deploy.md)                                                           |
 
 ## Verification record
 

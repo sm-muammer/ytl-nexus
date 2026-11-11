@@ -38,23 +38,23 @@ YTL Nexus runs as a **controlled internal pilot** that the IT Infrastructure tea
 
 Every module has a branded title and a plain subtitle. Standalone module names may appear as sub-brands in heroes, loaders, badges and transitions. The full "YTL Nexus" name stays in global navigation, metadata, sign-in and documentation.
 
-| Module               | Subtitle                                              | Spec                                            | Task  |
-| -------------------- | ----------------------------------------------------- | ----------------------------------------------- | ----- |
-| **Nexus Command**    | Infrastructure dashboard (Core 01, metrics, services) | [11](spec/11-nexus-command.md)                  | 8     |
-| **Nexus Atlas**      | Service dependency map                                | [13](spec/13-nexus-atlas.md)                    | 10    |
-| **Nexus Status**     | Health history, incidents and maintenance notices     | [12](spec/12-nexus-status-and-operations.md)    | 9     |
-| **Nexus AI**         | Local knowledge and operations assistant              | [18](spec/18-nexus-ai.md)                       | 14    |
-| **Nexus Transfer**   | Secure SFTP and browser file portal                   | [16](spec/16-nexus-transfer.md)                 | 12    |
-| **Nexus Mail**       | Secure webmail                                        | [17](spec/17-nexus-mail.md)                     | 13    |
-| **Nexus Data**       | MariaDB demonstration records                         | [14](spec/14-nexus-data.md)                     | 5, 11 |
-| **Nexus Library**    | Runbooks, FAQs and architecture notes                 | [15](spec/15-nexus-library-and-studio.md)       | 7     |
-| **Nexus Studio**     | WordPress content management                          | [15](spec/15-nexus-library-and-studio.md)       | 7     |
-| **Nexus Continuity** | Backups and restore verification                      | [20](spec/20-nexus-continuity.md)               | 16    |
-| **Nexus Shield**     | Read-only security posture                            | [21](spec/21-nexus-shield.md)                   | 17    |
-| **Nexus Tour**       | Guided sanitized presentation                         | [22](spec/22-nexus-tour-story-and-demo-mode.md) | 18    |
-| **Project Story**    | The internship case study                             | [22](spec/22-nexus-tour-story-and-demo-mode.md) | 18    |
-| **Nexus Control**    | Hidden administration                                 | [23](spec/23-nexus-control.md)                  | 6, 19 |
-| **Yes Experience**   | Yes website redesign                                  | [19](spec/19-yes-experience.md)                 | 15    |
+| Module               | Subtitle                                                                                                                   | Spec                                            | Task  |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ----- |
+| **Nexus Command**    | Infrastructure dashboard (Core 01, metrics, services)                                                                      | [11](spec/11-nexus-command.md)                  | 8     |
+| **Nexus Atlas**      | Service dependency map                                                                                                     | [13](spec/13-nexus-atlas.md)                    | 10    |
+| **Nexus Status**     | Health history, incidents and maintenance notices; Operator controls (logs, health checks, restart) on `/command/services` | [12](spec/12-nexus-status-and-operations.md)    | 9     |
+| **Nexus AI**         | Local knowledge and operations assistant                                                                                   | [18](spec/18-nexus-ai.md)                       | 14    |
+| **Nexus Transfer**   | Secure SFTP and browser file portal                                                                                        | [16](spec/16-nexus-transfer.md)                 | 12    |
+| **Nexus Mail**       | Secure webmail                                                                                                             | [17](spec/17-nexus-mail.md)                     | 13    |
+| **Nexus Data**       | MariaDB demonstration records                                                                                              | [14](spec/14-nexus-data.md)                     | 5, 11 |
+| **Nexus Library**    | Runbooks, FAQs and architecture notes                                                                                      | [15](spec/15-nexus-library-and-studio.md)       | 7     |
+| **Nexus Studio**     | WordPress content management                                                                                               | [15](spec/15-nexus-library-and-studio.md)       | 7     |
+| **Nexus Continuity** | Backups and restore verification                                                                                           | [20](spec/20-nexus-continuity.md)               | 16    |
+| **Nexus Shield**     | Read-only security posture                                                                                                 | [21](spec/21-nexus-shield.md)                   | 17    |
+| **Nexus Tour**       | Guided sanitized presentation                                                                                              | [22](spec/22-nexus-tour-story-and-demo-mode.md) | 18    |
+| **Project Story**    | The internship case study                                                                                                  | [22](spec/22-nexus-tour-story-and-demo-mode.md) | 18    |
+| **Nexus Control**    | Hidden administration                                                                                                      | [23](spec/23-nexus-control.md)                  | 6, 19 |
+| **Yes Experience**   | Yes website redesign                                                                                                       | [19](spec/19-yes-experience.md)                 | 15    |
 
 Cross-cutting documents: [Design language](design-language.md), [Identity and access](spec/10-identity-and-access.md), [Technology](tech.md), [Structure](structure.md), and [Security](security.md). Task order: [`spec/implementation-plan.md`](spec/implementation-plan.md).
 

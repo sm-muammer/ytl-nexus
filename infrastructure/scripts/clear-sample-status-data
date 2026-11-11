@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# clear-sample-status-data: removes the Task 5 sample health checks and incidents
+# from the live database so Nexus Status shows only real worker results.
+#
+#   infrastructure/scripts/server-run clear-sample-status-data           # shows the plan only
+#   infrastructure/scripts/server-run clear-sample-status-data --yes     # backs up, then deletes
+#
+# Why: the Task 5 seed put 13 services (kept), 624 invented checks, 3 invented
+# incidents and 7 invented updates into ytl_nexus. Task 9 shows these tables as
+# Live data, so they must go (every figure is Live or Demo, never a mix).
+#
+# What it deletes, exactly: service_checks rows with checked_at before the
+# worker's first real row, and every row of incidents and incident_updates that has
+# no author (opened_by IS NULL), i.e. rows nobody signed in and created. A
+# dump of those rows is written to /root first. Nothing else is touched.
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+DB=ytl_nexus
+# The sample rows end on 2026-11-01 (the seed's fixed base date). The worker
+# started on 2026-11-11. Anything before this cutoff was not written by the worker.
+cutoff="${CUTOFF:-2026-11-10 00:00:00}"
+echo "Cutoff (UTC): checks before $cutoff were not written by the worker."
+real="$(mariadb -N -e "SELECT COUNT(*) FROM $DB.service_checks WHERE checked_at >= '$cutoff'")"
+[ "$real" -gt 0 ] || { echo "clear-sample-status-data: no worker rows after the cutoff; refusing to delete everything." >&2; exit 1; }
+mariadb -e "
+  SELECT 'service_checks to delete' AS what, COUNT(*) AS n FROM $DB.service_checks WHERE checked_at < '$cutoff'
+  UNION ALL SELECT 'service_checks to keep', COUNT(*) FROM $DB.service_checks WHERE checked_at >= '$cutoff'
+  UNION ALL SELECT 'incidents to delete', COUNT(*) FROM $DB.incidents WHERE opened_by IS NULL
+  UNION ALL SELECT 'incident_updates to delete', COUNT(*) FROM $DB.incident_updates WHERE author_id IS NULL;"
+if [ "${1:-}" != "--yes" ]; then
+  echo "Plan only. Run again with --yes to back up and delete."
+  exit 0
+fi
+backup="/root/nexus-sample-status-backup-$(date -u +%Y%m%d-%H%M%S).sql"
+umask 077
+{
+  mysqldump --no-create-info --skip-triggers --where="checked_at < '$cutoff'" "$DB" service_checks
+  mysqldump --no-create-info --skip-triggers --where="opened_by IS NULL" "$DB" incidents
+  mysqldump --no-create-info --skip-triggers --where="author_id IS NULL" "$DB" incident_updates
+} >"$backup"
+[ -s "$backup" ] || { echo "clear-sample-status-data: backup is empty, nothing deleted." >&2; exit 1; }
+echo "Backup written: $backup ($(wc -c <"$backup") bytes)"
+mariadb -e "
+  DELETE FROM $DB.incident_updates WHERE author_id IS NULL;
+  DELETE FROM $DB.incidents WHERE opened_by IS NULL;
+  DELETE FROM $DB.service_checks WHERE checked_at < '$cutoff';"
+mariadb -e "
+  SELECT 'service_checks left' AS what, COUNT(*) AS n FROM $DB.service_checks
+  UNION ALL SELECT 'incidents left', COUNT(*) FROM $DB.incidents
+  UNION ALL SELECT 'incident_updates left', COUNT(*) FROM $DB.incident_updates;"

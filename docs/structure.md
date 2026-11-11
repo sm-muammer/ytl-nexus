@@ -99,8 +99,8 @@ ytl-nexus/
 │   ├── client/                  # Browser-only helpers
 │   └── fixtures/                # Deterministic demo-mode data
 ├── services/
-│   ├── ops-agent/               # Allowlisted host operations
-│   └── worker/                  # Checks, indexing and report ingestion
+│   ├── ops-agent/               # Allowlisted host operations (Task 9): agent.ts, server.ts, main.ts
+│   └── worker/                  # Service checks (Task 9); indexing and report ingestion later
 ├── roundcube/skins/nexus/
 ├── infrastructure/
 │   ├── apache/
@@ -110,7 +110,7 @@ ytl-nexus/
 │   ├── fail2ban/
 │   ├── firewalld/
 │   ├── mail/
-│   ├── polkit/
+│   ├── polkit/                  # 50-nexus-ops.rules (Task 9)
 │   ├── prometheus/              # prometheus.yml (Task 8)
 │   ├── scripts/
 │   ├── sftpgo/

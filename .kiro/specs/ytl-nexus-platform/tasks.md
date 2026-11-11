@@ -259,42 +259,42 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
     - Reconnect, role rejection, stale indicator, static frame
     - _Requirements: 8.8, 8.16, 8.18, 8.19_
 
-- [ ] 10. Operations agent, controlled actions and Nexus Status (plan Task 9)
-  - [ ]* 10.1 Write property tests for the ops agent and log redaction
+- [x] 10. Operations agent, controlled actions and Nexus Status (plan Task 9)
+  - [x]* 10.1 Write property tests for the ops agent and log redaction
     - **Property 10: Ops agent request validation (allowlist)**
     - **Property 11: HMAC envelope authentication and replay rejection** (ops agent)
     - **Property 14: Outbound text sanitizers remove secrets and unsafe markup** (`redactLog`)
     - **Validates: Requirements 9.2, 9.3, 9.4, 9.5, 9.6, 9.9**
 
-  - [ ]* 10.2 Write the property test for health derivation and uptime
+  - [x]* 10.2 Write the property test for health derivation and uptime
     - **Property 17: Service health derivation and uptime**
     - **Validates: Requirements 9.14**
 
-  - [ ] 10.3 Implement the ops agent
+  - [x] 10.3 Implement the ops agent
     - `services/ops-agent` on a Unix socket in `/run/nexus-ops/`, group `nexus-ops-clients`; HMAC, timestamp ±30 s, nonce 60 s; operations `restart`, `logs` (1 to 500), `health`; four-unit exact allowlist; restart acknowledged within 2 s
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.10_
 
-  - [ ] 10.4 Add polkit rule, log sanitizer and systemd unit
+  - [x] 10.4 Add polkit rule, log sanitizer and systemd unit
     - Polkit allows only `nexus-ops` to restart the four units; masks secrets, tokens, emails and configured IP ranges in logs; no shell, arbitrary command or firewall path
     - _Requirements: 9.7, 9.8, 9.9, 9.12_
 
-  - [ ] 10.5 Implement the worker and health derivation
+  - [x] 10.5 Implement the worker and health derivation
     - `services/worker` runs checks every 60 s into `service_checks`; `nodeHealth` and uptime for 24 h, 7 d, 30 d
     - _Requirements: 9.13, 9.14_
 
-  - [ ] 10.6 Build the Operator UI for logs, health and restart
+  - [x] 10.6 Build the Operator UI for logs, health and restart
     - Confirm dialog for restart; one audit event for the request and one for the result
     - _Requirements: 9.11, 9.12_
 
-  - [ ] 10.7 Build `/status`
+  - [x] 10.7 Build `/status`
     - Visitor: names and states; Viewer and above: history, incidents, updates; Operator and Administrator manage incidents (audited); `announcement` notices; demo controls disabled with a "Demo session" explanation
     - _Requirements: 9.14, 9.15, 9.16, 9.17, 9.18, 9.19_
 
-  - [ ]* 10.8 Verify polkit denial and allowlist rejection on the server
+  - [x]* 10.8 Verify polkit denial and allowlist rejection on the server
     - `sshd`, `mariadb`, path tricks and unit-name injection refused; `docs/security/ops-agent.md`
     - _Requirements: 9.6, 9.8_
 
-- [ ] 11. Checkpoint - Operations agent and Status
+- [x] 11. Checkpoint - Operations agent and Status
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Nexus Atlas (plan Task 10)
