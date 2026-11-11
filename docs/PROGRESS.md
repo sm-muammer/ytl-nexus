@@ -5,12 +5,12 @@
 
 ## Current status
 
-| Item                        | Value                                                                       |
-| --------------------------- | --------------------------------------------------------------------------- |
-| Last completed              | **Task 7:** headless WordPress, Nexus Studio and Nexus Library (2026-11-10) |
-| Next task                   | **Task 8:** monitoring pipeline and Nexus Command                           |
-| Recommended model           | Claude Sonnet 5.5, effort **Medium**                                        |
-| Start the next session with | `Continue YTL Nexus: run Task 8`                                            |
+| Item                        | Value                                                             |
+| --------------------------- | ----------------------------------------------------------------- |
+| Last completed              | **Task 8:** monitoring pipeline and Nexus Command (2026-11-10)    |
+| Next task                   | **Task 9:** operations agent, controlled actions and Nexus Status |
+| Recommended model           | Claude Sonnet 5.5, effort **High** (security-sensitive)           |
+| Start the next session with | `Continue YTL Nexus: run Task 8`                                  |
 
 ## Owner actions waiting
 
@@ -29,6 +29,14 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 8: monitoring pipeline and Nexus Command (done 2026-11-10)
+
+- **Server:** `setup-monitoring` installed Prometheus 3.16.0 (sha256 verified) as user `prometheus`, 127.0.0.1:9090, 15-day retention, sandboxed unit; node_exporter already had the systemd collector, the script added a unit filter (backup `*.nexus-bak-task8`). Core 01 is Rocky Linux 9.8, 8 cores, 16 GB.
+- **App:** allowlist `lib/monitoring/queries.ts` (IDs only, `lib/server/prometheus.ts` rejects anything else before any network call), one poller (5 s, backoff to 60 s), SSE at `/api/stream/metrics` (Viewer+, 3 streams per user, under Apache's unbuffered `/api/stream/` path), reconnecting browser client (1 to 30 s), stale after 15 s using the server clock. Pages `/command`, `/core-01`, `/metrics` (SVG charts, keyboard readout, table), `/services`. Particle field with one cluster per service. Demo fixtures share the same shapes.
+- **Tests:** 501 unit (incl. properties 15 and 16), 284 end-to-end (273 passed, 11 skipped as before) in demo mode; `monitoring:check` passed every query against real Prometheus; `smoke-test` 66 passed, 0 failed.
+- **Decisions:** stream path is `/api/stream/metrics` (Apache convention), not `/api/metrics/stream`; stream cap is per user, not per session; no request carries a query ID, so no "rejected" audit event exists (unknown IDs throw before any call); tier step-down at 20 ms average (stricter than 30 fps).
+- **Not done:** live browser check of the stream with a real account over HTTPS (only the Visitor 401 is verified on the server); runbook links on the services page (runbook slugs not mapped); docs: `docs/operations/monitoring.md`.
 
 ### Task 7: headless WordPress, Nexus Studio and Nexus Library (done 2026-11-10)
 
