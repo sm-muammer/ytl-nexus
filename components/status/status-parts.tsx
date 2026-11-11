@@ -102,7 +102,11 @@ const BAR: Record<NonNullable<HistoryBucket["state"]> | "none", string> = {
   none: "bg-line h-1",
 };
 
-function HistoryStrip({ buckets }: { buckets: readonly HistoryBucket[] }) {
+export function HistoryStrip({
+  buckets,
+}: {
+  buckets: readonly HistoryBucket[];
+}) {
   return (
     <span aria-hidden="true" className="flex h-5 items-end gap-px">
       {buckets.map((b) => (

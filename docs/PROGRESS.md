@@ -5,12 +5,12 @@
 
 ## Current status
 
-| Item                        | Value                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| Last completed              | **Task 9:** operations agent, controlled actions and Nexus Status (2026-11-11) |
-| Next task                   | **Task 10:** Nexus Atlas                                                       |
-| Recommended model           | Claude Sonnet 5.5, effort Medium                                               |
-| Start the next session with | `Continue YTL Nexus: run Task 10`                                              |
+| Item                        | Value                                 |
+| --------------------------- | ------------------------------------- |
+| Last completed              | **Task 10:** Nexus Atlas (2026-11-11) |
+| Next task                   | **Task 11:** Nexus Data               |
+| Recommended model           | Claude Haiku 5.5 (Sonnet 5.5 review)  |
+| Start the next session with | `Continue YTL Nexus: run Task 11`     |
 
 ## Owner actions waiting
 
@@ -33,6 +33,13 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 10: Nexus Atlas (done 2026-11-11)
+
+- **Built:** `/command/atlas` with an SVG map (`lib/atlas/graph.ts`: layering, crossing reduction, layout, reach, arrow-key navigation), a List view, and one detail panel (metrics, dependencies, impact, runbook, incidents, role-gated actions, audit). Reader: `lib/server/atlas.ts` (Visitor gets null). Actions reuse Task 9 Server Functions (`lib/atlas/actions.ts`).
+- **Decisions:** no graph library (custom SVG is smaller and keyboard-friendly; ATL-06 is moot); audit history shows action, result, role and time only; runbook is matched by `related_service` slug.
+- **Tests:** 27 new unit tests, 11 e2e in demo mode (keyboard reaches every node, role gating, list view, axe, no sideways scroll at 390/1440/3840). I wrote the code before the tests, so the red step was skipped.
+- **Not done:** live check with a real Operator account; integration test of `readInventory`/`readAudit` against MariaDB; Prometheus unit state in the panel (uses Status checks); Explain with Nexus AI (Task 14). Docs: `docs/operations/atlas.md`.
 
 ### Task 9: operations agent, controlled actions and Nexus Status (done 2026-11-11)
 

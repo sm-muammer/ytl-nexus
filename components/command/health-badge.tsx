@@ -1,6 +1,9 @@
 import { HEALTH_LABEL, type Health } from "@/lib/monitoring/snapshot";
 
-const config: Record<Health, { colour: string; icon: React.ReactNode }> = {
+export const HEALTH_STYLE: Record<
+  Health,
+  { colour: string; icon: React.ReactNode }
+> = {
   ok: { colour: "text-ok-ink", icon: <path d="m3.5 8.5 3 3 6-7" /> },
   warn: {
     colour: "text-warn-ink",
@@ -27,7 +30,7 @@ export function HealthBadge({
   health: Health;
   label?: string;
 }) {
-  const c = config[health];
+  const c = HEALTH_STYLE[health];
   return (
     <span
       data-health={health}

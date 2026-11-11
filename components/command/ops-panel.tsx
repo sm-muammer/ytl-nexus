@@ -49,7 +49,7 @@ function UnitSelect({ id }: { id: string }) {
   );
 }
 
-function Result({ state }: { state: OpsFormState }) {
+export function Result({ state }: { state: OpsFormState }) {
   return (
     <>
       <FormError
