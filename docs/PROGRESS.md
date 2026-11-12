@@ -5,15 +5,16 @@
 
 ## Current status
 
-| Item                        | Value                                |
-| --------------------------- | ------------------------------------ |
-| Last completed              | **Task 11:** Nexus Data (2026-11-11) |
-| Next task                   | **Task 12:** Nexus Transfer (SFTPGo) |
-| Recommended model           | Sonnet 5.5, High effort              |
-| Start the next session with | `Continue YTL Nexus: run Task 12`    |
+| Item                        | Value                                    |
+| --------------------------- | ---------------------------------------- |
+| Last completed              | **Task 12:** Nexus Transfer (2026-11-11) |
+| Next task                   | **Task 13:** Nexus Mail                  |
+| Recommended model           | Sonnet 5.5, High effort                  |
+| Start the next session with | `Continue YTL Nexus: run Task 13`        |
 
 ## Owner actions waiting
 
+- **Task 12, store admin password and clean up:** on the server read `/root/sftpgo-admin-password.txt` (the `nexus-admin` password for SFTPGo WebAdmin at `127.0.0.1:8091` over an SSH tunnel), store it in your password manager, and delete the file (`docs/operations/sftp.md`). Optional: delete the unused `/var/lib/sftpgo/sftpgo.db` left by the package first start. Back up `/etc/sftpgo/sftpgo.env` and `/var/lib/sftpgo/hostkeys`.
 - **Task 11, check in a browser (optional):** after the next deploy, sign in as an Operator on `https://ytl-nexus.ytlcomms.my`, open `/data`, add a site with a new code, then check that "Recent changes" lists it. The Operator controls are not reachable in a demo session.
 - **Task 9, needs your OK:** the Task 5 seed put invented health checks and incidents into the live database, and `/status` now shows those tables as Live. Review the plan (`infrastructure/scripts/server-run clear-sample-status-data` deletes nothing and prints 624 checks, 3 incidents, 7 updates), then approve and run it with `--yes`. It writes a backup to `/root` first. Until then Viewers and above see invented incidents and 30-day uptime partly built from invented checks on `/status`. Visitors see only real states.
 - **Task 9, check in a browser:** sign in as an Operator or Administrator on `https://ytl-nexus.ytlcomms.my`, open `/command/services`, run a health check and read the log of `nexus-worker`; restart `nexus-worker` through the dialog. Then open `/status`, open a test incident, post an update and resolve it. I could not do this myself (no account with an authenticator).
@@ -34,6 +35,14 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 12: Nexus Transfer (done 2026-11-11)
+
+- **Server:** `setup-sftpgo` installed SFTPGo 2.7 from the official YUM repository as unprivileged user `sftpgo`, database `nexus_sftpgo`, SFTP on port 2022, FTP/WebDAV disabled, homes under `/srv/nexus-transfer`, `chmod`/`chown`/symlinks denied, built-in defender and rate limits. Two HTTP listeners: WebClient on `127.0.0.1:8090` published at `/files/` by Apache (`files.inc`), WebAdmin and REST API on `127.0.0.1:8091` (loopback only, reachable via SSH tunnel). Systemd sandbox override `sftpgo-nexus.conf` (exposure 3.0 OK). Prometheus job `sftpgo` scrapes metrics on `127.0.0.1:10000/metrics` every 60 s. On Core 01, `sftpgo` is active with SFTP on `*:2022` and loopback on `:8090` and `:8091`.
+- **Built:** server-only SFTPGo REST client (`lib/server/sftpgo.ts`), transfer readers (`lib/server/transfer.ts`), Control account management Server Functions (`lib/server/transfer-actions.ts`: create, disable/enable, set quota, reset password, add/remove public key, delete; guarded by Step_Up and role `admin`; audited under `transfer.account.*` and `transfer.key.*`), pure transfer library (`lib/transfer/*`: input schemas, OpenSSH key validation and fingerprinting for RSA ≥ 2048 and Ed25519, ownership rules linking accounts via `nexus-user:<id>`, client guides for WinSCP, FileZilla, Cyberduck, terminal `sftp -P 2022`), `/transfer` page for Members, Control section "File transfer accounts" (`components/transfer/control-transfer.tsx`), and demo fixtures (`lib/fixtures/transfer.ts`).
+- **Tests:** 57 new unit tests (SFTPGo client against mock API, action authorization and audit events, key parsing, input validation, ownership, monitoring config). 11 end-to-end tests in demo mode (`tests/e2e/transfer.spec.ts`: member sees own account, IDOR prevention, 4 client guides, accessibility axe at 390 px, role gating, Control transfer management). `npm run check` passes (795 unit tests).
+- **Not done:** verify-sftp result on the server was not verified; no real browser check of `/files` and `/transfer` with a real account; CI failure on run #17 for commit 79f6ebb.
+- **Docs:** `docs/operations/sftp.md`, updates to `docs/structure.md`, `docs/README.md`, `docs/operations/monitoring.md`, `docs/operations/configuration.md`, `docs/operations/ops-and-status.md`, `docs/operations/server-baseline.md`. Spec tasks 14.1 to 14.5 ticked in `.kiro/specs/ytl-nexus-platform/tasks.md`.
 
 ### Task 11: Nexus Data (done 2026-11-11)
 
@@ -208,7 +217,7 @@
 | O-005 | Exact Oracle MySQL requirement (owner action 1)                                                                                                                                                                                                                                                                                 | Task 5         |
 | O-006 | Resolved in Task 2: `poppler` installed with owner approval                                                                                                                                                                                                                                                                     | Done           |
 | O-007 | Resolved in Task 6: every protected page, handler and Server Function is guarded and tested                                                                                                                                                                                                                                     | Done           |
-| O-009 | `NEXUS_MODE=live` is set in `/etc/ytl-nexus/web.env` (done in Task 4). Apache path exclusions for `/studio` (Task 7), `/files` (Task 12) and `/webmail` (Task 13) are still to add to `infrastructure/apache/ytl-nexus.conf`; until then `/studio` is the Next.js fallback page                                                 | Task 7, 12, 13 |
+| O-009 | `NEXUS_MODE=live` is set in `/etc/ytl-nexus/web.env` (done in Task 4). Apache path exclusions for `/studio` (Task 7) and `/files` (Task 12) are included in `infrastructure/apache/ytl-nexus.conf`; `/webmail` (Task 13) remains to be added                                                                                    | Task 13        |
 | O-011 | `npm run dev` logs a `next/image` warning for the header and footer logo: `lib/brand/catalog.ts` takes the aspect ratio from the master PNG (4.897) while the cropped SVG's own ratio is 4.861. The logo renders correctly (the SVG ratio wins); fix by writing the SVG ratio into the catalogue in `scripts/assets/convert.ts` | Task 20        |
 | O-010 | Dev-only: `npm run dev` needs `.env.local` (copy `.env.example`). Created on this Mac; it is Git-ignored                                                                                                                                                                                                                        | Done           |
 | O-012 | Resolved in Task 5: the ready check probes the database and `npm run migrate` exists                                                                                                                                                                                                                                            | Done           |
