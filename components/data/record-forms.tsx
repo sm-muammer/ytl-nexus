@@ -150,7 +150,7 @@ export function RecordForm({
   return (
     <form
       action={action}
-      className="grid gap-4 md:grid-cols-2"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2"
       aria-label={`${mode === "create" ? "New" : "Edit"} ${TABLE_LABEL[table]}`}
     >
       <input type="hidden" name="table" value={table} />

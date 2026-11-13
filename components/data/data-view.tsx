@@ -97,7 +97,7 @@ function FilterForm({ query }: { query: ListQuery }) {
     <form
       method="get"
       action="/data"
-      className="grid gap-3 md:grid-cols-[minmax(0,2fr)_repeat(auto-fit,minmax(0,1fr))_auto]"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-[minmax(0,2fr)_repeat(auto-fit,minmax(0,1fr))_auto]"
     >
       <input type="hidden" name="table" value={query.table} />
       <div className="flex flex-col gap-1">
@@ -155,7 +155,7 @@ function RecordTable({ props }: { props: DataViewProps }) {
       role="region"
       aria-label={`${TABLE_LABEL[query.table]} records`}
       tabIndex={0}
-      className="overflow-x-auto"
+      className="relative min-w-0 overflow-x-auto"
     >
       <table className="w-full min-w-max text-left text-sm">
         <thead>
@@ -265,7 +265,10 @@ function ChangesList({
   demo: boolean;
 }) {
   return (
-    <section aria-labelledby="data-changes" className="flex flex-col gap-3">
+    <section
+      aria-labelledby="data-changes"
+      className="flex min-w-0 flex-col gap-3"
+    >
       <h2 id="data-changes" className="text-heading-3 font-semibold">
         Recent changes
       </h2>
@@ -280,7 +283,7 @@ function ChangesList({
           role="region"
           aria-label="Recent changes"
           tabIndex={0}
-          className="overflow-x-auto"
+          className="relative min-w-0 overflow-x-auto"
         >
           <table className="w-full min-w-max text-left text-sm">
             <thead>
@@ -325,12 +328,12 @@ function ChangesList({
 
 function SchemaSection({ schema }: { schema: SchemaView }) {
   return (
-    <details className="flex flex-col gap-4">
+    <details className="flex min-w-0 flex-col gap-4">
       <summary className="text-heading-3 cursor-pointer font-semibold">
         Schema (read-only)
       </summary>
       {schema.tables.map((t) => (
-        <div key={t.name} className="flex flex-col gap-2">
+        <div key={t.name} className="flex min-w-0 flex-col gap-2">
           <h3 className="font-semibold">
             {t.label} <span className="text-muted font-normal">({t.name})</span>
           </h3>
@@ -338,7 +341,7 @@ function SchemaSection({ schema }: { schema: SchemaView }) {
             role="region"
             aria-label={`${t.name} columns`}
             tabIndex={0}
-            className="overflow-x-auto"
+            className="relative min-w-0 overflow-x-auto"
           >
             <table className="w-full min-w-max text-left text-sm">
               <thead>
@@ -388,7 +391,7 @@ export function DataView(props: DataViewProps) {
   const { query, list, schema, changes, canWrite, demo, options } = props;
   const exportParams = hrefFor(query).split("?")[1] ?? "";
   return (
-    <div className="flex flex-col gap-10 px-(--spacing-gutter) py-10">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-10 px-(--spacing-gutter) py-10">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-heading-2 font-semibold">Nexus Data</h1>
@@ -406,7 +409,7 @@ export function DataView(props: DataViewProps) {
 
       <Tabs current={query.table} />
 
-      <section aria-label="Records" className="flex flex-col gap-6">
+      <section aria-label="Records" className="flex min-w-0 flex-col gap-6">
         <FilterForm query={query} />
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <span>
