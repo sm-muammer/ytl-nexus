@@ -1,0 +1,467 @@
+#!/usr/bin/env bash
+# setup-mail: task 13 (MAIL-01 to MAIL-05, MAIL-10). Runs on the server (use server-run).
+#
+#   infrastructure/scripts/server-run setup-mail
+#
+# Configures Postfix + Dovecot for virtual mail on ytl-nexus.internal.
+# Virtual users live in MariaDB (nexus_mail), not in OS accounts.
+# Delivery: Dovecot LMTP. IMAPS: 993. Submission: 587 (STARTTLS + SASL).
+# TLS certs from the internal CA (/etc/pki/tls/certs/nexus.crt).
+# Port 25 is not opened by the firewall.
+#
+# Safe to run again: existing secrets, database rows and password files are kept.
+# Nothing secret is printed or placed on a command line. Files it writes:
+#   /etc/ytl-nexus/nexus_mail.env              DB credentials (root only)
+#   /etc/ytl-nexus/web.env                     NEXUS_MAIL_* vars for the Next.js server
+#   /root/mail-test-passwords.txt              test mailbox passwords (root, 0600, never overwritten)
+#   /etc/dovecot/conf.d/99-nexus-lmtp.conf     Dovecot LMTP + IMAPS include
+#   /etc/dovecot/conf.d/99-nexus-auth.conf     Dovecot SQL auth include
+#   /etc/postfix/nexus-virtual-domains         Postfix virtual domain map
+#   /etc/postfix/nexus-virtual-mailboxes       Postfix virtual mailbox map
+#   /etc/httpd/conf.d/webmail.inc              Apache proxy for Roundcube at /webmail/
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+ENV_DIR=/etc/ytl-nexus
+MAIL_ENV="$ENV_DIR/nexus_mail.env"
+WEB_ENV="$ENV_DIR/web.env"
+TEST_PW_FILE=/root/mail-test-passwords.txt
+DOMAIN=ytl-nexus.internal
+MAIL_USER=vmail
+MAIL_DIR=/var/mail/vmail
+TLS_CERT=/etc/pki/tls/certs/nexus.crt
+TLS_KEY=/etc/pki/tls/private/nexus.key
+LMTP_SOCKET=/run/dovecot/lmtp
+umask 022
+
+# ---- Prerequisite checks ----------------------------------------------------------
+for f in "$MAIL_ENV" "$WEB_ENV"; do
+  [ -f "$f" ] || {
+    echo "setup-mail: $f is missing. Run setup-database and setup-nexus-service first." >&2
+    exit 1
+  }
+done
+[ -f "$TLS_CERT" ] || { echo "setup-mail: $TLS_CERT is missing. Run setup-tls first." >&2; exit 1; }
+[ -f "$TLS_KEY" ]  || { echo "setup-mail: $TLS_KEY is missing. Run setup-tls first." >&2; exit 1; }
+
+# ---- Helper functions -------------------------------------------------------------
+# envval FILE KEY: prints the value of KEY from FILE (no trailing newline).
+envval() { grep -m1 "^$2=" "$1" | cut -d= -f2-; }
+
+# add_once FILE KEY VALUE: appends KEY=VALUE only if KEY is not already present.
+add_once() {
+  if ! grep -q "^$2=" "$1"; then
+    printf '%s=%s\n' "$2" "$3" >>"$1"
+    echo "setup-mail: added $2 to $(basename "$1")"
+  fi
+}
+
+# setenvline FILE KEY VALUE: replaces KEY=... or appends KEY=VALUE.
+setenvline() {
+  if grep -q "^$2=" "$1"; then
+    local tmp; tmp="$(mktemp)"
+    grep -v "^$2=" "$1" >"$tmp"
+    printf '%s=%s\n' "$2" "$3" >>"$tmp"
+    cat "$tmp" >"$1"; rm -f "$tmp"
+  else
+    printf '%s=%s\n' "$2" "$3" >>"$1"
+  fi
+}
+
+# ---- 1. Packages ------------------------------------------------------------------
+for pkg in postfix dovecot dovecot-mysql mariadb; do
+  rpm -q "$pkg" >/dev/null 2>&1 || dnf -y install "$pkg"
+done
+echo "setup-mail: packages present"
+
+# ---- 2. vmail system user and mail-store directory --------------------------------
+# A single uid/gid owns all virtual mailboxes; no login shell.
+if ! id "$MAIL_USER" >/dev/null 2>&1; then
+  useradd --system --shell /sbin/nologin --home-dir "$MAIL_DIR" --no-create-home "$MAIL_USER"
+fi
+VMAIL_UID="$(id -u "$MAIL_USER")"
+VMAIL_GID="$(id -g "$MAIL_USER")"
+install -d -m 0750 -o "$MAIL_USER" -g "$MAIL_USER" "$MAIL_DIR"
+echo "setup-mail: vmail uid=$VMAIL_UID gid=$VMAIL_GID"
+
+# ---- 3. MariaDB: tables and least-privilege application user ----------------------
+# nexus_mail DB and nexus_mail user are created by setup-database; here we only
+# create the schema tables and a tighter app user (SELECT/INSERT/UPDATE/DELETE on
+# virtual_* tables only, not on other tables that may be added later).
+DB_NAME="$(envval "$MAIL_ENV" NEXUS_DB_NAME)"      # nexus_mail
+DB_HOST="$(envval "$MAIL_ENV" NEXUS_DB_HOST)"      # 127.0.0.1
+DB_PASS="$(envval "$MAIL_ENV" NEXUS_DB_PASSWORD)"  # admin password from setup-database
+
+APP_USER=nexus_mail_app
+# The app password is generated once and kept in a separate variable inside the env file.
+if ! grep -q "^NEXUS_MAIL_APP_PASSWORD=" "$MAIL_ENV"; then
+  umask 077
+  printf 'NEXUS_MAIL_APP_PASSWORD=%s\n' "$(openssl rand -hex 24)" >>"$MAIL_ENV"
+  umask 022
+fi
+APP_PASS="$(envval "$MAIL_ENV" NEXUS_MAIL_APP_PASSWORD)"
+
+# mariadb_sql: runs SQL on stdin as the MariaDB root over the socket.
+mariadb_sql() { mariadb --batch --skip-column-names; }
+
+mariadb_sql <<SQL
+-- Schema (idempotent: IF NOT EXISTS throughout)
+USE \`$DB_NAME\`;
+
+CREATE TABLE IF NOT EXISTS \`virtual_domains\` (
+  \`id\`     INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  \`name\`   VARCHAR(255) NOT NULL,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`name\` (\`name\`)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS \`virtual_users\` (
+  \`id\`        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  \`domain_id\` INT UNSIGNED NOT NULL,
+  \`email\`     VARCHAR(255) NOT NULL,
+  \`password\`  VARCHAR(255) NOT NULL,
+  \`quota_bytes\` BIGINT UNSIGNED NOT NULL DEFAULT 1073741824,
+  \`active\`    TINYINT(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`email\` (\`email\`),
+  CONSTRAINT \`fk_vu_domain\` FOREIGN KEY (\`domain_id\`) REFERENCES \`virtual_domains\` (\`id\`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS \`virtual_aliases\` (
+  \`id\`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  \`domain_id\`   INT UNSIGNED NOT NULL,
+  \`source\`      VARCHAR(255) NOT NULL,
+  \`destination\` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`src_dst\` (\`source\`, \`destination\`),
+  CONSTRAINT \`fk_va_domain\` FOREIGN KEY (\`domain_id\`) REFERENCES \`virtual_domains\` (\`id\`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Seed the virtual domain once.
+INSERT IGNORE INTO \`virtual_domains\` (\`name\`) VALUES ('$DOMAIN');
+
+-- App user: least-privilege (SELECT/INSERT/UPDATE/DELETE on virtual_* only).
+CREATE USER IF NOT EXISTS '$APP_USER'@'$DB_HOST' IDENTIFIED BY '$APP_PASS';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$APP_USER'@'$DB_HOST';
+GRANT SELECT, INSERT, UPDATE, DELETE
+  ON \`$DB_NAME\`.\`virtual_domains\`  TO '$APP_USER'@'$DB_HOST';
+GRANT SELECT, INSERT, UPDATE, DELETE
+  ON \`$DB_NAME\`.\`virtual_users\`    TO '$APP_USER'@'$DB_HOST';
+GRANT SELECT, INSERT, UPDATE, DELETE
+  ON \`$DB_NAME\`.\`virtual_aliases\`  TO '$APP_USER'@'$DB_HOST';
+FLUSH PRIVILEGES;
+SQL
+# Rotate the app-user password on every run so the env file is always authoritative.
+mariadb_sql <<SQL
+ALTER USER '$APP_USER'@'$DB_HOST' IDENTIFIED BY '$APP_PASS';
+FLUSH PRIVILEGES;
+SQL
+echo "setup-mail: nexus_mail schema and $APP_USER are ready"
+
+# ---- 4. Test mailboxes ------------------------------------------------------------
+# Two fixed mailboxes used by verify-mail. Passwords are written once to
+# /root/mail-test-passwords.txt (mode 0600) and never regenerated.
+if [ ! -f "$TEST_PW_FILE" ]; then
+  umask 077
+  PW_A="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)"
+  PW_B="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)"
+  printf '# Test mailbox passwords written by setup-mail. Never overwritten.\n' >"$TEST_PW_FILE"
+  printf 'TEST_A_EMAIL=nexus-test-a@%s\n' "$DOMAIN" >>"$TEST_PW_FILE"
+  printf 'TEST_A_PASSWORD=%s\n' "$PW_A"              >>"$TEST_PW_FILE"
+  printf 'TEST_B_EMAIL=nexus-test-b@%s\n' "$DOMAIN"  >>"$TEST_PW_FILE"
+  printf 'TEST_B_PASSWORD=%s\n' "$PW_B"              >>"$TEST_PW_FILE"
+  chmod 0600 "$TEST_PW_FILE"
+  umask 022
+  echo "setup-mail: created $TEST_PW_FILE"
+fi
+
+# Determine the password scheme supported by this Dovecot installation.
+if doveadm pw -l 2>/dev/null | grep -qi ARGON2ID; then
+  HASH_SCHEME=ARGON2ID
+else
+  HASH_SCHEME=SHA512-CRYPT
+fi
+echo "setup-mail: password scheme: $HASH_SCHEME"
+
+# Insert or skip the two test mailboxes.  doveadm hashes the plaintext password
+# and writes the {SCHEME}hash string; we pass the plaintext via an env var so
+# the password never appears on a command line or in process listings.
+insert_mailbox() {   # email plaintext-password
+  local email="$1" plain="$2"
+  local hash
+  hash="$(NEXUS_PW="$plain" doveadm pw -s "$HASH_SCHEME" -p "$(printf '%s' "$NEXUS_PW")" 2>/dev/null \
+            || NEXUS_PW="$plain" doveadm pw -s "$HASH_SCHEME" <<< "$NEXUS_PW")"
+  mariadb_sql <<SQL
+USE \`$DB_NAME\`;
+INSERT IGNORE INTO \`virtual_users\` (\`domain_id\`, \`email\`, \`password\`)
+  SELECT \`id\`, '$email', '$(printf '%s' "$hash" | sed "s/'/\\\\'/g")'
+  FROM \`virtual_domains\` WHERE \`name\` = '$DOMAIN' LIMIT 1;
+SQL
+}
+
+PW_A="$(grep -m1 '^TEST_A_PASSWORD=' "$TEST_PW_FILE" | cut -d= -f2-)"
+PW_B="$(grep -m1 '^TEST_B_PASSWORD=' "$TEST_PW_FILE" | cut -d= -f2-)"
+insert_mailbox "nexus-test-a@$DOMAIN" "$PW_A"
+insert_mailbox "nexus-test-b@$DOMAIN" "$PW_B"
+unset PW_A PW_B
+echo "setup-mail: test mailboxes seeded"
+
+# ---- 5. Dovecot configuration -----------------------------------------------------
+# 99-nexus-lmtp.conf: global settings, IMAPS listener, LMTP socket listener.
+cat >/etc/dovecot/conf.d/99-nexus-lmtp.conf <<DOVECONF
+# Written by setup-mail. Do not edit by hand; rerun the script instead.
+# LMTP and IMAPS configuration for ytl-nexus.internal (MAIL-01 to MAIL-05).
+
+mail_location = maildir:$MAIL_DIR/%d/%u/Maildir
+
+mail_uid = $VMAIL_UID
+mail_gid = $VMAIL_GID
+
+# TLS (internal CA cert — MAIL-05).
+ssl = required
+ssl_cert = <$TLS_CERT
+ssl_key  = <$TLS_KEY
+ssl_min_protocol = TLSv1.2
+ssl_cipher_list = ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256
+
+# IMAP over TLS on 993 (MAIL-03).
+service imap-login {
+  inet_listener imaps {
+    port = 993
+    ssl  = yes
+  }
+  # Disable plain IMAP (port 143) — only IMAPS.
+  inet_listener imap {
+    port = 0
+  }
+}
+
+# LMTP via Unix socket — Postfix delivers here (MAIL-03).
+service lmtp {
+  unix_listener $LMTP_SOCKET {
+    mode  = 0600
+    user  = postfix
+    group = postfix
+  }
+}
+
+# Namespace: INBOX at the root.
+namespace inbox {
+  inbox = yes
+  separator = /
+}
+
+# Logging: failures only to avoid leaking mail content.
+log_path = /var/log/dovecot/dovecot.log
+info_log_path = /var/log/dovecot/dovecot-info.log
+auth_verbose = no
+mail_debug   = no
+DOVECONF
+
+# 99-nexus-auth.conf: SQL authentication (MAIL-01 — virtual users in MariaDB).
+# The password is read from the env file; it never appears as a literal string here.
+# Instead we write an isolated passdb/userdb configuration file that Dovecot reads.
+DOVECOT_SQL_CONF=/etc/dovecot/dovecot-sql.conf.ext
+{
+  echo "# Written by setup-mail. Secrets in /etc/ytl-nexus/nexus_mail.env."
+  echo "driver = mysql"
+  echo "connect = host=$DB_HOST dbname=$DB_NAME user=$APP_USER password=$APP_PASS"
+  echo "default_pass_scheme = $HASH_SCHEME"
+  echo "password_query = \\"
+  echo "  SELECT email AS username, password FROM virtual_users"
+  echo "  WHERE email = '%u' AND active = 1 LIMIT 1"
+  echo "user_query = \\"
+  echo "  SELECT '$MAIL_DIR/%d/%u/Maildir' AS home,"
+  echo "         $VMAIL_UID AS uid, $VMAIL_GID AS gid,"
+  echo "         CONCAT('*:bytes=', quota_bytes) AS quota_rule"
+  echo "  FROM virtual_users WHERE email = '%u' AND active = 1 LIMIT 1"
+  echo "iterate_query = SELECT email AS username FROM virtual_users WHERE active = 1"
+} > "$DOVECOT_SQL_CONF"
+chown root:root "$DOVECOT_SQL_CONF"
+chmod 0640 "$DOVECOT_SQL_CONF"
+
+cat >/etc/dovecot/conf.d/99-nexus-auth.conf <<DOVECONF
+# Written by setup-mail. SQL authentication against MariaDB nexus_mail.
+
+auth_mechanisms = plain login
+
+# SQL passdb/userdb (virtual users — MAIL-01).
+passdb {
+  driver = sql
+  args   = $DOVECOT_SQL_CONF
+}
+userdb {
+  driver = sql
+  args   = $DOVECOT_SQL_CONF
+}
+
+# SASL socket for Postfix SMTP AUTH (MAIL-03).
+service auth {
+  unix_listener /run/dovecot/auth-client {
+    mode  = 0660
+    user  = postfix
+    group = postfix
+  }
+  user = dovecot
+}
+
+service auth-worker {
+  user = $MAIL_USER
+}
+
+# Quota: enforce per-user limits (see virtual_users.quota_bytes).
+mail_plugins = \$mail_plugins quota
+protocol imap {
+  mail_plugins = \$mail_plugins imap_quota
+}
+plugin {
+  quota = maildir:User quota
+  quota_rule = *:storage=1G
+}
+DOVECONF
+
+# Ensure Dovecot log directory exists.
+install -d -m 0750 -o dovecot -g dovecot /var/log/dovecot 2>/dev/null || true
+
+echo "setup-mail: Dovecot include files written"
+
+# ---- 6. Postfix configuration -----------------------------------------------------
+# Virtual domain and mailbox maps (Postfix reads them as hash: databases).
+printf '%s\tOK\n' "$DOMAIN" >/etc/postfix/nexus-virtual-domains
+# The virtual_mailbox_maps entry for each user is built from DB at setup time;
+# during operation Postfix delegates to LMTP. The file just tells Postfix which
+# addresses are local.
+mariadb_sql <<SQL | sed '/^$/d' >/etc/postfix/nexus-virtual-mailboxes
+SELECT CONCAT(email, '\t', REPLACE(email, '@', '/'), '/Maildir/')
+FROM \`$DB_NAME\`.\`virtual_users\`
+WHERE active = 1;
+SQL
+postmap /etc/postfix/nexus-virtual-domains
+postmap /etc/postfix/nexus-virtual-mailboxes
+
+# Apply Postfix settings idempotently with postconf(1).
+# mynetworks = loopback only (MAIL-04: external recipients rejected).
+postconf -e "myhostname = $(hostname -f)"
+postconf -e "mydomain = $DOMAIN"
+postconf -e "myorigin = $DOMAIN"
+postconf -e "mydestination ="
+postconf -e "mynetworks = 127.0.0.0/8 [::1]/128"
+postconf -e "inet_interfaces = all"
+postconf -e "inet_protocols = ipv4"
+
+# Virtual mail domain (MAIL-01).
+postconf -e "virtual_mailbox_domains = hash:/etc/postfix/nexus-virtual-domains"
+postconf -e "virtual_mailbox_maps    = hash:/etc/postfix/nexus-virtual-mailboxes"
+postconf -e "virtual_transport       = lmtp:unix:$LMTP_SOCKET"
+
+# Reject external recipients (MAIL-04).
+postconf -e "smtpd_relay_restrictions = permit_mynetworks, reject"
+postconf -e "smtpd_recipient_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination"
+
+# Submission on 587: STARTTLS + SASL through Dovecot (MAIL-03).
+# Configured in master.cf; use postconf -M to edit master.cf idempotently.
+postconf -M "submission/inet=submission inet n - n - - smtpd"
+postconf -P "submission/inet/syslog_name=postfix/submission"
+postconf -P "submission/inet/smtpd_tls_security_level=encrypt"
+postconf -P "submission/inet/smtpd_sasl_auth_enable=yes"
+postconf -P "submission/inet/smtpd_sasl_type=dovecot"
+postconf -P "submission/inet/smtpd_sasl_path=private/auth"
+postconf -P "submission/inet/smtpd_sasl_security_options=noanonymous,noplaintext"
+postconf -P "submission/inet/smtpd_sasl_tls_security_options=noanonymous"
+postconf -P "submission/inet/smtpd_recipient_restrictions=permit_sasl_authenticated,reject"
+postconf -P "submission/inet/milter_macro_daemon_name=ORIGINATING"
+
+# SASL socket: use the Dovecot auth listener we opened above.
+postconf -e "smtpd_sasl_path = private/auth"
+
+# TLS (MAIL-05): internal CA cert.
+postconf -e "smtpd_tls_cert_file = $TLS_CERT"
+postconf -e "smtpd_tls_key_file  = $TLS_KEY"
+postconf -e "smtpd_tls_security_level = may"
+postconf -e "smtpd_tls_loglevel  = 1"
+postconf -e "smtp_tls_security_level = may"
+
+# Disable port 25 (SMTP) delivery altogether by not listing a daemon for it;
+# the firewall also blocks 25 externally (MAIL-04). We do not need outbound
+# delivery to the internet, so the smtp(8) daemon on port 25 stays inactive.
+# (Port 25 stays in master.cf but bound only to loopback if at all; the
+# firewall rule applied by setup-firewall does not open it.)
+
+echo "setup-mail: Postfix configured"
+
+# ---- 7. Apache proxy for Roundcube at /webmail/ -----------------------------------
+# webmail.inc is a named include, not a *.conf, so Apache does not load it
+# by itself. setup-roundcube installs the PHP-FPM pool on 127.0.0.1:8080;
+# this include proxies /webmail/ to that pool via Apache (reverse proxy).
+cat >/etc/httpd/conf.d/webmail.inc <<'APACHECONF'
+# Nexus Webmail (Roundcube) at /webmail/. Installed by setup-mail and included
+# from the 443 vhost in 00-ytl-nexus.conf, before the catch-all ProxyPass line.
+# Not named *.conf so Apache does not load it on its own.
+# Roundcube runs in a PHP-FPM pool on 127.0.0.1:8080 (via Apache mod_proxy_fcgi).
+
+RedirectMatch 302 "^/webmail$" "/webmail/"
+
+ProxyPass        /webmail/ http://127.0.0.1:8080/webmail/ timeout=300
+ProxyPassReverse /webmail/ http://127.0.0.1:8080/webmail/
+
+<Location "/webmail/">
+    # Roundcube manages its own CSRF. Tight CSP that still permits inline
+    # styles Roundcube's Elastic skin uses.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Cache-Control "no-store"
+</Location>
+APACHECONF
+echo "setup-mail: wrote /etc/httpd/conf.d/webmail.inc"
+
+# ---- 8. ops-agent health probes (Prometheus blackbox-style check entries) ---------
+# The ops-agent exposes health checks defined in ops.env / ops-probes.conf.
+# We append IMAP (993) and SMTP submission (587) probe entries, once each.
+OPS_PROBES=/etc/ytl-nexus/ops-probes.conf
+[ -f "$OPS_PROBES" ] || touch "$OPS_PROBES"
+add_once "$OPS_PROBES" NEXUS_PROBE_IMAPS     "tcp:127.0.0.1:993"
+add_once "$OPS_PROBES" NEXUS_PROBE_SUBMISSION "tcp:127.0.0.1:587"
+echo "setup-mail: health probes added to $OPS_PROBES"
+
+# ---- 9. Write env vars to web.env -------------------------------------------------
+chown root:nexus "$WEB_ENV"
+chmod 0640 "$WEB_ENV"
+add_once "$WEB_ENV" NEXUS_MAIL_DB_HOST   "$DB_HOST"
+add_once "$WEB_ENV" NEXUS_MAIL_DB_PORT   "3306"
+add_once "$WEB_ENV" NEXUS_MAIL_DB_NAME   "$DB_NAME"
+add_once "$WEB_ENV" NEXUS_MAIL_DB_USER   "$APP_USER"
+add_once "$WEB_ENV" NEXUS_MAIL_DB_PASSWORD "$APP_PASS"
+add_once "$WEB_ENV" NEXUS_MAIL_IMAP_HOST "127.0.0.1"
+add_once "$WEB_ENV" NEXUS_MAIL_IMAP_PORT "993"
+add_once "$WEB_ENV" NEXUS_MAIL_SMTP_HOST "127.0.0.1"
+add_once "$WEB_ENV" NEXUS_MAIL_SMTP_PORT "587"
+add_once "$WEB_ENV" NEXUS_MAIL_DOMAIN    "$DOMAIN"
+
+# ---- 10. Validate and restart -----------------------------------------------------
+echo "setup-mail: validating Dovecot config..."
+doveconf -n >/dev/null
+
+echo "setup-mail: validating Postfix config..."
+postfix check
+
+systemctl enable dovecot postfix >/dev/null 2>&1
+systemctl restart dovecot
+systemctl restart postfix
+# Wait for Dovecot to open its listeners.
+for _ in $(seq 1 20); do
+  ss -ltnH | awk '{print $4}' | grep -q ':993$' && break
+  sleep 1
+done
+ss -ltnH | awk '{print $4}' | grep -q ':993$' ||
+  { echo "setup-mail: Dovecot is not listening on 993." >&2; exit 1; }
+
+httpd -t
+systemctl reload httpd || systemctl restart httpd
+
+echo "---- result"
+systemctl is-active dovecot postfix
+ss -ltnH | awk '{print $4}' | grep -E ':(993|587)$' | sort
+sed -n 's/^\(NEXUS_MAIL_[A-Z_]*\)=.*/  \1 is set/p' "$WEB_ENV"

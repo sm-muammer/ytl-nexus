@@ -21,6 +21,7 @@ BASE=http://127.0.0.1:8091/api/v2
 USER_NAME=nxtest
 HOME_DIR=/srv/nexus-transfer/$USER_NAME
 HOST=10.26.64.164
+ESCAPE_TEST_PATH=/tmp/nx-escape-test-$$
 PORTAL=https://127.0.0.1
 PUBLIC_HOST=ytl-nexus.ytlcomms.my
 pass=0
@@ -76,40 +77,63 @@ run() { # command text for the sftp batch, using the password login; prints outp
   if printf '%s' "$output" | grep -q -E "$FAILED"; then rc=1; else rc=0; fi
 }
 
-# The defender names a host by the hex of its address. Removing it lifts the ban
-# and forgets its failure score.
-defender_reset() {
-  local id
-  for id in $(api GET /defender/hosts | python3 -c 'import json,sys
-try:
-    for h in json.load(sys.stdin) or []: print(h["id"])
-except Exception: pass'); do
-    api DELETE "/defender/hosts/$id" >/dev/null 2>&1
-  done
+# SFTPGo identifies Defender hosts by the hex encoding of their IP address.
+# Never clear unrelated entries; refuse to run if this address already has state.
+TARGET_DEFENDER_ID="$(printf '%s' "$HOST" | od -An -tx1 | tr -d ' \n')"
+defender_reset_target() {
+  api DELETE "/defender/hosts/$TARGET_DEFENDER_ID" >/dev/null 2>&1
 }
 
+target_has_defender_record() {
+  api GET /defender/hosts | python3 -c 'import json,sys
+try:
+    print("yes" if any(h.get("id") == sys.argv[1] for h in (json.load(sys.stdin) or [])) else "no")
+except Exception:
+    print("unknown")' "$TARGET_DEFENDER_ID"
+}
+
+created_account=0
+defender_test_started=0
 cleanup() {
-  api DELETE "/users/$USER_NAME" >/dev/null 2>&1
-  # Only the test account's own folder, never anything else.
-  [ "$HOME_DIR" = /srv/nexus-transfer/nxtest ] && [ -d "$HOME_DIR" ] && rm -rf --one-file-system "$HOME_DIR"
-  # Lift any ban this script caused.
-  defender_reset
-  rm -rf "$work" /tmp/nx-escape-test
+  if [ "$created_account" -eq 1 ]; then
+    api DELETE "/users/$USER_NAME" >/dev/null 2>&1
+    # Only the test account's own folder, never anything else.
+    [ "$HOME_DIR" = /srv/nexus-transfer/nxtest ] && [ -d "$HOME_DIR" ] && [ ! -L "$HOME_DIR" ] && rm -rf --one-file-system "$HOME_DIR"
+  fi
+  # Lift only a Defender entry created by this test for its own address.
+  if [ "$defender_test_started" -eq 1 ]; then defender_reset_target; fi
+  [ -f "$ESCAPE_TEST_PATH" ] && [ ! -L "$ESCAPE_TEST_PATH" ] && rm -f -- "$ESCAPE_TEST_PATH"
+  rm -rf "$work"
 }
 trap cleanup EXIT
 
 echo "Setup"
-defender_reset
+if [ "$(target_has_defender_record)" != no ]; then
+  echo "verify-sftp: Defender already has state for $HOST or its state could not be read. Stopping without changing it." >&2
+  exit 1
+fi
+if [ -e "$HOME_DIR" ] || [ -L "$HOME_DIR" ]; then
+  echo "verify-sftp: $HOME_DIR already exists. Stopping without changing it." >&2
+  exit 1
+fi
+if [ -e "$ESCAPE_TEST_PATH" ] || [ -L "$ESCAPE_TEST_PATH" ]; then
+  echo "verify-sftp: $ESCAPE_TEST_PATH already exists. Stopping without changing it." >&2
+  exit 1
+fi
 existing="$(api GET "/users/$USER_NAME")"
 case "$existing" in
   *'"username"'*)
-    case "$existing" in
-      *'verify-sftp test account'*) api DELETE "/users/$USER_NAME" >/dev/null; rm -rf --one-file-system /srv/nexus-transfer/nxtest ;;
-      *) echo "verify-sftp: an account named $USER_NAME exists and was not made by this script. Stopping." >&2; trap - EXIT; rm -rf "$work"; exit 1 ;;
-    esac ;;
+    echo "verify-sftp: an account named $USER_NAME already exists. Stopping without changing it." >&2
+    exit 1 ;;
 esac
 pub="$(cat "$work/key.pub")"
 created="$(api POST /users "{\"status\":1,\"username\":\"$USER_NAME\",\"password\":\"$PASSWORD\",\"description\":\"verify-sftp test account\",\"public_keys\":[\"$pub\"],\"home_dir\":\"$HOME_DIR\",\"uid\":0,\"gid\":0,\"max_sessions\":10,\"quota_size\":5242880,\"quota_files\":0,\"permissions\":{\"/\":[\"list\",\"download\",\"upload\",\"overwrite\",\"delete\",\"rename\",\"create_dirs\",\"chtimes\",\"copy\"]},\"filters\":{\"denied_protocols\":[\"FTP\",\"DAV\"],\"web_client\":[\"publickey-change-disabled\",\"api-key-auth-change-disabled\",\"info-change-disabled\",\"shares-disabled\"]},\"filesystem\":{\"provider\":0}}")"
+if printf '%s' "$created" | grep -q '"username"'; then
+  created_account=1
+else
+  echo "verify-sftp: SFTPGo did not confirm creation of the test account. Stopping." >&2
+  exit 1
+fi
 expect "the test account was created through the API key" "$USER_NAME" "$created"
 
 echo "Services and listeners"
@@ -151,8 +175,8 @@ run "ls /etc"
 case "$output" in *passwd*|*shadow*) bad "ls /etc shows the real /etc" ;; *) ok "ls /etc does not show the real /etc" ;; esac
 run "get ../../../../etc/passwd $work/passwd.try"
 { [ ! -s "$work/passwd.try" ] || ! grep -q '^root:' "$work/passwd.try"; } && ok "get ../../../../etc/passwd does not return the real file" || bad "get ../../../../etc/passwd returned the real file"
-run "put $work/one.bin ../../../../tmp/nx-escape-test"
-[ ! -e /tmp/nx-escape-test ] && ok "put ../../../../tmp/... writes nothing outside the home" || bad "put wrote /tmp/nx-escape-test"
+run "put $work/one.bin ../../../../tmp/${ESCAPE_TEST_PATH##*/}"
+[ ! -e "$ESCAPE_TEST_PATH" ] && ok "put ../../../../tmp/... writes nothing outside the home" || bad "put wrote $ESCAPE_TEST_PATH"
 run "put $work/one.bin ../escape.bin"
 [ ! -e /srv/nexus-transfer/escape.bin ] && ok "put ../escape.bin writes nothing outside the home" || bad "put wrote /srv/nexus-transfer/escape.bin"
 [ -f "$HOME_DIR/escape.bin" ] && ok "the .. was resolved inside the home: the file landed in the account's own folder" || bad "the .. upload landed nowhere"
@@ -222,11 +246,12 @@ run "pwd"
 expect "the account works again once enabled" "Remote working directory: /" "$output"
 
 echo "Defender (5 failures in 10 minutes block for 30 minutes)"
-defender_reset
+defender_test_started=1
+defender_reset_target
 for i in 1 2 3 4; do printf 'pwd\n' | sftp_password "bad-$i-$$" >/dev/null; done
 run "pwd"
 expect "4 failures do not block the address" "Remote working directory: /" "$output"
-defender_reset
+defender_reset_target
 for i in 1 2 3 4 5; do printf 'pwd\n' | sftp_password "bad-$i-$$" >/dev/null; done
 hosts="$(api GET /defender/hosts)"
 output="$(printf 'pwd\n' | sftp_password "$PASSWORD")"
@@ -240,7 +265,7 @@ try:
 except Exception:
     print("none")')"
 { [ "$minutes" != none ] && [ "$minutes" -ge 25 ] && [ "$minutes" -le 35 ]; } && ok "the block lasts about 30 minutes ($minutes)" || bad "the block does not last about 30 minutes ($minutes)"
-defender_reset
+defender_reset_target
 run "pwd"
 expect "the address works again once the ban is lifted" "Remote working directory: /" "$output"
 

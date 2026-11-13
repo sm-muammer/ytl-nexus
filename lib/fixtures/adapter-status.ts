@@ -49,8 +49,8 @@ export const adapterStatusFixtures: Record<AdapterName, DemoStatusFixture> = {
     detail: "Sample service list; no server action can run in demo mode.",
   },
   mail: {
-    state: "warn",
-    label: "Degraded",
-    detail: "Sample mail queue with one deferred message.",
+    state: "ok",
+    label: "Healthy",
+    detail: "Sample mailboxes and service status served from fixtures.",
   },
 };
