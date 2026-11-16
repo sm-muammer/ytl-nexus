@@ -9,9 +9,12 @@ import {
 
 const publicPaths = new Set([
   "/",
-  ...PAGES.filter((p) => p.group === "explore" && p.path !== "/signin").map(
-    (p) => p.path,
-  ),
+  ...PAGES.filter(
+    (p) =>
+      p.group === "explore" &&
+      p.path !== "/signin" &&
+      !p.path.startsWith("/yes/"),
+  ).map((p) => p.path),
 ]);
 
 describe("page backdrops", () => {

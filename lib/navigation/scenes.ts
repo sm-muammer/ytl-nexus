@@ -59,6 +59,9 @@ const SCENES: Record<string, SceneConfig> = {
   "/library": { tint: "library", pattern: "lines", canvas: "dust" },
   "/library/[slug]": { tint: "library", pattern: "lines" },
   "/yes": { tint: "blossom", canvas: "petals" },
+  "/yes/plans": { tint: "blossom", pattern: "rings" },
+  "/yes/coverage": { tint: "blossom", pattern: "dots" },
+  "/yes/support": { tint: "blossom", pattern: "lines" },
   // Public form page: still.
   "/signin": { tint: "quiet", pattern: "dots" },
   // Workspace: still, one family per module.

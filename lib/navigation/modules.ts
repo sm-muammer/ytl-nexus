@@ -320,6 +320,41 @@ export const MODULES: readonly ModuleInfo[] = [
     task: 15,
     backing: null,
     related: ["story", "tour", "library"],
+    subNav: [
+      { label: "Overview", href: "/yes" },
+      { label: "Plans", href: "/yes/plans" },
+      { label: "Coverage", href: "/yes/coverage" },
+      { label: "Support", href: "/yes/support" },
+    ],
+    pages: [
+      {
+        href: "/yes/plans",
+        title: "Yes Plans",
+        subtitle: "5G mobile and broadband plans",
+        summary:
+          "Full-speed uncapped 5G data plans and hotspot quotas designed for high-bandwidth modern lifestyles.",
+        task: 15,
+        backing: null,
+      },
+      {
+        href: "/yes/coverage",
+        title: "Yes Coverage",
+        subtitle: "Interactive 5G coverage checker",
+        summary:
+          "Check 5G network strength, cell availability, and download throughput across Malaysia.",
+        task: 15,
+        backing: null,
+      },
+      {
+        href: "/yes/support",
+        title: "Yes Support",
+        subtitle: "Customer support and FAQs",
+        summary:
+          "Support inquiries, FAQs, and self-service guidance for Yes 5G subscribers.",
+        task: 15,
+        backing: null,
+      },
+    ],
   },
 ];
 

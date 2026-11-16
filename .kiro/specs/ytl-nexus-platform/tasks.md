@@ -419,24 +419,24 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
   - [ ] 17.7 Add the `yes-public` scope and demo scripted answers
     - _Requirements: 14.9, 14.17_
 
-- [ ] 18. Yes Experience (plan Task 15)
-  - [ ] 18.1 Port the Yes pages into `app/(yes)/yes/*` and `modules/yes`
+- [x] 18. Yes Experience (plan Task 15)
+  - [x] 18.1 Port the Yes pages into `app/(yes)/yes/*` and `modules/yes`
     - `/yes`, `/yes/plans`, `/yes/coverage`, `/yes/support`; official logomarks and exact Yes colours; petals respect reduced motion; working mobile navigation
     - _Requirements: 3.11, 15.7_
 
-  - [ ] 18.2 Implement validated coverage and support forms
+  - [x] 18.2 Implement validated coverage and support forms
     - Zod, per-field errors, input preserved, honest confirmation
     - _Requirements: 15.7_
 
-  - [ ] 18.3 Fix and connect the chatbot
+  - [x] 18.3 Fix and connect the chatbot
     - Scope `yes-public`, chronological messages persist after reply, responsive width
     - _Requirements: 14.9, 15.7_
 
-  - [ ] 18.4 Replace claims and links
+  - [x] 18.4 Replace claims and links
     - Official yes.my wording with source, or the label "Concept design – not live pricing"; links only to yes.my or official social accounts
     - _Requirements: 15.7_
 
-  - [ ]* 18.5 Write e2e tests
+  - [x]* 18.5 Write e2e tests
     - Four pages, mobile nav regression, chatbot regression, axe at 390 and 3840 px
     - _Requirements: 15.13_
 

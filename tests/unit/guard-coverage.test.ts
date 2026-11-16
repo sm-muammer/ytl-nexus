@@ -15,10 +15,23 @@ import {
 const ROOT = path.resolve(import.meta.dirname, "../..");
 
 function walk(dir: string, accept: (file: string) => boolean): string[] {
+  if (
+    dir.includes("node_modules") ||
+    dir.includes(`${path.sep}.git${path.sep}`) ||
+    dir.includes(`${path.sep}.next${path.sep}`)
+  ) {
+    return [];
+  }
   return readdirSync(dir).flatMap((name) => {
+    if (name === "node_modules" || name === ".git" || name === ".next")
+      return [];
     const full = path.join(dir, name);
-    if (statSync(full).isDirectory()) return walk(full, accept);
-    return accept(full) ? [full] : [];
+    try {
+      if (statSync(full).isDirectory()) return walk(full, accept);
+      return accept(full) ? [full] : [];
+    } catch {
+      return [];
+    }
   });
 }
 

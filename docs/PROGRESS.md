@@ -5,16 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                   |
-| --------------------------- | --------------------------------------- |
-| Last completed              | **Task 14:** Nexus AI (done 2026-11-16) |
-| Current task                | **Task 15:** Yes Experience             |
-| Next task                   | **Task 15:** Yes Experience             |
-| Recommended model           | Sonnet 5.5, High effort                 |
-| Start the next session with | `Continue YTL Nexus: run Task 15`       |
+| Item                        | Value                                         |
+| --------------------------- | --------------------------------------------- |
+| Last completed              | **Task 15:** Yes Experience (done 2026-11-16) |
+| Current task                | **Task 16:** Nexus Continuity                 |
+| Next task                   | **Task 16:** Nexus Continuity                 |
+| Recommended model           | Sonnet 5.5, High effort                       |
+| Start the next session with | `Continue YTL Nexus: run Task 16`             |
 
 ## Owner actions waiting
 
+- **Task 15, browse Yes Experience in a browser:** open `https://ytl-nexus.ytlcomms.my/yes`, `/yes/plans`, `/yes/coverage`, and `/yes/support`. Verify responsive mobile drawer navigation on narrow viewports, petal animations with reduced motion support, coverage checker form, support form validation, and test the Yes 5G Assistant chatbot (`yes-public` scope).
 - **Task 14, try Nexus AI in a browser:** sign in as a Member or above on `https://ytl-nexus.ytlcomms.my`, open `/ai`, and ask a question about deployment or architecture runbooks (e.g. "How do I deploy YTL Nexus?"). Check the streamed response and citations. Test Explain mode by clicking "Explain with Nexus AI" on an Atlas service or Status incident.
 - **Task 13, check webmail in a browser:** sign in as an Administrator on `https://ytl-nexus.ytlcomms.my`, open `/mail`, check your own mailbox details and service status, click "Open Nexus Webmail" to go to `/webmail/`, and log in with one of the test accounts (`nexus-test-a@ytl-nexus.internal` or `nexus-test-b@ytl-nexus.internal`; passwords stored in `/root/mail-test-passwords.txt` on the server). Verify composing, sending, and dark mode in the Nexus skin.
 - **Task 12, store admin password and clean up:** DONE — `/root/sftpgo-admin-password.txt` was read once, stored in the password manager, and deleted. `/etc/sftpgo/sftpgo.env` and `/var/lib/sftpgo/hostkeys` are backed up in `/root/ytl-nexus-backups/task12-acceptance-2026-11-13/`. Optional: delete the unused `/var/lib/sftpgo/sftpgo.db` left by the package first start.
@@ -38,6 +39,18 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 15: Yes Experience (done 2026-11-16)
+
+- **Porting & Layout Integration:** Ported legacy pages from `yes-website-redesign/` into Next.js 16 route group `(yes)` under `/yes`, `/yes/plans`, `/yes/coverage`, and `/yes/support`. Integrated into the shared `AppShell` with cherry-blossom backdrop scene (`blossom` tint + `petals` scene canvas respecting `prefers-reduced-motion`). Added clean navigation back to Nexus core (`← Back to Nexus`).
+- **Defects Fixed:**
+  - **Mobile Navigation:** Added accessible mobile drawer menu with hamburger toggle (`aria-expanded`, `aria-controls`), active state indication, and direct link to official yes.my.
+  - **Chatbot Stale-State Bug & Scope:** Refactored state updates in `components/yes/yes-chatbot.tsx` using functional state updaters so user messages reliably persist after assistant replies. Integrated streaming responses with `POST /api/ai/chat?scope=yes-public`. Replaced fixed 96-width modal with responsive drawer (`max-w-sm` and `w-[calc(100vw-2rem)]`), guaranteeing 0 horizontal overflow at 390px.
+  - **Dead Links & Concept Flows:** Replaced `#` buttons with verified external links to `https://www.yes.my/postpaid/`, `https://www.yes.my/coverage/`, `https://www.yes.my/support/`, and official Yes 5G Facebook/Instagram/X handles.
+  - **Honest Data & Labeling:** Replaced unverified pricing and promotion claims with official yes.my wording and prominent labels ("Concept design – not live pricing").
+  - **Form Validation:** Built Zod schemas (`lib/yes/validation.ts`) for coverage checking, support inquiry drafting, and newsletter subscription with per-field errors and honest confirmation notices (preventing false impression of live dispatch).
+- **Sub-Navigation & Scene Uniqueness:** Registered Yes sub-navigation and child pages in `lib/navigation/modules.ts` and distinctive pattern scenes in `lib/navigation/scenes.ts`.
+- **Tests & Verification:** 8 unit tests in `tests/unit/yes-validation.test.ts` and `tests/unit/yes-data.test.ts`. 6 Playwright e2e tests in `tests/e2e/yes.spec.ts` (home, plans, coverage checker validation and honest confirmation, support form validation, chatbot message persistence, and mobile drawer). Full check passed: 58 test suites, **888 unit tests passed**. Playwright shell (129 tests) and access matrix (117 tests) passed.
 
 ### Task 14: Nexus AI (done 2026-11-16)
 
