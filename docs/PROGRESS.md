@@ -5,16 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                           |
-| --------------------------- | ----------------------------------------------- |
-| Last completed              | **Task 16:** Nexus Continuity (done 2026-11-16) |
-| Current task                | **Task 17:** Nexus Shield                       |
-| Next task                   | **Task 17:** Nexus Shield                       |
-| Recommended model           | Sonnet 5.5, Low–Medium effort                   |
-| Start the next session with | `Continue YTL Nexus: run Task 17`               |
+| Item                        | Value                                        |
+| --------------------------- | -------------------------------------------- |
+| Last completed              | **Task 17:** Nexus Shield (done 2026-11-16)  |
+| Current task                | **Task 18:** Nexus Tour, Story and Demo Mode |
+| Next task                   | **Task 18:** Nexus Tour, Story and Demo Mode |
+| Recommended model           | Sonnet 5.5, Medium effort                    |
+| Start the next session with | `Continue YTL Nexus: run Task 18`            |
 
 ## Owner actions waiting
 
+- **Task 17, inspect Nexus Shield in a browser:** sign in as an Operator or Administrator on `https://ytl-nexus.ytlcomms.my`, open `/shield`, verify the security posture summary cards (High, Medium, Low, Info filters), check that the known operational risks (SELinux Disabled, SSH PermitRootLogin/PasswordAuthentication enabled) are clearly identified with actionable remediation guidance, and confirm the lockout prevention policy notice.
 - **Task 16, inspect Nexus Continuity in a browser:** sign in as an Operator or Administrator on `https://ytl-nexus.ytlcomms.my`, open `/continuity`, check the freshness status badge ("Backups Fresh (<26h)"), verified restore drill status (all 9 monitored components verified in green), and view the disaster recovery runbook and off-box sync command (`rsync -avz --progress -e ssh root@10.26.64.164:/var/backups/nexus/ ~/ytl-nexus-backups/`).
 - **Task 15, browse Yes Experience in a browser:** open `https://ytl-nexus.ytlcomms.my/yes`, `/yes/plans`, `/yes/coverage`, and `/yes/support`. Verify responsive mobile drawer navigation on narrow viewports, petal animations with reduced motion support, coverage checker form, support form validation, and test the Yes 5G Assistant chatbot (`yes-public` scope).
 - **Task 14, try Nexus AI in a browser:** sign in as a Member or above on `https://ytl-nexus.ytlcomms.my`, open `/ai`, and ask a question about deployment or architecture runbooks (e.g. "How do I deploy YTL Nexus?"). Check the streamed response and citations. Test Explain mode by clicking "Explain with Nexus AI" on an Atlas service or Status incident.
@@ -41,7 +42,27 @@
 
 ## Task log
 
-### Task 16: Nexus Continuity (done 2026-11-16)
+### Task 17: Nexus Shield (done 2026-11-16)
+
+- **Root Security Posture Scanner & Automation:**
+  - `infrastructure/scripts/nexus-shield-scan`: Root scanner covering all 11 required checks (SHD-01 to SHD-11): TLS cert expiry (web & mail), listening ports allowlist against approved public ports (22, 80, 443, 587, 993, 2022), firewalld status and zone configuration, pending dnf security updates, failed SSH and SFTP logins over the last 24h, SSH server hardening configuration (`PermitRootLogin`, `PasswordAuthentication`), SELinux mode, filesystem disk usage per mount, chrony NTP clock synchronization, root backup freshness (<26h threshold), and fail2ban intrusion prevention status. Writes atomic JSON reports to `/var/log/nexus/shield-scan.json`.
+  - `infrastructure/systemd/nexus-shield-scan.service` & `nexus-shield-scan.timer`: Automated daily execution at 03:00 UTC as root. Enabled and active on Nexus Core 01.
+- **Worker & Database Ingestion:**
+  - Built pure ingestion engine `services/worker/ingest-shield.ts` and wired into `nexus-worker` tick loop every 5 minutes (`services/worker/main.ts`).
+  - Evaluates check findings with exact severity weights (high, medium, low, info) and writes findings into MariaDB table `shield_findings` with sanitized evidence, remediation steps, and scan timestamps.
+- **Application & UI:**
+  - Built pure model library `lib/shield/model.ts` with schema validation (`rawShieldReportSchema`), 11 domain check evaluation rules, and summary aggregator (`buildShieldSummary`).
+  - Server-side data provider `lib/server/shield.ts` fetching the latest scan findings from `shield_findings` or demo fixtures (`lib/fixtures/shield.ts`).
+  - Responsive `/shield` workspace page (`app/(workspace)/shield/page.tsx`, `components/shield/shield-view.tsx`) accessible to Operators and Administrators. Features interactive metric filter cards (High, Medium, Low, Info), categorized findings list, and lockout prevention notice (SHD-22 / SHD-23) explaining that sensitive access controls report without automatic remediation.
+- **Tests & Verification:**
+  - Unit tests across check parsing, severity evaluation, aggregation, and ingestion: 23 unit tests across `shield-model.test.ts`, `shield-summary.test.ts`, `shield-ingest.test.ts`, and `shield-scripts.test.ts`. Total test suite passes at **64 test files, 917 tests**.
+  - E2E Playwright test in `tests/e2e/shield.spec.ts` (operator auth, live/demo labels, 11 checks rendered, severity filtering, lockout notice, axe accessibility, and mobile 390px zero horizontal overflow).
+- **Live Deployment & Verification on Nexus Core 01:**
+  - Deployed to Nexus Core 01 (release `08bcf99e4640558662096cf1f025b4fb6ad55432`).
+  - Triggered root scanner and validated output `/var/log/nexus/shield-scan.json`.
+  - Verified worker ingestion: `nexus-worker` ingested 11 checks from live scan `scan-20261116-104732` into `shield_findings`.
+  - Verified live findings accurately detect server posture: SHD-06 flagged high (root login & password authentication enabled), SHD-07 flagged medium (SELinux disabled), SHD-04 flagged high (52 pending security updates), SHD-01 info (TLS valid for 382 days), SHD-10 info (backups fresh).
+  - Verified `/shield` endpoint is protected (returns 307 redirect to `/signin` when unauthenticated).
 
 - **Systemd Timers & Root Automation:**
   - `infrastructure/scripts/nexus-backup` & `nexus-backup.timer`: runs daily at 02:00 UTC as root. Creates compressed SQL dumps for 5 databases (`ytl_nexus`, `nexus_mail`, `nexus_roundcube`, `nexus_sftpgo`, `nexus_wordpress`), plus archives for `/etc/ytl-nexus` & service configs, mail storage (`/var/mail/vmail`), SFTPGo user data & hostkeys (`/srv/nexus-transfer`, `/var/lib/sftpgo/hostkeys`), and WordPress uploads. Generates `SHA256SUMS` in `/var/backups/nexus/<timestamp>/`. Enforces retention policy keeping 7 daily and 4 weekly backups. Logs execution into `backup_runs` using INSERT-only user `nexus_ingest`.
