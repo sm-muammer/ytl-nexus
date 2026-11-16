@@ -240,6 +240,12 @@ export const ACTION_POLICY: readonly ActionPolicy[] = [
   { id: "transfer.account.delete", ...CONTROL },
   { id: "transfer.key.add", ...CONTROL },
   { id: "transfer.key.remove", ...CONTROL },
+  // Nexus Mail accounts (requirement 13.8). Administrators in Control, with a fresh Step_Up.
+  { id: "mail.account.create", ...CONTROL },
+  { id: "mail.account.set-enabled", ...CONTROL },
+  { id: "mail.account.set-quota", ...CONTROL },
+  { id: "mail.account.reset-password", ...CONTROL },
+  { id: "mail.account.delete", ...CONTROL },
 ];
 
 export function policyForAction(id: string): ActionPolicy {

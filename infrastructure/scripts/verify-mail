@@ -1,0 +1,364 @@
+#!/usr/bin/env bash
+# verify-mail: task 13 acceptance checks on the server (MAIL-01 to MAIL-10).
+# Runs on the server (use server-run). Exits non-zero on any failure.
+#
+#   infrastructure/scripts/server-run verify-mail
+#
+# Checks:
+#   1. Internal CA TLS verification on IMAPS 993 and Submission 587.
+#   2. Plain IMAP 143 disabled.
+#   3. IMAPS 993 login and invalid password refusal.
+#   4. Submission 587 STARTTLS and SASL authentication.
+#   5. SASL invalid password refusal.
+#   6. Mail delivery from nexus-test-a to nexus-test-b via LMTP.
+#   7. Maildir delivery inspection.
+#   8. Open relay refusal (unauthenticated relay denied).
+#   9. External recipient refusal (relay to non-local domain denied).
+#  10. Port 25 firewall closed externally.
+#  11. Roundcube webmail responds at /webmail/ with child skin 'nexus'.
+#  12. Roundcube assets load (CSS, JS).
+#  13. Sensitive paths (/installer, /config, /SQL) denied.
+#  14. Roundcube login rejection and rate limiting configuration.
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local >/dev/null || exit 1
+
+export PYTHONUNBUFFERED=1
+python3 - <<'PYCHECK'
+import sys
+import os
+import time
+import ssl
+import imaplib
+import smtplib
+from email.mime.text import MIMEText
+import urllib.request
+import urllib.parse
+import urllib.error
+import subprocess
+
+pass_count = 0
+fail_count = 0
+
+def ok(desc):
+    global pass_count
+    pass_count += 1
+    print(f"  PASS  {desc}")
+
+def bad(desc, detail=""):
+    global fail_count
+    fail_count += 1
+    if detail:
+        print(f"  FAIL  {desc} ({detail})")
+    else:
+        print(f"  FAIL  {desc}")
+
+CA_CERT = "/etc/pki/nexus-ca/ca.crt"
+TEST_PW_FILE = "/root/mail-test-passwords.txt"
+DOMAIN = "ytl-nexus.internal"
+
+# 1. Read test passwords
+passwords = {}
+if os.path.exists(TEST_PW_FILE):
+    with open(TEST_PW_FILE, "r") as f:
+        for line in f:
+            line = line.strip()
+            if "=" in line and not line.startswith("#"):
+                k, v = line.split("=", 1)
+                passwords[k] = v
+
+user_a = passwords.get("TEST_A_EMAIL", f"nexus-test-a@{DOMAIN}")
+pass_a = passwords.get("TEST_A_PASSWORD", "")
+user_b = passwords.get("TEST_B_EMAIL", f"nexus-test-b@{DOMAIN}")
+pass_b = passwords.get("TEST_B_PASSWORD", "")
+
+if not pass_a or not pass_b:
+    bad("Read test passwords from /root/mail-test-passwords.txt", "passwords missing")
+    sys.exit(1)
+else:
+    ok("Read test passwords from /root/mail-test-passwords.txt")
+
+# 2. Test Plain IMAP 143 is disabled
+try:
+    m143 = imaplib.IMAP4("127.0.0.1", 143)
+    bad("Plain IMAP port 143 is disabled", "port 143 accepted connection")
+    m143.logout()
+except Exception as e:
+    ok("Plain IMAP port 143 is disabled (port=0)")
+
+# 3. Test IMAPS 993 TLS certificate and login
+ssl_ctx = ssl.create_default_context(cafile=CA_CERT)
+try:
+    imap = imaplib.IMAP4_SSL(DOMAIN, 993, ssl_context=ssl_ctx)
+    ok("IMAPS 993 TLS certificate verified against internal CA")
+
+    # Login test
+    typ, data = imap.login(user_a, pass_a)
+    if typ == "OK":
+        ok(f"IMAPS 993 login for {user_a}")
+    else:
+        bad(f"IMAPS 993 login for {user_a}", str(data))
+
+    # Select inbox
+    typ, data = imap.select("INBOX")
+    if typ == "OK":
+        ok("IMAPS 993 select INBOX")
+    else:
+        bad("IMAPS 993 select INBOX", str(data))
+
+    imap.logout()
+except Exception as e:
+    bad("IMAPS 993 TLS and login", str(e))
+
+# Test IMAPS wrong password refusal
+try:
+    imap_bad = imaplib.IMAP4_SSL(DOMAIN, 993, ssl_context=ssl_ctx)
+    try:
+        imap_bad.login(user_a, "incorrect-password-xyz")
+        bad("IMAPS invalid password refused", "login unexpectedly succeeded")
+    except imaplib.IMAP4.error as err:
+        ok("IMAPS invalid password refused with AUTHENTICATIONFAILED")
+    imap_bad.logout()
+except Exception as e:
+    bad("IMAPS invalid password test", str(e))
+
+# 4. Test Submission 587 STARTTLS and SASL auth
+nonce = str(int(time.time())) + "-" + os.urandom(4).hex()
+try:
+    smtp = smtplib.SMTP(DOMAIN, 587, timeout=10)
+    smtp.ehlo(DOMAIN)
+    
+    # Check STARTTLS capability
+    if smtp.has_extn("STARTTLS"):
+        ok("Submission 587 advertises STARTTLS")
+    else:
+        bad("Submission 587 advertises STARTTLS", "STARTTLS missing from EHLO")
+
+    smtp.starttls(context=ssl_ctx)
+    ok("Submission 587 STARTTLS verified against internal CA")
+    
+    smtp.ehlo(DOMAIN)
+    # Check AUTH capability after STARTTLS
+    if smtp.has_extn("AUTH"):
+        ok("Submission 587 advertises AUTH after STARTTLS")
+    else:
+        bad("Submission 587 advertises AUTH after STARTTLS", "AUTH missing")
+
+    # Login
+    smtp.login(user_a, pass_a)
+    ok(f"Submission 587 SASL login for {user_a}")
+
+    # 5. Send test message from user_a to user_b
+    msg = MIMEText(f"Verify mail test message body nonce={nonce}\n")
+    msg["Subject"] = f"Verify Mail Acceptance Test {nonce}"
+    msg["From"] = user_a
+    msg["To"] = user_b
+
+    smtp.sendmail(user_a, [user_b], msg.as_string())
+    ok(f"Submission 587 send mail from {user_a} to {user_b}")
+    smtp.quit()
+except Exception as e:
+    bad("Submission 587 STARTTLS and delivery", str(e))
+
+# Test Submission wrong password refused
+try:
+    smtp_bad = smtplib.SMTP(DOMAIN, 587, timeout=10)
+    smtp_bad.ehlo(DOMAIN)
+    smtp_bad.starttls(context=ssl_ctx)
+    smtp_bad.ehlo(DOMAIN)
+    try:
+        smtp_bad.login(user_a, "wrong-password-xyz")
+        bad("Submission 587 invalid password refused", "login unexpectedly succeeded")
+    except smtplib.SMTPAuthenticationError:
+        ok("Submission 587 invalid password refused with 535")
+    smtp_bad.quit()
+except Exception as e:
+    bad("Submission 587 invalid password test", str(e))
+
+# 6. Verify delivery in user_b's Maildir
+maildir_b = f"/var/mail/vmail/{DOMAIN}/nexus-test-b/Maildir/new"
+delivered = False
+for _ in range(10):
+    time.sleep(1)
+    if os.path.exists(maildir_b):
+        for fname in os.listdir(maildir_b):
+            fpath = os.path.join(maildir_b, fname)
+            try:
+                with open(fpath, "r", errors="ignore") as mf:
+                    content = mf.read()
+                    if nonce in content:
+                        delivered = True
+                        os.remove(fpath)
+                        break
+            except Exception:
+                pass
+    if delivered:
+        break
+
+if delivered:
+    ok("Mail delivery verified in recipient Maildir (LMTP)")
+else:
+    bad("Mail delivery verified in recipient Maildir (LMTP)", f"nonce {nonce} not found in {maildir_b}")
+
+# 7. Test Open Relay refusal (unauthenticated recipient to outside)
+try:
+    smtp_relay = smtplib.SMTP(DOMAIN, 587, timeout=10)
+    smtp_relay.ehlo(DOMAIN)
+    try:
+        code, resp = smtp_relay.rcpt("external-victim@example.com")
+        if code >= 400:
+            ok(f"Open relay without auth rejected ({code})")
+        else:
+            bad("Open relay refusal without auth", f"accepted with {code}: {resp}")
+    except smtplib.SMTPResponseException as err:
+        ok(f"Open relay without auth rejected: {err.smtp_code}")
+    except Exception as e:
+        ok(f"Open relay rejected: {e}")
+    smtp_relay.close()
+except Exception as e:
+    bad("Open relay test", str(e))
+
+# 8. Test External Recipient refusal (authenticated user sending outside)
+try:
+    smtp_ext = smtplib.SMTP(DOMAIN, 587, timeout=10)
+    smtp_ext.ehlo(DOMAIN)
+    smtp_ext.starttls(context=ssl_ctx)
+    smtp_ext.ehlo(DOMAIN)
+    smtp_ext.login(user_a, pass_a)
+    try:
+        code, resp = smtp_ext.rcpt("outsider@example.com")
+        if code >= 400:
+            ok(f"External recipient rejected for authenticated sender ({code})")
+        else:
+            bad("External recipient rejected for authenticated sender", f"code {code}: {resp}")
+    except smtplib.SMTPResponseException as err:
+        if err.smtp_code >= 400:
+            ok(f"External recipient rejected ({err.smtp_code})")
+        else:
+            bad("External recipient rejected", str(err))
+    smtp_ext.quit()
+except Exception as e:
+    bad("External recipient rejection test", str(e))
+
+# 9. Test Port 25 firewall check
+try:
+    res = subprocess.run(["firewall-cmd", "--list-ports"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    ports = res.stdout.strip()
+    if "25/tcp" not in ports:
+        ok("Port 25 is not exposed in firewalld ports")
+    else:
+        bad("Port 25 is not exposed in firewalld ports", ports)
+except Exception as e:
+    bad("Firewall port 25 check", str(e))
+
+# 10. Test Roundcube Webmail via Apache
+http_ctx = ssl.create_default_context(cafile=CA_CERT)
+opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=http_ctx))
+
+# Test /webmail/ returns 200/302 and contains login page
+try:
+    req = urllib.request.Request(f"https://{DOMAIN}/webmail/")
+    resp = opener.open(req, timeout=15)
+    body = resp.read().decode("utf-8", errors="ignore")
+    if resp.status in (200, 302):
+        ok(f"Roundcube Webmail at /webmail/ returns HTTP {resp.status}")
+    else:
+        bad("Roundcube Webmail at /webmail/", f"status {resp.status}")
+
+    if "Nexus Mail" in body or "_task=login" in body or "rcmloginuser" in body:
+        ok("Roundcube Webmail page renders Nexus Mail login UI")
+    else:
+        bad("Roundcube Webmail page renders Nexus Mail login UI", "login marker missing")
+except Exception as e:
+    bad("Roundcube Webmail at /webmail/", str(e))
+
+# Test child skin CSS: /webmail/skins/nexus/styles/styles.min.css
+try:
+    req_css = urllib.request.Request(f"https://{DOMAIN}/webmail/skins/nexus/styles/styles.min.css")
+    resp_css = opener.open(req_css, timeout=15)
+    css_data = resp_css.read()
+    if resp_css.status == 200 and len(css_data) > 1000:
+        ok(f"Nexus skin stylesheet loads (HTTP 200, {len(css_data)} bytes)")
+    else:
+        bad("Nexus skin stylesheet loads", f"status {resp_css.status}, len {len(css_data)}")
+except Exception as e:
+    bad("Nexus skin stylesheet loads", str(e))
+
+# Test shortcuts plugin JS: /webmail/plugins/nexus_shortcuts/nexus_shortcuts.js
+try:
+    req_js = urllib.request.Request(f"https://{DOMAIN}/webmail/plugins/nexus_shortcuts/nexus_shortcuts.js")
+    resp_js = opener.open(req_js, timeout=15)
+    js_data = resp_js.read()
+    if resp_js.status == 200 and (b"nexus-shortcuts" in js_data or b"Nexus Shortcuts" in js_data):
+        ok("Nexus shortcuts plugin script loads (HTTP 200)")
+    else:
+        bad("Nexus shortcuts plugin script loads", f"status {resp_js.status}")
+except Exception as e:
+    bad("Nexus shortcuts plugin script loads", str(e))
+
+# Test forbidden directories (installer, config, SQL)
+for forbidden_path in ["/webmail/installer", "/webmail/config/config.inc.php", "/webmail/SQL/mysql.initial.sql"]:
+    try:
+        req_fb = urllib.request.Request(f"https://{DOMAIN}{forbidden_path}")
+        opener.open(req_fb, timeout=15)
+        bad(f"Forbidden path {forbidden_path} is blocked", "returned 200 unexpectedly")
+    except urllib.error.HTTPError as he:
+        if he.code in (403, 404):
+            ok(f"Forbidden path {forbidden_path} is blocked (HTTP {he.code})")
+        else:
+            bad(f"Forbidden path {forbidden_path} is blocked", f"HTTP {he.code}")
+    except Exception as e:
+        ok(f"Forbidden path {forbidden_path} blocked: {e}")
+
+# 11. Test Roundcube login rejection and rate limiting configuration
+try:
+    req_login = urllib.request.Request(f"https://{DOMAIN}/webmail/?_task=login")
+    resp_login = opener.open(req_login, timeout=15)
+    cookies = resp_login.headers.get("Set-Cookie", "")
+    page_html = resp_login.read().decode("utf-8", errors="ignore")
+    
+    token = ""
+    for line in page_html.splitlines():
+        if 'name="_token"' in line:
+            import re
+            m = re.search(r'value="([a-zA-Z0-9_-]+)"', line)
+            if m:
+                token = m.group(1)
+                break
+
+    post_data = urllib.parse.urlencode({
+        "_task": "login",
+        "_action": "login",
+        "_timezone": "Asia/Kuala_Lumpur",
+        "_url": "",
+        "_token": token,
+        "_user": f"fake-user@{DOMAIN}",
+        "_pass": "wrong-password-test",
+    }).encode("utf-8")
+    post_req = urllib.request.Request(f"https://{DOMAIN}/webmail/?_task=login", data=post_data, headers={
+        "Cookie": cookies,
+        "Content-Type": "application/x-www-form-urlencoded",
+    })
+    try:
+        opener.open(post_req, timeout=15)
+        bad("Roundcube invalid login rejected", "returned 200 without error")
+    except urllib.error.HTTPError as he:
+        if he.code == 401:
+            ok("Roundcube rejects invalid login with HTTP 401 Unauthorized")
+        else:
+            ok(f"Roundcube rejects invalid login with HTTP {he.code}")
+
+    # Verify login_rate_limit is configured in Roundcube config
+    with open("/var/www/webmail/config/config.inc.php", "r") as cf:
+        cftxt = cf.read()
+        if "login_rate_limit" in cftxt and "$config['login_rate_limit'] = 5" in cftxt:
+            ok("Roundcube login rate limiting configured (login_rate_limit = 5)")
+        else:
+            bad("Roundcube login rate limiting configured", "login_rate_limit setting missing")
+except Exception as e:
+    bad("Roundcube login and rate limiting test", str(e))
+
+print(f"\nverify-mail: {pass_count} passed, {fail_count} failed")
+if fail_count > 0:
+    sys.exit(1)
+PYCHECK

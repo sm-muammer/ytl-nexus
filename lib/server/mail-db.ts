@@ -1,45 +1,36 @@
 import "server-only";
-import { Kysely, MysqlDialect } from "kysely";
+import { Kysely, MysqlDialect, type Generated } from "kysely";
 import { createPool } from "mysql2";
 import { z } from "zod";
 
-// A minimal Kysely connection for the `nexus_mail` database (virtual_domains,
-// virtual_users, virtual_aliases). Separate from the main `ytl_nexus` DB so the
-// mail user has the minimum possible privileges (MAIL-10).
-
-// ---- Schema ------------------------------------------------------------------
+// A minimal Kysely connection for the `nexus_mail` database. It is separate from
+// the main `ytl_nexus` database, and its account (`nexus_mail_app`) can touch
+// only the two virtual-mail tables (MAIL-10). The schema is in
+// infrastructure/mail/schema.sql.
 
 export type VirtualDomainRow = {
-  id: number;
+  id: Generated<number>;
   name: string;
 };
 
 export type VirtualUserRow = {
-  id: number;
+  id: Generated<number>;
   domain_id: number;
-  username: string;
+  local_part: string;
+  email: string;
+  /** `{SHA512-CRYPT}$6$...`. Never selected into a page. */
   password: string;
-  enabled: 0 | 1;
   quota_bytes: number;
-  used_bytes: number | null;
+  enabled: 0 | 1;
   nexus_user_id: string | null;
-  created_at: Date | string | null;
-};
-
-export type VirtualAliasRow = {
-  id: number;
-  domain_id: number;
-  source: string;
-  destination: string;
+  created_at: Generated<Date | string>;
+  updated_at: Generated<Date | string>;
 };
 
 export interface MailDatabase {
   virtual_domains: VirtualDomainRow;
   virtual_users: VirtualUserRow;
-  virtual_aliases: VirtualAliasRow;
 }
-
-// ---- Config ------------------------------------------------------------------
 
 const configSchema = z.object({
   host: z.string().min(1),
@@ -62,8 +53,7 @@ export function readMailDbConfig(env: Env = process.env): MailDbConfig | null {
     user: env.NEXUS_MAIL_DB_USER,
     password: env.NEXUS_MAIL_DB_PASSWORD,
   });
-  if (!parsed.success) return null;
-  return parsed.data;
+  return parsed.success ? parsed.data : null;
 }
 
 /** A Kysely instance over the nexus_mail database. Call `destroy()` when done. */
@@ -85,14 +75,12 @@ export function createMailDb(config: MailDbConfig): Kysely<MailDatabase> {
   });
 }
 
-// ---- Singleton ---------------------------------------------------------------
-
 let instance: Kysely<MailDatabase> | undefined;
 
-/** The app's mail database handle. Created on first use; never created in demo mode. */
-export function getMailDb(): Kysely<MailDatabase> {
+/** The app's shared mail database handle. Created on first use; never created in demo mode. */
+export function getMailDb(): Kysely<MailDatabase> | null {
   const config = readMailDbConfig();
-  if (!config) throw new Error("Mail database is not configured.");
+  if (!config) return null;
   instance ??= createMailDb(config);
   return instance;
 }

@@ -1,5 +1,6 @@
 import { ControlUsers } from "@/components/auth/control-users";
 import { ControlTransfer } from "@/components/transfer/control-transfer";
+import { ControlMail } from "@/components/mail/control-mail";
 import { StepUpForm } from "@/components/auth/auth-forms";
 import { ControlShell } from "@/components/layout/control-shell";
 import { ModuleHero } from "@/components/layout/module-hero";
@@ -13,6 +14,7 @@ import { controlMetadata } from "@/lib/server/control-metadata";
 import { requirePage } from "@/lib/server/guards";
 import { getMode } from "@/lib/server/mode";
 import { readAllAccounts } from "@/lib/server/transfer";
+import { readAllMailboxes } from "@/lib/server/mail";
 
 // Administrator-only, and only after a fresh Step_Up (password plus a code from
 // the authenticator app, within the last 10 minutes). Task 6 delivers the entry,
@@ -32,6 +34,7 @@ export default async function ControlPage() {
       ? demoControlUsers
       : await listUsersForAdmin(getAuthRuntime());
   const transfer = stepUpRequired ? null : await readAllAccounts();
+  const mail = stepUpRequired ? null : await readAllMailboxes();
 
   return (
     <ControlShell>
@@ -109,6 +112,42 @@ export default async function ControlPage() {
                   <p className="text-muted max-w-(--spacing-prose)">
                     The file transfer service does not answer, so no accounts
                     are shown. Check it on the services page.
+                  </p>
+                )}
+              </section>
+            ) : null}
+            {!stepUpRequired && mail ? (
+              <section
+                aria-labelledby="mail-title"
+                className="flex flex-col gap-4"
+                data-control-mail
+              >
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 id="mail-title" className="text-heading-3 font-semibold">
+                    Mailboxes
+                  </h2>
+                  <LiveDemoLabel source={mail.source} />
+                </div>
+                {demo ? (
+                  <p className="text-muted text-data max-w-(--spacing-prose)">
+                    Demo session: these mailboxes are examples and every control
+                    is switched off.
+                  </p>
+                ) : null}
+                {mail.state === "ready" ? (
+                  <ControlMail
+                    accounts={mail.accounts}
+                    people={users.map((u) => ({
+                      id: u.id,
+                      name: u.name,
+                      email: u.email,
+                    }))}
+                    demo={demo}
+                  />
+                ) : (
+                  <p className="text-muted max-w-(--spacing-prose)">
+                    The mail database does not answer, so no mailboxes are
+                    shown. Check it on the services page.
                   </p>
                 )}
               </section>

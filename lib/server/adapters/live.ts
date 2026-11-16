@@ -5,6 +5,8 @@ import { authIsConfigured, getAuthRuntime } from "@/lib/server/auth/runtime";
 import { resolveIdentity } from "@/lib/server/auth/service";
 import { callOps } from "@/lib/server/ops-client";
 import { createSftpgoClient, readSftpgoConfig } from "@/lib/server/sftpgo";
+import { readMailStatus } from "@/lib/server/mail";
+import { readMailDbConfig } from "@/lib/server/mail-db";
 import { identityToActor } from "@/lib/server/policy";
 import {
   emptySnapshot,
@@ -204,5 +206,30 @@ export function createLiveAdapters(): Adapters {
           };
     },
   };
-  return { ...base, auth, ops, sftpgo, prometheus: createLivePrometheus() };
+
+  const mail: ServiceAdapter = {
+    name: "mail",
+    source: "live",
+    status: async (): Promise<AdapterStatus> => {
+      const config = readMailDbConfig();
+      if (!config) return notConnected("mail");
+      const s = await readMailStatus();
+      return {
+        name: "mail",
+        source: "live",
+        state: s.state,
+        label: s.label,
+        detail: s.detail,
+      };
+    },
+  };
+
+  return {
+    ...base,
+    auth,
+    ops,
+    sftpgo,
+    mail,
+    prometheus: createLivePrometheus(),
+  };
 }

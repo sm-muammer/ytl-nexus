@@ -10,7 +10,9 @@ next-env.d.ts
 reference/
 yes-website-redesign/
 assets/source/
+roundcube/
 
 # Apache include (not HTML)
 infrastructure/apache/studio.inc
 infrastructure/apache/files.inc
+infrastructure/apache/webmail.inc

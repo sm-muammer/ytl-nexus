@@ -1,0 +1,170 @@
+/**
+ * YTL Nexus Mail skin: custom styling overrides for Roundcube Elastic.
+ * Spec: docs/spec/17-nexus-mail.md (MAIL-07) and docs/design-language.md section 9.
+ */
+
+// ---- 1. Folder rail Compose button (Gmail-inspired) -------------------------------
+.nexus-compose-container {
+    padding: 0.85rem 1rem 0.5rem 1rem;
+    display: block;
+
+    .nexus-compose {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 44px;
+        padding: 0.65rem 1.25rem;
+        border-radius: 9999px;
+        background-color: #00b4f0;
+        color: #070c19 !important;
+        font-weight: 600;
+        font-size: 0.95rem;
+        letter-spacing: 0.01em;
+        text-decoration: none !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+        transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+        border: none;
+        cursor: pointer;
+
+        .inner {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            &::before {
+                content: "\f040"; // FontAwesome edit / pen icon
+                font-family: "Font Awesome 5 Free";
+                font-weight: 900;
+                font-size: 1rem;
+            }
+        }
+
+        &:hover,
+        &:focus {
+            background-color: #0098cc;
+            color: #070c19 !important;
+            box-shadow: 0 4px 10px rgba(0, 180, 240, 0.25), 0 2px 4px rgba(0, 0, 0, 0.12);
+            transform: translateY(-1px);
+        }
+
+        &:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        }
+    }
+}
+
+// In touch/small layouts, keep the compose container touch-friendly
+html.touch .nexus-compose-container,
+@media screen and (max-width: @screen-width-small) {
+    .nexus-compose-container {
+        padding: 0.5rem 0.75rem;
+
+        .nexus-compose {
+            min-height: 44px;
+        }
+    }
+}
+
+// ---- 2. Accessible focus indicators -----------------------------------------------
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid #00b4f0 !important;
+    outline-offset: 2px !important;
+}
+
+// ---- 3. Message list & unread state styling ---------------------------------------
+.messagelist tr.unread td {
+    font-weight: 700;
+}
+
+.messagelist tr.unread td.subject a::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 6px;
+    vertical-align: middle;
+    border-radius: 50%;
+    background-color: #00b4f0;
+}
+
+// ---- 4. Compose view on desktop (clean elevated sheet) ----------------------------
+@media screen and (min-width: @screen-width-medium) {
+    .task-mail.action-compose #layout-content {
+        background-color: @color-layout-header-background;
+        padding: 1.5rem;
+
+        .formcontent {
+            background-color: @color-layout-content-background;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 1.25rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+    }
+}
+
+// ---- 5. Dark mode adjustments -----------------------------------------------------
+html.dark-mode {
+    #layout-sidebar {
+        background-color: #0d1526;
+        border-color: #1d2a47;
+    }
+
+    #layout-list {
+        background-color: #0d1526;
+        border-color: #1d2a47;
+    }
+
+    #layout-content {
+        background-color: #070c19;
+    }
+
+    #messagelist-header,
+    #layout-sidebar > .header,
+    #layout-content > .header {
+        background-color: #070c19;
+        border-color: #1d2a47;
+    }
+
+    .nexus-compose-container .nexus-compose {
+        background-color: #00b4f0;
+        color: #070c19 !important;
+
+        &:hover,
+        &:focus {
+            background-color: #26c6ff;
+            box-shadow: 0 4px 12px rgba(0, 180, 240, 0.4);
+        }
+    }
+
+    @media screen and (min-width: @screen-width-medium) {
+        .task-mail.action-compose #layout-content {
+            background-color: #070c19;
+
+            .formcontent {
+                background-color: #0d1526;
+                border: 1px solid #1d2a47;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            }
+        }
+    }
+}
+
+// ---- 6. Reduced motion support ---------------------------------------------------
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}

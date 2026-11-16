@@ -114,4 +114,18 @@ export const contentFixtures: readonly ContentItem[] = [
     "public",
     "<p>This tour walks through each module using sample data only.</p>",
   ),
+  item(
+    "mail_help",
+    "signing-in-to-webmail",
+    "Signing in to webmail",
+    "internal",
+    "<p>Use the <strong>Open Roundcube Webmail</strong> button on this page or go directly to <code>/webmail/</code>. Sign in with your full mailbox address (e.g. <code>username@ytl-nexus.internal</code>) and your mailbox password.</p><p>Webmail credentials are separate from your Nexus platform password. If you forgot your mailbox password, an Administrator can reset it in Nexus Control.</p>",
+  ),
+  item(
+    "mail_help",
+    "configuring-your-email-client",
+    "Configuring your email client",
+    "internal",
+    "<p>You can connect desktop and mobile mail clients (such as Thunderbird, Apple Mail or Outlook) using standard IMAP and SMTP submission.</p><ul><li><strong>Incoming (IMAP):</strong> port 993, SSL/TLS required.</li><li><strong>Outgoing (SMTP):</strong> port 587, STARTTLS required.</li><li><strong>Username:</strong> your full email address (<code>username@ytl-nexus.internal</code>).</li><li><strong>Authentication:</strong> Normal password.</li></ul><p>Nexus uses certificates from the YTL Nexus internal CA. Make sure the CA certificate is installed on your client device.</p>",
+  ),
 ];

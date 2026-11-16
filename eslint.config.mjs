@@ -43,6 +43,7 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "reference/**",
     "yes-website-redesign/**",
+    "roundcube/**",
   ]),
 ]);
 

@@ -1,14 +1,21 @@
 import "server-only";
-import { demoMailAccounts, demoMailClientSettings } from "@/lib/fixtures/mail";
-import type { MailAccount, MailClientSettings } from "@/lib/mail/types";
-import { MAIL_DOMAIN } from "@/lib/mail/types";
+import { DEMO_MAIL_HOST, demoMailAccounts } from "@/lib/fixtures/mail";
+import {
+  IMAP_PORT,
+  SUBMISSION_PORT,
+  type MailAccount,
+  type MailClientSettings,
+} from "@/lib/mail/types";
 import type { DataSource } from "@/lib/server/adapters/types";
 import { getMode } from "@/lib/server/mode";
-import { createMailDb, readMailDbConfig } from "@/lib/server/mail-db";
+import { getMailDb } from "@/lib/server/mail-db";
+import { probeMail, type MailProbe } from "@/lib/server/mail-probe";
 
-// The two readers behind Nexus Mail. /mail uses `readMailStatus` to show the
-// service status and client settings. Control uses `readAllMailboxes`, behind
-// the Administrator guard (requirement MAIL-10).
+// The readers behind Nexus Mail. `/mail` uses `readMailStatus` and
+// `readOwnMailbox`, which takes the session's user id and nothing else, so a
+// Member can only ever read their own mailbox. Control uses
+// `readAllMailboxes`, behind the Administrator guard (MAIL-10). No reader
+// selects the password column.
 
 export type MailStatusView = {
   source: DataSource;
@@ -18,122 +25,157 @@ export type MailStatusView = {
   settings: MailClientSettings;
 };
 
+export type OwnMailboxView =
+  | { state: "ready"; source: DataSource; account: MailAccount }
+  | { state: "no-mailbox"; source: DataSource }
+  | { state: "unavailable"; source: DataSource };
+
 export type AllMailboxesView =
   | { state: "ready"; source: DataSource; accounts: MailAccount[] }
   | { state: "unavailable"; source: DataSource };
 
-/** Derives the external hostname from the environment. */
-function mailHost(
+/** The host name users type into their mail program. */
+export function mailHost(
   env: Record<string, string | undefined> = process.env,
 ): string {
   if (env.NEXUS_MAIL_HOST) return env.NEXUS_MAIL_HOST;
   try {
     if (env.BETTER_AUTH_URL) return new URL(env.BETTER_AUTH_URL).hostname;
   } catch {
-    // fall through
+    // fall through to the project name
   }
   return "ytl-nexus.ytlcomms.my";
 }
 
-function liveSettings(
-  env: Record<string, string | undefined> = process.env,
-): MailClientSettings {
+export function clientSettings(host: string): MailClientSettings {
   return {
-    host: mailHost(env),
-    imapPort: 993,
-    smtpPort: 587,
+    host,
+    imapPort: IMAP_PORT,
+    smtpPort: SUBMISSION_PORT,
     imapSecurity: "SSL/TLS",
     smtpSecurity: "STARTTLS",
   };
 }
 
-/** Minimal IMAP health check: connects and reads CAPABILITY. */
-async function checkImap(host: string, port: number): Promise<boolean> {
-  // We use a plain Node.js net/tls socket rather than any third-party library so
-  // the demo adapter import chain stays clean (DEMO-04). In live mode this is
-  // called only inside readMailStatus, which is never imported in demo mode.
-  const { connect } = await import("node:tls");
-  return new Promise((resolve) => {
-    const sock = connect(
-      { host, port, rejectUnauthorized: false, timeout: 4000 },
-      () => {
-        sock.once("data", () => {
-          sock.destroy();
-          resolve(true);
-        });
-      },
-    );
-    sock.on("error", () => resolve(false));
-    sock.on("timeout", () => {
-      sock.destroy();
-      resolve(false);
-    });
-  });
+/** How the two probes read as one state. Pure, so it is tested without sockets. */
+export function judgeProbe(probe: MailProbe): {
+  state: MailStatusView["state"];
+  label: string;
+  detail: string;
+} {
+  if (probe.imap && probe.submission) {
+    return {
+      state: "ok",
+      label: "Healthy",
+      detail:
+        "IMAP (993) and mail submission (587) are answering and require TLS.",
+    };
+  }
+  if (!probe.imap && !probe.submission) {
+    return {
+      state: "bad",
+      label: "Unreachable",
+      detail: "Neither IMAP (993) nor mail submission (587) answers.",
+    };
+  }
+  return {
+    state: "warn",
+    label: "Degraded",
+    detail: probe.imap
+      ? "IMAP answers, but mail submission (587) does not. Reading works; sending does not."
+      : "Mail submission answers, but IMAP (993) does not. Sending works; reading does not.",
+  };
 }
 
 export async function readMailStatus(): Promise<MailStatusView> {
-  const demo = getMode() === "demo";
-  const settings = demo ? demoMailClientSettings : liveSettings();
-
-  if (demo) {
+  if (getMode() === "demo") {
     return {
       source: "demo",
       state: "ok",
       label: "Healthy",
       detail: "Sample mail service status served from fixtures.",
-      settings,
+      settings: clientSettings(DEMO_MAIL_HOST),
     };
   }
-
-  // Live: quick IMAP connectivity check on loopback.
-  const imapOk = await checkImap("127.0.0.1", 993);
+  const probe = await probeMail();
   return {
     source: "live",
-    state: imapOk ? "ok" : "bad",
-    label: imapOk ? "Healthy" : "Unreachable",
-    detail: imapOk
-      ? `IMAP answering on port 993. Domain: ${MAIL_DOMAIN}.`
-      : "IMAP on port 993 did not answer. Check Dovecot.",
-    settings,
+    settings: clientSettings(mailHost()),
+    ...judgeProbe(probe),
   };
+}
+
+const ACCOUNT_COLUMNS = [
+  "email",
+  "local_part",
+  "enabled",
+  "quota_bytes",
+  "nexus_user_id",
+  "created_at",
+] as const;
+
+type AccountRow = {
+  email: string;
+  local_part: string;
+  enabled: number | boolean;
+  quota_bytes: number | string;
+  nexus_user_id: string | null;
+  created_at: Date | string | null;
+};
+
+function toAccount(row: AccountRow): MailAccount {
+  const created =
+    row.created_at instanceof Date
+      ? row.created_at.toISOString()
+      : row.created_at
+        ? String(row.created_at)
+        : null;
+  return {
+    address: row.email,
+    localPart: row.local_part,
+    enabled: Boolean(row.enabled),
+    quotaBytes: Number(row.quota_bytes),
+    nexusUserId: row.nexus_user_id ?? null,
+    createdAt: created,
+  };
+}
+
+export async function readOwnMailbox(userId: string): Promise<OwnMailboxView> {
+  if (getMode() === "demo") {
+    const account = demoMailAccounts.find((a) => a.nexusUserId === userId);
+    return account
+      ? { state: "ready", source: "demo", account }
+      : { state: "no-mailbox", source: "demo" };
+  }
+  const db = getMailDb();
+  if (!db) return { state: "unavailable", source: "live" };
+  try {
+    const row = await db
+      .selectFrom("virtual_users")
+      .select([...ACCOUNT_COLUMNS])
+      .where("nexus_user_id", "=", userId)
+      .executeTakeFirst();
+    return row
+      ? { state: "ready", source: "live", account: toAccount(row) }
+      : { state: "no-mailbox", source: "live" };
+  } catch {
+    return { state: "unavailable", source: "live" };
+  }
 }
 
 export async function readAllMailboxes(): Promise<AllMailboxesView> {
   if (getMode() === "demo") {
     return { state: "ready", source: "demo", accounts: demoMailAccounts };
   }
-
-  const config = readMailDbConfig();
-  if (!config) return { state: "unavailable", source: "live" };
-
+  const db = getMailDb();
+  if (!db) return { state: "unavailable", source: "live" };
   try {
-    const db = createMailDb(config);
     const rows = await db
-      .selectFrom("virtual_users as u")
-      .leftJoin("virtual_domains as d", "d.id", "u.domain_id")
-      .select([
-        "u.id",
-        "u.username",
-        "d.name as domain",
-        "u.enabled",
-        "u.quota_bytes as quotaBytes",
-        "u.used_bytes as usedBytes",
-        "u.nexus_user_id as nexusUserId",
-        "u.created_at as createdAt",
-      ])
-      .orderBy("u.username")
+      .selectFrom("virtual_users")
+      .select([...ACCOUNT_COLUMNS])
+      .orderBy("email")
       .execute();
-
-    const accounts: MailAccount[] = rows.map((r) => ({
-      address: `${r.username}@${r.domain ?? MAIL_DOMAIN}`,
-      username: r.username,
-      enabled: Boolean(r.enabled),
-      quotaBytes: Number(r.quotaBytes),
-      usedBytes: r.usedBytes != null ? Number(r.usedBytes) : null,
-      nexusUserId: r.nexusUserId ?? null,
-      createdAt: r.createdAt ? String(r.createdAt) : null,
-    }));
-    return { state: "ready", source: "live", accounts };
+    return { state: "ready", source: "live", accounts: rows.map(toAccount) };
   } catch {
     return { state: "unavailable", source: "live" };
   }

@@ -130,5 +130,29 @@
     "business_unit": "",
     "source_url": "",
     "menu_order": 12
+  },
+  {
+    "type": "mail_help",
+    "slug": "signing-in-to-webmail",
+    "title": "Signing in to webmail",
+    "content": "<p>Use the <strong>Open Roundcube Webmail</strong> button on this page or go directly to <code>/webmail/</code>. Sign in with your full mailbox address (e.g. <code>username@ytl-nexus.internal</code>) and your mailbox password.</p><p>Webmail credentials are separate from your Nexus platform password. If you forgot your mailbox password, an Administrator can reset it in Nexus Control.</p>",
+    "excerpt": "Use the Open Roundcube Webmail button on this page or go directly to /webmail/. Sign in with your full mailbox address (e.g. username@ytl-ne",
+    "audience": "internal",
+    "related_service": "",
+    "business_unit": "",
+    "source_url": "",
+    "menu_order": 13
+  },
+  {
+    "type": "mail_help",
+    "slug": "configuring-your-email-client",
+    "title": "Configuring your email client",
+    "content": "<p>You can connect desktop and mobile mail clients (such as Thunderbird, Apple Mail or Outlook) using standard IMAP and SMTP submission.</p><ul><li><strong>Incoming (IMAP):</strong> port 993, SSL/TLS required.</li><li><strong>Outgoing (SMTP):</strong> port 587, STARTTLS required.</li><li><strong>Username:</strong> your full email address (<code>username@ytl-nexus.internal</code>).</li><li><strong>Authentication:</strong> Normal password.</li></ul><p>Nexus uses certificates from the YTL Nexus internal CA. Make sure the CA certificate is installed on your client device.</p>",
+    "excerpt": "You can connect desktop and mobile mail clients (such as Thunderbird, Apple Mail or Outlook) using standard IMAP and SMTP submission.Incomin",
+    "audience": "internal",
+    "related_service": "",
+    "business_unit": "",
+    "source_url": "",
+    "menu_order": 14
   }
 ]

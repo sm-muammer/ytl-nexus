@@ -1,0 +1,80 @@
+/**
+ * YTL Nexus Mail skin: variable overrides for Roundcube Elastic.
+ * Spec: docs/spec/17-nexus-mail.md (MAIL-07) and docs/design-language.md section 9.
+ */
+
+// Nexus brand and semantic palette
+@color-main:                #00b4f0; // YTL Blue
+@color-main-dark:           #006e99;
+@color-font:                #16181d; // Nexus Light Ink
+@color-link:                #006e99;
+@color-link-hover:          #005170;
+@color-border:              #e4ded3; // Nexus Light Line
+@color-error:               #b42318;
+@color-success:             #0f7a4a;
+@color-warning:             #8a5a00;
+
+@color-black:               #16181d;
+@color-black-shade-text:    #596070; // Nexus Light Muted
+@color-black-shade-border:  #e4ded3;
+@color-black-shade-bg:      #f3efe8; // Nexus Light Surface Raised
+
+// Layout elements (Light mode)
+@color-layout-border:               @color-border;
+@color-layout-header:               @color-font;
+@color-layout-sidebar-background:   #ffffff;
+@color-layout-list-background:      #ffffff;
+@color-layout-content-background:   #ffffff;
+@color-layout-header-background:    #faf7f2; // Nexus Light Canvas
+@color-layout-footer-background:    #faf7f2;
+
+// Left Task rail: unified deep navy matching Nexus platform header/sidebar
+@color-taskmenu-background:                     #070c19;
+@color-taskmenu-button:                         #f2f4f7;
+@color-taskmenu-button-selected:                #00b4f0;
+@color-taskmenu-button-action:                  #00b4f0;
+@color-taskmenu-button-hover:                   #ffffff;
+@color-taskmenu-button-selected-background:     #16213a;
+@color-taskmenu-button-background-hover:        #0d1526;
+@color-taskmenu-button-logout:                  #ff6b6b;
+@color-taskmenu-button-logout-hover:            #ff8787;
+
+// Toolbar & Search
+@color-searchbar-background:            #ffffff;
+@color-toolbar-button:                  @color-font;
+@color-toolbar-button-background-hover: #f3efe8;
+
+// Message listing
+@color-list:                        @color-font;
+@color-list-selected:               @color-font;
+@color-list-selected-background:    #e0f6fd; // soft YTL blue tint
+@color-list-secondary:              @color-black-shade-text;
+@color-list-focus-indicator:        #00b4f0;
+@color-list-border:                 #f3efe8;
+@color-list-badge-background:       #00b4f0;
+@color-list-unread-status:          #00b4f0;
+
+// Buttons & inputs
+@color-btn-primary-background:      #00b4f0;
+@color-input-border-focus:          #00b4f0;
+@color-checkbox-checked:            #00b4f0;
+
+// Dark Mode overrides (Nexus Dark tokens)
+@color-dark-main:           #00b4f0;
+@color-dark-background:     #070c19; // Nexus Dark Canvas
+@color-dark-font:           #f2f4f7; // Nexus Dark Ink
+@color-dark-border:         #1d2a47; // Nexus Dark Line
+@color-dark-hint:           #a3aab5; // Nexus Dark Muted
+@color-dark-information:    #00b4f0;
+@color-dark-success:        #34d399;
+@color-dark-warning:        #fbbf24;
+@color-dark-error:          #ff6b6b;
+
+@color-dark-list-selected:              #f2f4f7;
+@color-dark-list-selected-background:   #16213a; // Nexus Dark Surface Raised
+@color-dark-list-badge-background:      #1d2a47;
+@color-dark-scrollbar-thumb:            #1d2a47;
+@color-dark-scrollbar-track:            #070c19;
+
+// Fonts: System UI stack
+@font-family-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                         |
-| --------------------------- | --------------------------------------------- |
-| Last completed              | **Task 12:** Nexus Transfer (done 2026-11-13) |
-| Current task                | **Task 13:** Nexus Mail                       |
-| Next task                   | **Task 13:** Nexus Mail                       |
-| Recommended model           | Sonnet 5.5, High effort                       |
-| Start the next session with | `Continue YTL Nexus: run Task 13`             |
+| Item                        | Value                                     |
+| --------------------------- | ----------------------------------------- |
+| Last completed              | **Task 13:** Nexus Mail (done 2026-11-16) |
+| Current task                | **Task 14:** Nexus AI                     |
+| Next task                   | **Task 14:** Nexus AI                     |
+| Recommended model           | Sonnet 5.5, High effort                   |
+| Start the next session with | `Continue YTL Nexus: run Task 14`         |
 
 ## Owner actions waiting
 
@@ -36,6 +36,15 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 13: Nexus Mail (done 2026-11-16)
+
+- **Server:** `setup-mail` configured Postfix 3.5, Dovecot 2.3, MariaDB `nexus_mail` for virtual domain `ytl-nexus.internal`, Dovecot LMTP delivery to `/var/mail/vmail/%d/%n/Maildir` (owned by `vmail` uid 978, `first_valid_uid = 500`), IMAPS on port 993, and Postfix Submission on port 587 (STARTTLS + Dovecot SASL via `/var/spool/postfix/private/auth`). Postfix `mynetworks = 127.0.0.0/8 [::1]/128`; relay restrictions reject non-local recipients. TLS certificates from internal CA (`/etc/pki/nexus-ca/server.crt`, `server.key` group `postfix` mode 0640). Roundcube 1.7.6 current stable installed at `/var/www/webmail` (`public_html` root), dedicated PHP-FPM pool `webmail` (`/run/php-fpm/webmail.sock`), database `nexus_roundcube`. Apache reverse proxy and alias configured via `webmail.inc`. Installer removed. Login rate limiting active (`login_rate_limit = 5`). Probes added to `/etc/ytl-nexus/ops-probes.conf`.
+- **Roundcube Skin & Plugin:** Child skin `roundcube/skins/nexus` extending Elastic with Nexus tokens, system UI typography, Gmail-inspired Compose button in folder rail, 3-pane layout, dark mode, accessible `:focus-visible` rings. Custom plugin `roundcube/plugins/nexus_shortcuts` providing Gmail-inspired keyboard navigation (`c`, `/`, `g`+`i`, `r`, `a`, `f`, `e`, `#`, `?` modal dialog).
+- **Application:** pure Node SHA512-CRYPT implementation (`lib/mail/sha512-crypt.ts`), validation schemas (`lib/mail/validation.ts`), database connectors (`lib/server/mail-db.ts`), probe readers (`lib/server/mail-probe.ts`), mail readers (`lib/server/mail.ts`), Server Functions for mailbox administration (`lib/server/mail-actions.ts`: create, set-enabled, set-quota, reset-password, delete; guarded by Step_Up and role `admin`; audited under `mail.account.*`), live `mail` service adapter (`lib/server/adapters/live.ts`), `/mail` overview page (`app/(workspace)/mail/page.tsx`, `components/mail/mail-view.tsx`), and Control mail accounts section (`components/mail/control-mail.tsx`). Fixtures in `lib/fixtures/mail.ts` and `lib/fixtures/content.ts`.
+- **Tests:** 57 new unit tests (`mail-password.test.ts`, `mail-validation.test.ts`, `mail-probe.test.ts`, `mail-actions.test.ts`). 6 end-to-end tests in demo mode (`tests/e2e/mail.spec.ts`: service status, webmail link, own mailbox, IDOR prevention, 403 viewer gate, Control mailbox admin, axe accessibility and 390px mobile horizontal overflow = 0). Full test check: all 51 test suites, **855 unit tests passed**.
+- **Live Acceptance:** `infrastructure/scripts/server-run verify-mail` ran on Nexus Core 01 on 2026-11-16: **25 passed, 0 failed**. Covers CA TLS on 993/587, IMAP login, invalid login rejection, port 143 closure, Submission STARTTLS + SASL, end-to-end mail delivery from `nexus-test-a` to `nexus-test-b` via LMTP, Maildir delivery verification, open relay rejection, external recipient rejection, firewall port 25 closure, Roundcube HTTP 200, skin and plugin assets, forbidden path blocks, and login rate limiting.
+- **Docs:** `docs/operations/mail.md`, `infrastructure/scripts/setup-mail`, `infrastructure/scripts/verify-mail`.
 
 ### Task 12: Nexus Transfer (done 2026-11-13)
 
