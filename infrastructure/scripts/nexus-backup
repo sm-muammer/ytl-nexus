@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+# infrastructure/scripts/nexus-backup
+# Root backup script for YTL Nexus (CON-01, CON-02, CON-03).
+# Dumps 5 databases, archives service configs, WordPress uploads,
+# Roundcube config, SFTPGo data snapshot and mail storage.
+# Compresses archives with SHA-256 checksums in /var/backups/nexus.
+# Rotates backups to 7 daily and 4 weekly.
+# Ingests run summary into backup_runs using nexus_ingest.
+
+set -euo pipefail
+
+BACKUP_ROOT="/var/backups/nexus"
+INGEST_ENV="/etc/ytl-nexus/ingest.env"
+TIMESTAMP="$(date -u +%Y%m%d-%H%M%S)"
+TARGET_DIR="${BACKUP_ROOT}/${TIMESTAMP}"
+SHA_FILE="${TARGET_DIR}/SHA256SUMS"
+STARTED_AT="$(date -u +"%Y-%m-%d %H:%M:%S")"
+
+mkdir -p "$TARGET_DIR"
+chmod 0700 "$TARGET_DIR"
+
+COMPONENTS_JSON="[]"
+STATUS="ok"
+
+append_comp() {
+  local name="$1"
+  local file="$2"
+  if [ -f "$file" ]; then
+    local size
+    size="$(wc -c <"$file" | tr -d ' ')"
+    local sha
+    sha="$(sha256sum "$file" | awk '{print $1}')"
+    (cd "$TARGET_DIR" && sha256sum "$(basename "$file")" >> "$SHA_FILE")
+    COMPONENTS_JSON=$(node -e '
+      const arr = JSON.parse(process.argv[1]);
+      arr.push({ name: process.argv[2], sizeBytes: Number(process.argv[3]), sha256: process.argv[4] });
+      process.stdout.write(JSON.stringify(arr));
+    ' "$COMPONENTS_JSON" "$name" "$size" "$sha")
+  fi
+}
+
+echo "Starting YTL Nexus backup: $TIMESTAMP"
+
+# 1. Database dumps (5 databases)
+DBS=("ytl_nexus" "nexus_mail" "nexus_roundcube" "nexus_sftpgo" "nexus_wordpress")
+for db in "${DBS[@]}"; do
+  dump_file="${TARGET_DIR}/${db}.sql.gz"
+  if mariadb-dump --single-transaction --quick "$db" 2>/dev/null | gzip -9 > "$dump_file"; then
+    append_comp "${db}-database" "$dump_file"
+  else
+    echo "Warning: failed to dump database $db" >&2
+    STATUS="failed"
+  fi
+done
+
+# 2. Configuration archive (/etc/ytl-nexus, roundcube, systemd service overrides)
+config_file="${TARGET_DIR}/config.tar.gz"
+if tar -czf "$config_file" \
+  -C / \
+  etc/ytl-nexus \
+  etc/roundcube \
+  etc/systemd/system/nexus-*.service \
+  etc/systemd/system/sftpgo.service.d \
+  2>/dev/null; then
+  append_comp "config" "$config_file"
+else
+  # Some files might be missing on clean installs; try at least /etc/ytl-nexus
+  if tar -czf "$config_file" -C / etc/ytl-nexus 2>/dev/null; then
+    append_comp "config" "$config_file"
+  else
+    echo "Warning: failed to archive configuration" >&2
+    STATUS="failed"
+  fi
+fi
+
+# 3. Mail storage (/var/mail/vmail)
+if [ -d "/var/mail/vmail" ]; then
+  mail_file="${TARGET_DIR}/mail-storage.tar.gz"
+  if tar -czf "$mail_file" -C / var/mail/vmail 2>/dev/null; then
+    append_comp "storage-mail" "$mail_file"
+  fi
+fi
+
+# 4. SFTPGo user data and hostkeys
+sftpgo_file="${TARGET_DIR}/sftpgo-data.tar.gz"
+sftp_dirs=()
+[ -d "/srv/nexus-transfer" ] && sftp_dirs+=("srv/nexus-transfer")
+[ -d "/var/lib/sftpgo/hostkeys" ] && sftp_dirs+=("var/lib/sftpgo/hostkeys")
+if [ "${#sftp_dirs[@]}" -gt 0 ]; then
+  if tar -czf "$sftpgo_file" -C / "${sftp_dirs[@]}" 2>/dev/null; then
+    append_comp "storage-sftpgo" "$sftpgo_file"
+  fi
+fi
+
+# 5. WordPress media uploads
+if [ -d "/var/www/wordpress/wp-content/uploads" ]; then
+  wp_file="${TARGET_DIR}/wp-uploads.tar.gz"
+  if tar -czf "$wp_file" -C /var/www/wordpress/wp-content uploads 2>/dev/null; then
+    append_comp "storage-wordpress" "$wp_file"
+  fi
+fi
+
+COMPLETED_AT="$(date -u +"%Y-%m-%d %H:%M:%S")"
+
+echo "Backup completed with status: $STATUS"
+
+# 6. Record run into database via nexus_ingest
+if [ -f "$INGEST_ENV" ]; then
+  read_env_val() {
+    local key="$1"
+    grep "^${key}=" "$INGEST_ENV" | cut -d= -f2- | tr -d '\"' | sed "s/'//g" | tr -d '\r' | tr -d ' ' || echo ""
+  }
+  INGEST_USER="$(read_env_val NEXUS_DB_USER)"
+  [ -z "$INGEST_USER" ] && INGEST_USER="nexus_ingest"
+  INGEST_PW="$(read_env_val NEXUS_DB_PASSWORD)"
+  INGEST_HOST="$(read_env_val NEXUS_DB_HOST)"
+  [ -z "$INGEST_HOST" ] && INGEST_HOST="127.0.0.1"
+  INGEST_NAME="$(read_env_val NEXUS_DB_NAME)"
+  [ -z "$INGEST_NAME" ] && INGEST_NAME="ytl_nexus"
+
+  ESCAPED_JSON="$(echo "$COMPONENTS_JSON" | sed "s/'/''/g")"
+  mariadb -h "$INGEST_HOST" -u "$INGEST_USER" -p"$INGEST_PW" "$INGEST_NAME" <<EOF || true
+INSERT INTO backup_runs (started_at, completed_at, status, components_json)
+VALUES ('$STARTED_AT', '$COMPLETED_AT', '$STATUS', '$ESCAPED_JSON');
+EOF
+fi
+
+# 7. Rotation: keep 7 daily and 4 weekly in BACKUP_ROOT
+# List subdirectories matching YYYYMMDD-HHMMSS
+# We keep newest in each day (up to 7 days) and newest in each week (up to 4 weeks)
+node -e '
+  const fs = require("fs");
+  const path = require("path");
+
+  const root = process.argv[1];
+  if (!fs.existsSync(root)) process.exit(0);
+
+  const entries = fs.readdirSync(root).filter(n => /^\d{8}-\d{6}$/.test(n));
+  const items = entries.map(name => {
+    // parse YYYYMMDD-HHMMSS
+    const y = name.slice(0, 4);
+    const m = name.slice(4, 6);
+    const d = name.slice(6, 8);
+    const h = name.slice(9, 11);
+    const min = name.slice(11, 13);
+    const s = name.slice(13, 15);
+    const date = new Date(Date.UTC(+y, +m - 1, +d, +h, +min, +s));
+    return { name, date };
+  }).sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  const dayMap = new Map();
+  const weekMap = new Map();
+
+  for (const item of items) {
+    const dayKey = item.date.toISOString().slice(0, 10);
+    if (!dayMap.has(dayKey)) dayMap.set(dayKey, item);
+
+    const d = item.date;
+    const target = new Date(d.valueOf());
+    const dayNr = (d.getUTCDay() + 6) % 7;
+    target.setUTCDate(target.getUTCDate() - dayNr + 3);
+    const firstThursday = target.valueOf();
+    target.setUTCMonth(0, 1);
+    if (target.getUTCDay() !== 4) target.setUTCMonth(0, 1 + ((4 - target.getUTCDay() + 7) % 7));
+    const weekNr = 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
+    const weekKey = target.getUTCFullYear() + "-W" + String(weekNr).padStart(2, "0");
+
+    if (!weekMap.has(weekKey)) weekMap.set(weekKey, item);
+  }
+
+  const keepDaily = Array.from(dayMap.values()).slice(0, 7);
+  const keepWeekly = Array.from(weekMap.values()).slice(0, 4);
+  const keepNames = new Set([...keepDaily.map(x => x.name), ...keepWeekly.map(x => x.name)]);
+
+  for (const item of items) {
+    if (!keepNames.has(item.name)) {
+      const p = path.join(root, item.name);
+      console.log("Rotating out old backup: " + p);
+      fs.rmSync(p, { recursive: true, force: true });
+    }
+  }
+' "$BACKUP_ROOT" || true
+
+echo "Backup and rotation finished successfully."

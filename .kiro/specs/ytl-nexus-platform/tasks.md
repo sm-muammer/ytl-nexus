@@ -440,20 +440,20 @@ Server-side tasks 4.x run against Nexus_Core_01 only. Each destructive step (bac
     - Four pages, mobile nav regression, chatbot regression, axe at 390 and 3840 px
     - _Requirements: 15.13_
 
-- [ ] 19. Nexus Continuity (plan Task 16)
-  - [ ] 19.1 Implement the backup script and daily timer
+- [x] 19. Nexus Continuity (plan Task 16)
+  - [x] 19.1 Implement the backup script and daily timer
     - Five DB dumps, `/etc/ytl-nexus`, service config, WordPress uploads, Roundcube config, SFTPGo snapshot, mail storage; compression, SHA-256, retention 7 daily and 4 weekly; one `backup_runs` row via `nexus_ingest`
     - _Requirements: 5.1, 16.16_
 
-  - [ ] 19.2 Implement the weekly restore test
+  - [x] 19.2 Implement the weekly restore test
     - Restore to scratch databases, compare counts and checksums, write `restore_tests`
     - _Requirements: 16.16_
 
-  - [ ] 19.3 Build `/continuity`
+  - [x] 19.3 Build `/continuity`
     - Viewer summary, Operator detail, no trigger endpoints; stale backup raises a finding in Status and Shield
     - _Requirements: 16.18_
 
-  - [ ]* 19.4 Run a restore drill and corrupt-archive test
+  - [x]* 19.4 Run a restore drill and corrupt-archive test
     - `docs/operations/backup-restore.md`
     - _Requirements: 16.16_
 

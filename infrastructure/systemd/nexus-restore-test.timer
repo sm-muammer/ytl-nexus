@@ -1,0 +1,11 @@
+[Unit]
+Description=YTL Nexus weekly root restore verification timer
+Documentation=https://github.com/sm-muammer/ytl-nexus
+
+[Timer]
+OnCalendar=Sun *-*-* 03:00:00
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

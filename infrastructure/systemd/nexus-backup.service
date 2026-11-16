@@ -1,0 +1,12 @@
+[Unit]
+Description=YTL Nexus daily root backup
+Documentation=https://github.com/sm-muammer/ytl-nexus
+After=network.target mariadb.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/opt/ytl-nexus/current/infrastructure/scripts/nexus-backup
+StandardOutput=journal
+StandardError=journal

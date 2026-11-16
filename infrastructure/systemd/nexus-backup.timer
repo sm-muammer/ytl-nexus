@@ -1,0 +1,11 @@
+[Unit]
+Description=YTL Nexus daily root backup timer
+Documentation=https://github.com/sm-muammer/ytl-nexus
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

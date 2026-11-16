@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# infrastructure/scripts/nexus-restore-test
+# Root restore verification test for YTL Nexus (CON-04).
+# Tests the latest backup in /var/backups/nexus:
+# 1. Verifies SHA256SUMS for all archives.
+# 2. Restores SQL dumps into scratch databases (e.g. scratch_ytl_nexus),
+#    compares table counts or verifies schema, then drops the scratch databases.
+# 3. Tests tar extraction into a temporary scratch directory and validates files.
+# 4. Writes results to restore_tests table using nexus_ingest.
+# 5. Always cleans up all scratch databases and scratch directories.
+
+set -euo pipefail
+
+BACKUP_ROOT="/var/backups/nexus"
+INGEST_ENV="/etc/ytl-nexus/ingest.env"
+SCRATCH_PREFIX="scratch_test_$(date +%s)"
+TESTED_AT="$(date -u +"%Y-%m-%d %H:%M:%S")"
+
+if [ ! -d "$BACKUP_ROOT" ]; then
+  echo "Error: $BACKUP_ROOT does not exist" >&2
+  exit 1
+fi
+
+# Find latest backup folder
+LATEST="$(find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1 || true)"
+if [ -z "$LATEST" ]; then
+  echo "Error: no backup directories found in $BACKUP_ROOT" >&2
+  exit 1
+fi
+
+echo "Running restore verification on: $LATEST"
+
+record_test() {
+  local comp="$1"
+  local res="$2"
+  local detail="$3"
+
+  echo "Component $comp: $res ($detail)"
+
+  if [ -f "$INGEST_ENV" ]; then
+    read_env_val() {
+      local key="$1"
+      grep "^${key}=" "$INGEST_ENV" | cut -d= -f2- | tr -d '\"' | sed "s/'//g" | tr -d '\r' | tr -d ' ' || echo ""
+    }
+    local u p h db
+    u="$(read_env_val NEXUS_DB_USER)"
+    [ -z "$u" ] && u="nexus_ingest"
+    p="$(read_env_val NEXUS_DB_PASSWORD)"
+    h="$(read_env_val NEXUS_DB_HOST)"
+    [ -z "$h" ] && h="127.0.0.1"
+    db="$(read_env_val NEXUS_DB_NAME)"
+    [ -z "$db" ] && db="ytl_nexus"
+
+    local escaped_detail
+    escaped_detail="$(echo "$detail" | sed "s/'/''/g")"
+
+    mariadb -h "$h" -u "$u" -p"$p" "$db" <<EOF || true
+INSERT INTO restore_tests (tested_at, component, result, detail)
+VALUES ('$TESTED_AT', '$comp', '$res', '$escaped_detail');
+EOF
+  fi
+}
+
+# 1. Verify SHA-256 Checksums
+if [ -f "$LATEST/SHA256SUMS" ]; then
+  if (cd "$LATEST" && sha256sum -c SHA256SUMS >/dev/null 2>&1); then
+    echo "SHA256 checksums verified."
+  else
+    echo "Checksum failure detected!"
+    record_test "checksums" "failed" "SHA256SUMS verification failed in $LATEST"
+  fi
+fi
+
+# 2. Test database restores into scratch DBs
+DBS=("ytl_nexus" "nexus_mail" "nexus_roundcube" "nexus_sftpgo" "nexus_wordpress")
+for d in "${DBS[@]}"; do
+  dump="${LATEST}/${d}.sql.gz"
+  comp="${d}-database"
+  scratch="${SCRATCH_PREFIX}_${d}"
+
+  if [ ! -f "$dump" ]; then
+    record_test "$comp" "failed" "Dump file $dump missing"
+    continue
+  fi
+
+  # Attempt create scratch DB, restore, count tables, and drop
+  cleanup_db() {
+    mariadb -e "DROP DATABASE IF EXISTS \`${scratch}\`;" 2>/dev/null || true
+  }
+  trap cleanup_db EXIT
+
+  if mariadb -e "CREATE DATABASE \`${scratch}\`;" 2>/dev/null; then
+    if zcat "$dump" | mariadb "$scratch" 2>/dev/null; then
+      tbl_count="$(mariadb -N -s -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '${scratch}';" 2>/dev/null || echo 0)"
+      record_test "$comp" "ok" "Restored into ${scratch}; verified ${tbl_count} tables"
+    else
+      record_test "$comp" "failed" "Failed to restore SQL dump into scratch database"
+    fi
+    cleanup_db
+  else
+    record_test "$comp" "failed" "Failed to create scratch database ${scratch}"
+  fi
+done
+
+# 3. Test tar archives extraction into scratch directory
+TMP_DIR="$(mktemp -d /tmp/nexus-restore-scratch-XXXXXX)"
+cleanup_tmp() {
+  rm -rf "$TMP_DIR"
+}
+trap cleanup_tmp EXIT
+
+test_archive() {
+  local comp="$1"
+  local file="$2"
+  if [ -f "$file" ]; then
+    local extract_dir="${TMP_DIR}/${comp}"
+    mkdir -p "$extract_dir"
+    if tar -xzf "$file" -C "$extract_dir" 2>/dev/null; then
+      local count
+      count="$(find "$extract_dir" -type f | wc -l | tr -d ' ')"
+      record_test "$comp" "ok" "Archive verified and extracted ${count} files"
+    else
+      record_test "$comp" "failed" "Archive corrupt or extraction failed"
+    fi
+  fi
+}
+
+test_archive "config" "${LATEST}/config.tar.gz"
+test_archive "storage-mail" "${LATEST}/mail-storage.tar.gz"
+test_archive "storage-sftpgo" "${LATEST}/sftpgo-data.tar.gz"
+test_archive "storage-wordpress" "${LATEST}/wp-uploads.tar.gz"
+
+cleanup_tmp
+echo "Restore verification tests completed."

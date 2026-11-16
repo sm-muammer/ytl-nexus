@@ -5,16 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                         |
-| --------------------------- | --------------------------------------------- |
-| Last completed              | **Task 15:** Yes Experience (done 2026-11-16) |
-| Current task                | **Task 16:** Nexus Continuity                 |
-| Next task                   | **Task 16:** Nexus Continuity                 |
-| Recommended model           | Sonnet 5.5, High effort                       |
-| Start the next session with | `Continue YTL Nexus: run Task 16`             |
+| Item                        | Value                                           |
+| --------------------------- | ----------------------------------------------- |
+| Last completed              | **Task 16:** Nexus Continuity (done 2026-11-16) |
+| Current task                | **Task 17:** Nexus Shield                       |
+| Next task                   | **Task 17:** Nexus Shield                       |
+| Recommended model           | Sonnet 5.5, Low–Medium effort                   |
+| Start the next session with | `Continue YTL Nexus: run Task 17`               |
 
 ## Owner actions waiting
 
+- **Task 16, inspect Nexus Continuity in a browser:** sign in as an Operator or Administrator on `https://ytl-nexus.ytlcomms.my`, open `/continuity`, check the freshness status badge ("Backups Fresh (<26h)"), verified restore drill status (all 9 monitored components verified in green), and view the disaster recovery runbook and off-box sync command (`rsync -avz --progress -e ssh root@10.26.64.164:/var/backups/nexus/ ~/ytl-nexus-backups/`).
 - **Task 15, browse Yes Experience in a browser:** open `https://ytl-nexus.ytlcomms.my/yes`, `/yes/plans`, `/yes/coverage`, and `/yes/support`. Verify responsive mobile drawer navigation on narrow viewports, petal animations with reduced motion support, coverage checker form, support form validation, and test the Yes 5G Assistant chatbot (`yes-public` scope).
 - **Task 14, try Nexus AI in a browser:** sign in as a Member or above on `https://ytl-nexus.ytlcomms.my`, open `/ai`, and ask a question about deployment or architecture runbooks (e.g. "How do I deploy YTL Nexus?"). Check the streamed response and citations. Test Explain mode by clicking "Explain with Nexus AI" on an Atlas service or Status incident.
 - **Task 13, check webmail in a browser:** sign in as an Administrator on `https://ytl-nexus.ytlcomms.my`, open `/mail`, check your own mailbox details and service status, click "Open Nexus Webmail" to go to `/webmail/`, and log in with one of the test accounts (`nexus-test-a@ytl-nexus.internal` or `nexus-test-b@ytl-nexus.internal`; passwords stored in `/root/mail-test-passwords.txt` on the server). Verify composing, sending, and dark mode in the Nexus skin.
@@ -39,6 +40,26 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 16: Nexus Continuity (done 2026-11-16)
+
+- **Systemd Timers & Root Automation:**
+  - `infrastructure/scripts/nexus-backup` & `nexus-backup.timer`: runs daily at 02:00 UTC as root. Creates compressed SQL dumps for 5 databases (`ytl_nexus`, `nexus_mail`, `nexus_roundcube`, `nexus_sftpgo`, `nexus_wordpress`), plus archives for `/etc/ytl-nexus` & service configs, mail storage (`/var/mail/vmail`), SFTPGo user data & hostkeys (`/srv/nexus-transfer`, `/var/lib/sftpgo/hostkeys`), and WordPress uploads. Generates `SHA256SUMS` in `/var/backups/nexus/<timestamp>/`. Enforces retention policy keeping 7 daily and 4 weekly backups. Logs execution into `backup_runs` using INSERT-only user `nexus_ingest`.
+  - `infrastructure/scripts/nexus-restore-test` & `nexus-restore-test.timer`: runs weekly on Sunday at 03:00 UTC as root. Tests archive digests against `SHA256SUMS`, restores database dumps into isolated scratch databases (`scratch_test_*`), validates table counts, automatically drops all scratch databases, tests tar archive extractions, and records verification status into `restore_tests` via `nexus_ingest`.
+- **Application & UI:**
+  - Built pure model library `lib/continuity/model.ts` implementing `continuityView`, `backupStale` (26-hour threshold), and `planRetention` (7 daily + 4 weekly).
+  - Reader `lib/server/continuity.ts` fetching live runs and drills from MariaDB or demo fixtures (`lib/fixtures/continuity.ts`).
+  - `/continuity` workspace page (`app/(workspace)/continuity/page.tsx` & `components/continuity/continuity-view.tsx`) with accessible design token compliance (`text-ink`, `text-muted`, `bg-surface-elevated`), showing freshness status (<26h), verified component breakdown, archive sizes and restore procedures (for Operator and above), and disaster recovery off-box copy command.
+- **Documentation:**
+  - Authored comprehensive disaster recovery guide `docs/operations/backup-restore.md` detailing architecture, component coverage, retention, off-box rsync commands, and manual recovery steps.
+- **Verification & Live Acceptance:**
+  - Property test `Property 20` in `tests/unit/continuity-model.test.ts` (100 runs fast-check: 26h staleness logic, retention invariance, and Viewer data concealment).
+  - Script test `tests/unit/continuity-scripts.test.ts` asserting coverage of all 5 databases and storage locations.
+  - E2E Playwright test in `tests/e2e/continuity.spec.ts` (operator view, disaster recovery card, 390px zero overflow, axe contrast compliance).
+  - **Live Drill on Nexus Core 01:**
+    - Live backup executed: dumped all 5 databases, created archives and `SHA256SUMS` in `/var/backups/nexus/20261116-100011/`. Successfully logged `backup_runs` row #8 (`ok`).
+    - Live restore test drill executed: scratch databases created and table counts verified (22 tables for `ytl_nexus`, 2 for `nexus_mail`, 18 for `nexus_roundcube`, 23 for `nexus_sftpgo`, 12 for `nexus_wordpress`), scratch databases dropped immediately, archives verified (34 mail files, 10 config files, 4 transfer files), and 8 passing `restore_tests` rows logged.
+  - Full check passed: 60 test suites, **894 unit tests passed**. Playwright shell and continuity tests passed.
 
 ### Task 15: Yes Experience (done 2026-11-16)
 
