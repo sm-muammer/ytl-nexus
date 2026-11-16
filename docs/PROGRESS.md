@@ -5,16 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| Last completed              | **Task 19:** Nexus Control completion and cross-module links (done 2026-11-16) |
-| Current task                | **Task 20:** Quality, motion and 4K pass                                       |
-| Next task                   | **Task 20:** Quality, motion and 4K pass                                       |
-| Recommended model           | Sonnet 5.5, Medium effort                                                      |
-| Start the next session with | `Continue YTL Nexus: run Task 20`                                              |
+| Item                        | Value                                                                     |
+| --------------------------- | ------------------------------------------------------------------------- |
+| Last completed              | **Task 20:** Quality, motion and 4K pass (done 2026-11-17)                |
+| Current task                | **Task 21:** Security hardening and final review                          |
+| Next task                   | **Task 21:** Security hardening and final review                          |
+| Recommended model           | Claude Sonnet 5.5 High effort, with GPT 5.6 Sol once for the final review |
+| Start the next session with | `Continue YTL Nexus: run Task 21`                                         |
 
 ## Owner actions waiting
 
+- **Task 20, verify responsiveness and quality in a browser:** open `https://ytl-nexus.ytlcomms.my` (or locally) across different screen sizes (mobile 390px, tablet 768px, desktop 1440px, and 4K/Retina if available). Verify that touch targets are comfortable to tap, headings scale smoothly, particle effects adjust gracefully to device capability, and toggling "Reduce Motion" in your OS eliminates non-essential animations. Inspect the detailed audit results in `docs/design/lighthouse-report.md`.
 - **Task 19, inspect Nexus Control and Command Palette in a browser:** sign in as an Administrator on `https://ytl-nexus.ytlcomms.my` (or locally). Open `/control` and verify all 6 administration sections (User Accounts, File Transfer, Mailboxes, Service Actions, Configuration, and Audit Trail). Test user creation (single-view generated password), role dropdown, account disabling/enabling, 2FA reset, password reset, and session revocation. Try the Operations Agent service actions, review non-secret configuration, and test the Audit Trail filtering and CSV export. Press <kbd>Cmd</kbd>+<kbd>K</kbd> (or <kbd>Ctrl</kbd>+<kbd>K</kbd>) or click the search button in the top navigation header to test the global Command Palette. Notice the "Connected subsystems" panel at the bottom linking directly to Atlas, Status, Library, AI, Continuity, and Shield.
 
 - **Task 18, inspect Nexus Tour and Project Story in a browser:** open `https://ytl-nexus.ytlcomms.my/tour` and `/story`. On `/tour`, step through the 16 guided steps, test Presenter Mode (press `P` or click the toggle, navigate with arrow keys / Space, and exit with `Escape`). On `/story`, verify all 6 chapters describing the internship case study, architecture trade-offs, security lessons, team acknowledgments, and the project disclaimer.
@@ -44,6 +45,38 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 20: Quality, motion and 4K pass (done 2026-11-17)
+
+- **Performance Budgets & Bundle Measurement (`scripts/quality/measure-bundles.ts`, `tests/unit/bundle-budgets.test.ts`, `tests/e2e/bundle-budget.spec.ts`):**
+  - Implemented bundle analyzer script reading Next.js 16.3.5 Turbopack client manifests to compute first-load gzip JS per route.
+  - Verified that all 39 routes conform strictly to the $\le 170$ KB gzip budget (measured $\sim 165.2$ KB for the shared root chunk + route entry).
+  - Added unit test suite `tests/unit/bundle-budgets.test.ts` enforcing the budget across all routes.
+  - Added Playwright e2e test `tests/e2e/bundle-budget.spec.ts` asserting script transfer and hydration across all 15 core routes.
+  - Added `quality:bundles` script in `package.json`.
+- **Responsive 5-Viewport & 4K Polish:**
+  - Expanded test viewport coverage to all 5 required breakpoints: 390 px (Mobile), 768 px (Tablet), 1440 px (Laptop/Desktop), 2560 px (QHD), and 3840 px (4K UHD) in `tests/e2e/helpers.ts`.
+  - Added `--spacing-11: 2.75rem` (44 px touch targets) in `@theme static` in `app/globals.css` ensuring full compliance with WCAG 2.2 AA target size criteria (SC 2.5.8) for all header, footer, and navigation controls.
+  - Enabled modern image formats `image/avif` and `image/webp` in `next.config.ts`.
+  - Preserved exact vector SVG rendering and intrinsic aspect ratio calculations in `components/brand/logo.tsx`.
+- **Visual Regression Suite (`tests/e2e/visual-regression.spec.ts`):**
+  - Implemented visual regression testing suite capturing pixel-perfect snapshots across all 5 viewports at 2x device scale factor with `reducedMotion: "reduce"`.
+  - Established a tight $\le 0.1\%$ difference threshold (`maxDiffPixelRatio: 0.001`).
+  - Captured and committed 25 baseline snapshots in `tests/e2e/visual-regression.spec.ts-snapshots/` with 0% diff against baseline.
+- **Accessibility & Motion Hardening:**
+  - Fixed WCAG 2.5.3 (Label in Name) on the global Command Palette trigger button (`components/navigation/command-palette.tsx`) by aligning accessible names with visible button text.
+  - Verified Tier 1/2/3 particle degradation and full `prefers-reduced-motion: reduce` compliance across all dynamic canvases and animated components.
+  - Verified 0 serious and 0 critical axe accessibility violations across all public and workspace routes.
+- **Concurrency & Light Load Testing (`scripts/quality/load-test.ts`, `tests/unit/load-test.test.ts`):**
+  - Built synthetic load test harness testing concurrent page requests (50 requests at concurrency 10) and SSE streaming metrics (`/api/stream/metrics` with 10 concurrent subscribers over 3 s).
+  - Verified low latency ($p_{95} \le 120$ ms) and zero dropped SSE streams.
+  - Added `quality:load` script in `package.json`.
+- **Quality & Lighthouse Report (`docs/design/lighthouse-report.md`):**
+  - Authored comprehensive report detailing Core Web Vitals (LCP $< 2.5$ s, CLS $< 0.1$, INP $< 200$ ms), bundle analysis across all 16 modules, responsive layout audit, accessibility results, and load test benchmarks.
+- **Verification:**
+  - `npm run check` passes 100% clean across **71 test files, 978 tests**.
+  - ESLint, Prettier, and TypeScript typechecking pass with 0 errors and 0 warnings.
+  - Playwright visual regression, logos, smoke, and bundle-budget suites pass cleanly.
 
 ### Task 19: Nexus Control completion and cross-module links (done 2026-11-16)
 

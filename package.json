@@ -30,6 +30,8 @@
     "auth:create-user": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/auth/create-user.ts",
     "content:seed-json": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/content/seed-json.ts && prettier --write infrastructure/wordpress/seed-content.json",
     "monitoring:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/monitoring/check-live.ts",
+    "quality:bundles": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/quality/measure-bundles.ts",
+    "quality:load": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/quality/load-test.ts",
     "db:test:up": "docker compose -f infrastructure/database/docker-compose.yml up -d --wait",
     "db:test:down": "docker compose -f infrastructure/database/docker-compose.yml down",
     "test:integration": "vitest run --config vitest.integration.config.mts"

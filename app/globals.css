@@ -85,6 +85,7 @@
   --text-display--line-height: 0.98;
 
   /* Spacing: Tailwind's 0.25rem step stays; these are named layout steps. */
+  --spacing-11: 2.75rem; /* 44 px touch targets (WCAG 2.2 AA) */
   --spacing-gutter: clamp(1rem, 0.6rem + 2vw, 3rem);
   --spacing-section: clamp(4rem, 3rem + 5vw, 9rem);
   --spacing-prose: 65ch;

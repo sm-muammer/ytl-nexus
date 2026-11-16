@@ -3,7 +3,8 @@ import { expect, type BrowserContext, type Page } from "@playwright/test";
 import { DEMO_ROLE_COOKIE } from "@/lib/fixtures/session";
 import type { Role } from "@/lib/roles";
 
-export const WIDTHS = [390, 1440, 3840] as const;
+export const WIDTHS = [390, 768, 1440, 2560, 3840] as const;
+export const ALL_VIEWPORTS = WIDTHS;
 
 /** Presents the demo session for a role without clicking through the switcher. */
 export async function signInAs(

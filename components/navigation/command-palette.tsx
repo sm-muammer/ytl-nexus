@@ -119,7 +119,6 @@ export function CommandPalette({ actor }: { actor: Actor }) {
       <button
         type="button"
         onClick={openPalette}
-        aria-label="Open command palette (Cmd+K)"
         className="border-line bg-surface hover:border-ink hover:text-ink text-muted hidden items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors sm:inline-flex"
         data-command-palette-trigger
       >
@@ -139,7 +138,10 @@ export function CommandPalette({ actor }: { actor: Actor }) {
           <path d="m21 21-4.3-4.3" />
         </svg>
         <span className="text-muted text-[11px]">Search...</span>
-        <kbd className="border-line bg-surface-elevated text-muted rounded border px-1.5 py-0.5 font-mono text-[10px]">
+        <kbd
+          aria-hidden="true"
+          className="border-line bg-surface-elevated text-muted rounded border px-1.5 py-0.5 font-mono text-[10px]"
+        >
           ⌘K
         </kbd>
       </button>

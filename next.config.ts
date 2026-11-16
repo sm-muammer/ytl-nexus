@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
   // is too low. It renders app/forbidden.tsx with a 403.
   // WordPress media (LIB-08): only the uploads folder of Studio.
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       new URL("https://ytl-nexus.ytlcomms.my/studio/wp-content/uploads/**"),
     ],
