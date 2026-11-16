@@ -8,6 +8,7 @@ export type DemoControlUser = {
   name: string;
   email: string;
   role: Role;
+  banned: boolean;
   twoFactorEnabled: boolean;
   activeSessions: number;
 };
@@ -17,11 +18,13 @@ const make = (
   name: string,
   role: Role,
   sessions: number,
+  banned = false,
 ): DemoControlUser => ({
   id: `demo-${id}`,
   name,
   email: `${id}@example.com`,
   role,
+  banned,
   twoFactorEnabled: role === "operator" || role === "admin",
   activeSessions: sessions,
 });

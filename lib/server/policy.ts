@@ -196,6 +196,12 @@ export const HANDLER_POLICY: readonly HandlerPolicy[] = [
     path: "/api/ai/conversations",
     minRole: "member",
   },
+  {
+    id: "control.audit.export",
+    method: "GET",
+    path: "/api/control/audit/export",
+    ...CONTROL,
+  },
 ];
 
 export function policyForHandler(id: string): HandlerPolicy {
@@ -243,6 +249,10 @@ export const ACTION_POLICY: readonly ActionPolicy[] = [
   { id: "data.record.create", minRole: "operator" },
   { id: "data.record.update", minRole: "operator" },
   { id: "data.record.delete", minRole: "operator" },
+  { id: "control.user.create", ...CONTROL },
+  { id: "control.user.change-role", ...CONTROL },
+  { id: "control.user.set-enabled", ...CONTROL },
+  { id: "control.user.reset-2fa", ...CONTROL },
   { id: "control.user.reset-password", ...CONTROL },
   { id: "control.user.revoke-sessions", ...CONTROL },
   // Nexus Transfer accounts (requirement 12.16). Administrators in Control, with a fresh Step_Up.

@@ -160,7 +160,8 @@ export interface ContinuityDto {
  * If null (never backed up), it is stale.
  */
 export function backupStale(lastOk: Date | null, now: Date): boolean {
-  if (!lastOk) return true;
+  if (!lastOk || Number.isNaN(lastOk.getTime())) return true;
+  if (Number.isNaN(now.getTime())) return true;
   return now.getTime() - lastOk.getTime() > BACKUP_STALE_MS;
 }
 
@@ -311,22 +312,27 @@ export function continuityView(
         )
       : undefined;
 
-    const lastVerified = testInfo
-      ? {
-          testedAt: testInfo.tested_at.toISOString(),
-          result: testInfo.result,
-          detail: isOperatorOrAdmin
-            ? (testInfo.detail ?? undefined)
-            : undefined,
-        }
-      : undefined;
+    const lastVerified =
+      testInfo && !Number.isNaN(testInfo.tested_at.getTime())
+        ? {
+            testedAt: testInfo.tested_at.toISOString(),
+            result: testInfo.result,
+            detail: isOperatorOrAdmin
+              ? (testInfo.detail ?? undefined)
+              : undefined,
+          }
+        : undefined;
 
     const base: ComponentItemView = {
       key: def.key,
       name: def.name,
       category: def.category,
       status: compStatus,
-      lastBackupAt: latestRun?.completed_at.toISOString(),
+      lastBackupAt:
+        latestRun?.completed_at &&
+        !Number.isNaN(latestRun.completed_at.getTime())
+          ? latestRun.completed_at.toISOString()
+          : undefined,
       lastVerifiedRestore: lastVerified,
     };
 
@@ -350,7 +356,10 @@ export function continuityView(
   return {
     roleDetail: isOperatorOrAdmin,
     freshness: isStale ? "stale" : "fresh",
-    lastBackupAt: latestRun ? latestRun.completed_at.toISOString() : null,
+    lastBackupAt:
+      latestRun && !Number.isNaN(latestRun.completed_at.getTime())
+        ? latestRun.completed_at.toISOString()
+        : null,
     lastBackupStatus: latestRun ? latestRun.status : "none",
     components: componentViews,
     summary: {

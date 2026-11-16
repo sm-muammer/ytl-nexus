@@ -3,6 +3,8 @@
 // message is written for the person at the keyboard: no codes, no hostnames,
 // nothing that tells an attacker which half of a login was wrong.
 
+import type { Role } from "@/lib/roles";
+
 export type FormMessage = { error: string } | null;
 
 export type SignInState = FormMessage;
@@ -26,6 +28,18 @@ export type ResetPasswordState =
 export type RevokeSessionsState =
   null | { error: string } | { done: true; email: string };
 
+export type CreateUserState =
+  null | { error: string } | { done: true; email: string; password: string };
+
+export type ChangeRoleState =
+  null | { error: string } | { done: true; email: string; role: Role };
+
+export type SetUserEnabledState =
+  null | { error: string } | { done: true; email: string; enabled: boolean };
+
+export type ResetTwoFactorState =
+  null | { error: string } | { done: true; email: string };
+
 export const MESSAGES = {
   invalidCredentials: "The email or password is not correct.",
   locked: "Too many failed attempts. Try again in 15 minutes.",
@@ -38,5 +52,8 @@ export const MESSAGES = {
   forbidden: "You do not have access to do that.",
   stepUpRequired: "Confirm your password and code again to continue.",
   self: "Use another Administrator account to reset your own password.",
+  selfRole: "You cannot change your own role in Control.",
+  selfDisable: "You cannot disable your own account.",
+  emailExists: "An account with that email already exists.",
   notFound: "That account no longer exists.",
 } as const;

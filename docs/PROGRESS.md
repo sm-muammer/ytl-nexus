@@ -5,15 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                                          |
-| --------------------------- | -------------------------------------------------------------- |
-| Last completed              | **Task 18:** Nexus Tour, Story and Demo Mode (done 2026-11-16) |
-| Current task                | **Task 19:** Nexus Control completion and cross-module links   |
-| Next task                   | **Task 19:** Nexus Control completion and cross-module links   |
-| Recommended model           | Sonnet 5.5, Medium effort                                      |
-| Start the next session with | `Continue YTL Nexus: run Task 19`                              |
+| Item                        | Value                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| Last completed              | **Task 19:** Nexus Control completion and cross-module links (done 2026-11-16) |
+| Current task                | **Task 20:** Quality, motion and 4K pass                                       |
+| Next task                   | **Task 20:** Quality, motion and 4K pass                                       |
+| Recommended model           | Sonnet 5.5, Medium effort                                                      |
+| Start the next session with | `Continue YTL Nexus: run Task 20`                                              |
 
 ## Owner actions waiting
+
+- **Task 19, inspect Nexus Control and Command Palette in a browser:** sign in as an Administrator on `https://ytl-nexus.ytlcomms.my` (or locally). Open `/control` and verify all 6 administration sections (User Accounts, File Transfer, Mailboxes, Service Actions, Configuration, and Audit Trail). Test user creation (single-view generated password), role dropdown, account disabling/enabling, 2FA reset, password reset, and session revocation. Try the Operations Agent service actions, review non-secret configuration, and test the Audit Trail filtering and CSV export. Press <kbd>Cmd</kbd>+<kbd>K</kbd> (or <kbd>Ctrl</kbd>+<kbd>K</kbd>) or click the search button in the top navigation header to test the global Command Palette. Notice the "Connected subsystems" panel at the bottom linking directly to Atlas, Status, Library, AI, Continuity, and Shield.
 
 - **Task 18, inspect Nexus Tour and Project Story in a browser:** open `https://ytl-nexus.ytlcomms.my/tour` and `/story`. On `/tour`, step through the 16 guided steps, test Presenter Mode (press `P` or click the toggle, navigate with arrow keys / Space, and exit with `Escape`). On `/story`, verify all 6 chapters describing the internship case study, architecture trade-offs, security lessons, team acknowledgments, and the project disclaimer.
 - **Task 17, inspect Nexus Shield in a browser:** sign in as an Operator or Administrator on `https://ytl-nexus.ytlcomms.my`, open `/shield`, verify the security posture summary cards (High, Medium, Low, Info filters), check that the known operational risks (SELinux Disabled, SSH PermitRootLogin/PasswordAuthentication enabled) are clearly identified with actionable remediation guidance, and confirm the lockout prevention policy notice.
@@ -42,6 +44,35 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 19: Nexus Control completion and cross-module links (done 2026-11-16)
+
+- **Nexus Control (`/control`):**
+  - **Full User & Role Lifecycle Management (`components/auth/control-users.tsx`, `lib/server/control-actions.ts`, `lib/server/auth/service.ts`):**
+    - Built comprehensive account administration: user creation with client single-view generated temporary passwords, role change dropdown (`viewer`, `member`, `operator`, `admin`), account disabling and enabling toggle (`banned: boolean`), 2FA force re-enrolment (`resetTwoFactor`), password reset link/token generation, and global session revocation.
+    - Implemented self-protection: prevent administrators from self-demoting (`cannot-demote-self`) or self-disabling (`cannot-disable-self`).
+    - Every action enforces fresh step-up authentication (`assertFreshStepUp`), audit trail emission (`recordAuditEvent`), and target confirmation in action labels.
+  - **Operations Agent Service Actions (`components/control/control-services.tsx`):**
+    - Built service control panel communicating through allowlisted system operations agent protocol.
+    - Supports bounded health checks (`web`, `mail`, `db`, `sftpgo`, `wordpress`, `ai`) and unit restarts (`nexus-web`, `nexus-worker`, `nexus-ai`) with target confirmation dialogs and audit logging.
+  - **Non-Secret Platform Configuration (`components/control/control-config.tsx`):**
+    - Surfaces host details (`nexus-core-01`), stack versions (Next.js 16.3.5, Node 24, MariaDB 10.5), active network listeners and bindings for all 12 platform subsystems, and security posture warnings (secrets isolated in `/etc/ytl-nexus/`, zero server secrets exposed in client runtime).
+  - **Audit Viewer & Formula-Safe CSV Export (`components/control/control-audit.tsx`, `lib/server/audit.ts`, `app/api/control/audit/export/route.ts`):**
+    - Built audit viewer with live/demo toggle, action filter, result filter, and target query search.
+    - Implemented RFC 4180 CSV export endpoint (`GET /api/control/audit/export`) protected by `control.audit.export` guard, featuring formula injection disarming for cells starting with `=`, `+`, `-`, `@`, `\t`, or `\r`.
+- **Contextual Cross-Module Links & Related Subsystems:**
+  - Designed and built reusable `<RelatedModules />` component (`components/layout/related-modules.tsx`) connecting related subsystems across Atlas (`/command/atlas`), Status (`/status`), Library (`/library`), AI Assistant (`/ai`), Continuity (`/continuity`), Shield (`/shield`), and Control (`/control`).
+- **Global Command Palette (`components/navigation/command-palette.tsx`):**
+  - Keyboard-driven command palette (<kbd>Cmd</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>K</kbd> and navigation bar search trigger button).
+  - Supports fuzzy matching and quick jumping to any workspace module, public showcase, or administrative tool.
+  - Enforces strict role-based concealment: users without the `admin` role never see or access Control actions or links in the palette search results. Fully accessible dialog (ARIA `combobox`, `listbox`, `option`, focus trapping, ESC to close).
+- **Tests & Verification:**
+  - `tests/unit/control-actions.test.ts`: verified user creation, role modification, account disabling, 2FA reset, self-protection guards, and audit trail emission.
+  - `tests/unit/audit-completeness.test.ts`: verified formula injection neutralization, RFC 4180 formatting, and policy-driven protection of export endpoints.
+  - `tests/unit/command-palette.test.ts`: verified query matching, keyboard navigation, and role-based concealment.
+  - `tests/unit/role-matrix.test.ts`: verified access matrix across all roles (visitor, viewer, member, operator, admin) across all 16 modules.
+  - `tests/e2e/control.spec.ts`: Playwright e2e test asserting all 6 administration sections, related modules panel, command palette open/search/close, zero axe accessibility violations, and 390px zero horizontal overflow.
+  - `npm run check`: full suite passes 100% clean across **69 test files, 936 tests**.
 
 ### Task 18: Nexus Tour, Project Story and Demo Mode (done 2026-11-16)
 

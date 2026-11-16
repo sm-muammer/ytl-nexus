@@ -10,6 +10,7 @@ import {
 import type { NexusMode } from "@/lib/server/mode";
 import { EnvironmentBadge } from "@/components/ui/environment-badge";
 import { ROLE_LABEL } from "@/lib/roles";
+import { CommandPalette } from "@/components/navigation/command-palette";
 import { NavLink } from "./nav-link";
 import { NavSheet, type SessionSummary, type SheetGroup } from "./nav-sheet";
 
@@ -94,6 +95,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 xl:ml-2">
+          <CommandPalette actor={actor} />
           <span className="hidden sm:inline-flex">
             <EnvironmentBadge mode={mode} />
           </span>

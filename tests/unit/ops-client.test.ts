@@ -1,7 +1,6 @@
 // @vitest-environment node
 import { mkdtempSync, rmSync } from "node:fs";
 import { request } from "node:http";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Server } from "node:http";
 import { fakeSecret } from "../helpers/fake-secret";
@@ -29,7 +28,7 @@ const runner: Runner = {
 };
 
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), "nexus-ops-"));
+  dir = mkdtempSync(path.join(process.cwd(), ".nexus-test-ops-"));
   socketPath = path.join(dir, "ops.sock");
   server = createOpsServer(
     createAgent({

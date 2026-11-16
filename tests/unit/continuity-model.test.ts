@@ -25,6 +25,7 @@ describe("Property 20: backup retention and freshness", () => {
         fc.date({ min: new Date("2020-01-01"), max: new Date("2030-01-01") }),
         fc.integer({ min: -48, max: 48 }),
         (now, offsetHours) => {
+          fc.pre(!Number.isNaN(now.getTime()));
           const lastOk = new Date(now.getTime() - offsetHours * 3600_000);
           const isStale = backupStale(lastOk, now);
           const expected = offsetHours * 3600_000 > BACKUP_STALE_MS;

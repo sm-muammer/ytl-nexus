@@ -4,6 +4,7 @@ import {
   CommandFrame,
   CommandLoading,
 } from "@/components/command/command-frame";
+import { RelatedModules } from "@/components/layout/related-modules";
 import { pageMetadata } from "@/components/layout/module-page";
 import { getAtlas } from "@/lib/server/atlas";
 import { requirePage } from "@/lib/server/guards";
@@ -61,6 +62,10 @@ export default async function AtlasPage({
       <Suspense fallback={<CommandLoading what="the service map" />}>
         <Atlas service={initial} />
       </Suspense>
+      <RelatedModules
+        slugs={["command", "status", "shield"]}
+        className="mx-(--spacing-gutter) my-8"
+      />
     </CommandFrame>
   );
 }

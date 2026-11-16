@@ -1,6 +1,7 @@
 "use client";
 
 import { ModuleHero } from "@/components/layout/module-hero";
+import { RelatedModules } from "@/components/layout/related-modules";
 import { PageTransition } from "@/components/motion/page-transition";
 import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { pageInfo } from "@/lib/navigation/modules";
@@ -326,6 +327,11 @@ export function ShieldView({
             lockout.
           </p>
         </section>
+
+        <RelatedModules
+          slugs={["continuity", "atlas", "control"]}
+          className="mt-8"
+        />
       </div>
     </PageTransition>
   );

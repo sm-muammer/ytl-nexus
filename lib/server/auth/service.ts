@@ -304,6 +304,7 @@ export type AdminUserDto = {
   name: string;
   email: string;
   role: Role;
+  banned: boolean;
   twoFactorEnabled: boolean;
   activeSessions: number;
   createdAt: string;
@@ -319,6 +320,7 @@ export async function listUsersForAdmin(
       "user.name",
       "user.email",
       "user.role",
+      "user.banned",
       "user.twoFactorEnabled",
       "user.createdAt",
       (eb) =>
@@ -337,6 +339,7 @@ export async function listUsersForAdmin(
     name: r.name,
     email: r.email,
     role: r.role,
+    banned: Boolean(r.banned),
     twoFactorEnabled: Boolean(r.twoFactorEnabled),
     activeSessions: Number(r.activeSessions ?? 0),
     createdAt: new Date(r.createdAt).toISOString(),
@@ -353,6 +356,65 @@ export async function findUserEmail(
     .where("id", "=", userId)
     .executeTakeFirst();
   return row?.email ?? null;
+}
+
+export async function findUserRole(
+  rt: AuthRuntime,
+  userId: string,
+): Promise<Role | null> {
+  const row = await rt.db
+    .selectFrom("user")
+    .select("role")
+    .where("id", "=", userId)
+    .executeTakeFirst();
+  return (row?.role as Role) ?? null;
+}
+
+export async function changeUserRole(
+  rt: AuthRuntime,
+  userId: string,
+  role: Role,
+): Promise<void> {
+  await rt.db
+    .updateTable("user")
+    .set({ role })
+    .where("id", "=", userId)
+    .execute();
+}
+
+export async function setUserBanned(
+  rt: AuthRuntime,
+  headers: Headers,
+  userId: string,
+  banned: boolean,
+  banReason?: string,
+): Promise<void> {
+  await rt.db
+    .updateTable("user")
+    .set({
+      banned: banned ? 1 : 0,
+      banReason: banned ? (banReason ?? "Disabled by Administrator") : null,
+      banExpires: null,
+    })
+    .where("id", "=", userId)
+    .execute();
+  if (banned) {
+    await rt.auth.api.revokeUserSessions({ body: { userId }, headers });
+  }
+}
+
+export async function resetTwoFactor(
+  rt: AuthRuntime,
+  headers: Headers,
+  userId: string,
+): Promise<void> {
+  await rt.db.deleteFrom("twoFactor").where("userId", "=", userId).execute();
+  await rt.db
+    .updateTable("user")
+    .set({ twoFactorEnabled: 0 })
+    .where("id", "=", userId)
+    .execute();
+  await rt.auth.api.revokeUserSessions({ body: { userId }, headers });
 }
 
 /**

@@ -64,12 +64,15 @@ export function SubmitButton({
   children,
   pendingLabel = "Working",
   variant = "primary",
+  disabled = false,
 }: {
   children: ReactNode;
   pendingLabel?: string;
   variant?: "primary" | "quiet";
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
+  const isDisabled = pending || disabled;
   const base =
     "min-h-11 rounded-full px-6 text-sm font-semibold transition-opacity duration-(--duration-fast) disabled:opacity-60";
   const look =
@@ -79,7 +82,7 @@ export function SubmitButton({
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={isDisabled}
       aria-busy={pending}
       className={`${base} ${look}`}
     >

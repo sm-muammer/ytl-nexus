@@ -5,6 +5,7 @@ import {
   SourceLabel,
 } from "@/components/content/content-parts";
 import { ModuleHero } from "@/components/layout/module-hero";
+import { RelatedModules } from "@/components/layout/related-modules";
 import { pageMetadata } from "@/components/layout/module-page";
 import { PageTransition } from "@/components/motion/page-transition";
 import { pageInfo } from "@/lib/navigation/modules";
@@ -58,6 +59,7 @@ export default async function LibraryPage() {
                 </div>
               </section>
               <SourceLabel source={source} />
+              <RelatedModules slugs={["studio", "ai", "status"]} />
             </>
           )}
         </div>

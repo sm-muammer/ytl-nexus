@@ -1,0 +1,77 @@
+// Example audit records for Nexus Control in Demo_Mode.
+// Pure fixture data; does not read from or write to the database.
+
+import type { AuditEventDto } from "@/lib/server/audit";
+
+export const demoAuditEvents: readonly AuditEventDto[] = [
+  {
+    id: 101,
+    ts: "2026-11-16T10:45:00.000Z",
+    actorId: "demo-admin",
+    role: "admin",
+    action: "control.user.create",
+    target: "user:demo-operator@example.com",
+    result: "success",
+    sourceIp: "10.26.64.10",
+  },
+  {
+    id: 100,
+    ts: "2026-11-16T10:40:12.000Z",
+    actorId: "demo-admin",
+    role: "admin",
+    action: "auth.step-up",
+    target: "admin@example.com",
+    result: "success",
+    sourceIp: "10.26.64.10",
+  },
+  {
+    id: 99,
+    ts: "2026-11-16T10:30:22.000Z",
+    actorId: "demo-operator",
+    role: "operator",
+    action: "ops.restart",
+    target: "unit:nexus-worker",
+    result: "success",
+    sourceIp: "10.26.64.12",
+  },
+  {
+    id: 98,
+    ts: "2026-11-16T10:15:45.000Z",
+    actorId: "demo-member",
+    role: "member",
+    action: "transfer.account.create",
+    target: "sftp:azlin",
+    result: "success",
+    sourceIp: "10.26.64.15",
+  },
+  {
+    id: 97,
+    ts: "2026-11-16T09:55:00.000Z",
+    actorId: null,
+    role: null,
+    action: "auth.sign-in",
+    target: "user:unknown@example.com",
+    result: "failure",
+    sourceIp: "192.168.1.100",
+  },
+  {
+    id: 96,
+    ts: "2026-11-16T09:00:10.000Z",
+    actorId: "demo-operator",
+    role: "operator",
+    action: "status.incident.open",
+    target: "incident:12",
+    result: "success",
+    sourceIp: "10.26.64.12",
+  },
+  {
+    id: 95,
+    ts: "2026-11-16T08:30:00.000Z",
+    actorId: "demo-admin",
+    role: "admin",
+    action: "control.user.change-role",
+    target: "user:demo-member",
+    result: "success",
+    sourceIp: "10.26.64.10",
+  },
+];

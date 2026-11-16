@@ -1,5 +1,6 @@
 import { Backdrop } from "@/components/backdrop/backdrop";
 import { ModuleHero } from "@/components/layout/module-hero";
+import { RelatedModules } from "@/components/layout/related-modules";
 import { pageMetadata } from "@/components/layout/module-page";
 import { PageTransition } from "@/components/motion/page-transition";
 import {
@@ -124,6 +125,8 @@ export default async function StatusPage() {
                   </div>
                 </section>
               ) : null}
+
+              <RelatedModules slugs={["command", "continuity", "atlas"]} />
             </>
           )}
         </div>
