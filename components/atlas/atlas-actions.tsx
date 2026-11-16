@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef } from "react";
+import Link from "next/link";
 import { SubmitButton } from "@/components/auth/form-parts";
 import { Result } from "@/components/command/ops-panel";
 import { allowedActions } from "@/lib/atlas/actions";
@@ -149,8 +150,23 @@ export function AtlasActions({
   demo: boolean;
 }) {
   const set = allowedActions(slug, role ? { userId: "", role } : null, demo);
+  const explainPrompt = encodeURIComponent(
+    `Explain service "${slug}": current health, architecture role, and troubleshooting steps.`,
+  );
+
   return (
     <div data-atlas-actions className="flex flex-col gap-4">
+      {role ? (
+        <div>
+          <Link
+            href={`/ai?explain=${explainPrompt}`}
+            className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-colors"
+          >
+            <span>✨</span>
+            <span>Explain with Nexus AI</span>
+          </Link>
+        </div>
+      ) : null}
       {set.note ? (
         <p data-actions-note className="text-muted text-data">
           {set.note}

@@ -20,6 +20,10 @@ export type RevalidateDeps = {
   revalidate: (tag: string) => void;
   audit: (event: AuditEventInput) => Promise<void>;
   sourceIp: string;
+  onPostRevalidated?: (event: {
+    type: string;
+    slug: string;
+  }) => void | Promise<void>;
 };
 
 const MAX_BODY_BYTES = 4096;
@@ -71,6 +75,11 @@ export async function handleRevalidate(
   }
   const tags = tagsForEvent(parsed.data);
   for (const tag of tags) deps.revalidate(tag);
+  if (deps.onPostRevalidated) {
+    try {
+      await deps.onPostRevalidated(parsed.data);
+    } catch {}
+  }
   await audit(deps, `${parsed.data.type}:${parsed.data.slug}`, true);
   return Response.json({ revalidated: tags }, { status: 200 });
 }

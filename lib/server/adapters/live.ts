@@ -5,6 +5,7 @@ import { authIsConfigured, getAuthRuntime } from "@/lib/server/auth/runtime";
 import { resolveIdentity } from "@/lib/server/auth/service";
 import { callOps } from "@/lib/server/ops-client";
 import { createSftpgoClient, readSftpgoConfig } from "@/lib/server/sftpgo";
+import { readOllamaConfig } from "@/lib/server/ai/ollama";
 import { readMailStatus } from "@/lib/server/mail";
 import { readMailDbConfig } from "@/lib/server/mail-db";
 import { identityToActor } from "@/lib/server/policy";
@@ -224,12 +225,51 @@ export function createLiveAdapters(): Adapters {
     },
   };
 
+  const ollama: ServiceAdapter = {
+    name: "ollama",
+    source: "live",
+    status: async (): Promise<AdapterStatus> => {
+      const config = readOllamaConfig();
+      if (!config) return notConnected("ollama");
+      try {
+        const res = await fetch(`${config.baseUrl}/api/version`, {
+          signal: AbortSignal.timeout(2000),
+        });
+        if (res.ok) {
+          return {
+            name: "ollama",
+            source: "live",
+            state: "ok",
+            label: "Connected",
+            detail: `Ollama is running locally (${config.chatModel}).`,
+          };
+        }
+        return {
+          name: "ollama",
+          source: "live",
+          state: "warn",
+          label: "Degraded",
+          detail: "Ollama answers with non-OK status.",
+        };
+      } catch {
+        return {
+          name: "ollama",
+          source: "live",
+          state: "bad",
+          label: "Unreachable",
+          detail: "Ollama service does not answer on loopback.",
+        };
+      }
+    },
+  };
+
   return {
     ...base,
     auth,
     ops,
     sftpgo,
     mail,
+    ollama,
     prometheus: createLivePrometheus(),
   };
 }

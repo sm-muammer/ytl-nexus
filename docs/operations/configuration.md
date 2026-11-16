@@ -95,6 +95,15 @@ Read in `live` mode only, by `lib/server/sftpgo.ts`. Written to `/etc/ytl-nexus/
 - `NEXUS_SFTPGO_HOST`: the name shown in the connection guides; defaults to the host of `BETTER_AUTH_URL`.
 - `NEXUS_SFTPGO_HOME_BASE`: optional, the parent folder of account homes, default `/srv/nexus-transfer`.
 
+## Ollama (Nexus AI)
+
+Read in `live` mode only, by `lib/server/ai/ollama.ts`. Ollama runs locally on Nexus Core 01 bound to `127.0.0.1:11434`. See [Nexus AI](ai.md).
+
+- `NEXUS_OLLAMA_HOST`: loopback address, default `127.0.0.1`.
+- `NEXUS_OLLAMA_PORT`: port, default `11434`.
+- `NEXUS_OLLAMA_CHAT_MODEL`: chat completion model, default `gemma3:1b-it-qat`.
+- `NEXUS_OLLAMA_EMBED_MODEL`: embedding model, default `nomic-embed-text`.
+
 ## Demo session cookie
 
 In demo mode the session switcher stores the chosen role in the HttpOnly cookie `nexus-demo-role` (values `viewer`, `member`, `operator`, `admin`; no cookie means Visitor). Only the demo auth adapter reads it, and the Server Function that sets it does nothing in `live` mode. It is a presentation aid: it changes menus and labels and grants nothing. Real access control is the guards in `lib/server/guards.ts`, which run in both modes: demo mode enforces the same role matrix on this cookie, and never touches a database or the audit trail.

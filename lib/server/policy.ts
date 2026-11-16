@@ -183,6 +183,19 @@ export const HANDLER_POLICY: readonly HandlerPolicy[] = [
     minRole: null,
     note: "Better Auth applies its own checks, lockout, rate limits and audit hooks; the routes that change accounts are disabled.",
   },
+  {
+    id: "ai.chat",
+    method: "POST",
+    path: "/api/ai/chat",
+    minRole: null,
+    note: "Public scope serves Yes Experience; workspace queries check Member role inside the handler.",
+  },
+  {
+    id: "ai.conversations",
+    method: "GET",
+    path: "/api/ai/conversations",
+    minRole: "member",
+  },
 ];
 
 export function policyForHandler(id: string): HandlerPolicy {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { HealthBadge } from "@/components/command/health-badge";
 import { formatUptime, UPTIME_WINDOWS } from "@/lib/status/health";
 import { formatTime, badgeHealth } from "@/lib/status/format";
@@ -248,9 +249,16 @@ export function IncidentList({
               </li>
             ))}
           </ol>
-          {renderActions ? (
-            <div className="mt-4">{renderActions(i)}</div>
-          ) : null}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link
+              href={`/ai?explain=${encodeURIComponent(`Explain incident: "${i.title}" on service ${i.serviceName} (state: ${i.state}).`)}`}
+              className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors"
+            >
+              <span>✨</span>
+              <span>Explain with Nexus AI</span>
+            </Link>
+            {renderActions ? renderActions(i) : null}
+          </div>
         </li>
       ))}
     </ul>

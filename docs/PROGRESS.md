@@ -5,16 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                     |
-| --------------------------- | ----------------------------------------- |
-| Last completed              | **Task 13:** Nexus Mail (done 2026-11-16) |
-| Current task                | **Task 14:** Nexus AI                     |
-| Next task                   | **Task 14:** Nexus AI                     |
-| Recommended model           | Sonnet 5.5, High effort                   |
-| Start the next session with | `Continue YTL Nexus: run Task 14`         |
+| Item                        | Value                                   |
+| --------------------------- | --------------------------------------- |
+| Last completed              | **Task 14:** Nexus AI (done 2026-11-16) |
+| Current task                | **Task 15:** Yes Experience             |
+| Next task                   | **Task 15:** Yes Experience             |
+| Recommended model           | Sonnet 5.5, High effort                 |
+| Start the next session with | `Continue YTL Nexus: run Task 15`       |
 
 ## Owner actions waiting
 
+- **Task 14, try Nexus AI in a browser:** sign in as a Member or above on `https://ytl-nexus.ytlcomms.my`, open `/ai`, and ask a question about deployment or architecture runbooks (e.g. "How do I deploy YTL Nexus?"). Check the streamed response and citations. Test Explain mode by clicking "Explain with Nexus AI" on an Atlas service or Status incident.
 - **Task 13, check webmail in a browser:** sign in as an Administrator on `https://ytl-nexus.ytlcomms.my`, open `/mail`, check your own mailbox details and service status, click "Open Nexus Webmail" to go to `/webmail/`, and log in with one of the test accounts (`nexus-test-a@ytl-nexus.internal` or `nexus-test-b@ytl-nexus.internal`; passwords stored in `/root/mail-test-passwords.txt` on the server). Verify composing, sending, and dark mode in the Nexus skin.
 - **Task 12, store admin password and clean up:** DONE — `/root/sftpgo-admin-password.txt` was read once, stored in the password manager, and deleted. `/etc/sftpgo/sftpgo.env` and `/var/lib/sftpgo/hostkeys` are backed up in `/root/ytl-nexus-backups/task12-acceptance-2026-11-13/`. Optional: delete the unused `/var/lib/sftpgo/sftpgo.db` left by the package first start.
 - **Task 11, check in a browser (optional):** after the next deploy, sign in as an Operator on `https://ytl-nexus.ytlcomms.my`, open `/data`, add a site with a new code, then check that "Recent changes" lists it. The Operator controls are not reachable in a demo session.
@@ -37,6 +38,23 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 14: Nexus AI (done 2026-11-16)
+
+- **Hardware Benchmarks & Choice:** CPU profiled on Nexus Core 01 (8 vCPUs, Intel Xeon Westmere virtualized, no AVX/AVX2). Evaluated models on Ollama (loopback 127.0.0.1:11434):
+  - `tinyllama:latest` (637 MB): 13.5 tok/s, 0.71s TTFT, hallucinated code. Baseline.
+  - `gemma3:1b-it-qat` (1.0 GB): **8.35 tok/s**, **0.52s TTFT**, ~1.8 GB RAM. Selected as primary model for reasoning, speed, and reliability.
+  - `gemma3:4b-it-qat` (3.2 GB): 2.91 tok/s, 1.85s TTFT, too slow without AVX2. Documented hypervisor host-passthrough recommendation.
+  - `nomic-embed-text` (274 MB): 768-dimensional dense vector embeddings, ~1.95s/doc.
+- **Retrieval & Safety Pipeline:** Role-gated retrieval (`lib/ai/retrieval.ts`) filters chunks in `ai_chunks` strictly by caller role before ranking; lower roles never receive internal context. System prompt wraps retrieved text in `<context>` and treats it as untrusted data with prompt-injection defenses. Global CPU concurrency cap (`MAX_CONCURRENT_GENERATIONS = 2`), prompt character limit (2,000 chars), and per-IP rate limiting (`lib/ai/limits.ts`).
+- **Worker & Indexing:** `nexus-worker` periodically indexes runbooks from `docs/operations/*.md` into `ai_chunks` with audience tagging (`lib/server/ai/indexer.ts`). Webhook revalidation handler re-indexes content on update. Embeddings stored as Float32 binary blobs.
+- **Application & UI:**
+  - Streaming SSE endpoint at `/api/ai/chat` supporting default and `yes-public` scopes.
+  - Conversation management at `/api/ai/conversations` (list, delete, save history).
+  - `/ai` workspace page (`components/ai/ai-chat-view.tsx`) with streaming markdown answers, conversation sidebar, stop button, and clickable citations linking to Library or internal runbooks.
+  - "Explain with Nexus AI" added to Atlas service action panel and Status incident lists with sanitized log summaries (IP masking).
+- **Tests & Verification:** 25 new unit tests across retrieval, prompts, limits, chunking, and route handlers. 3 Playwright e2e tests passing in demo mode. Full check passed: 56 test suites, **880 unit tests passed**. Live acceptance via `verify-ai`: **9 passed, 0 failed** on Nexus Core 01.
+- **Docs:** `docs/operations/ai.md`, `docs/operations/configuration.md`, `infrastructure/scripts/verify-ai`.
 
 ### Task 13: Nexus Mail (done 2026-11-16)
 

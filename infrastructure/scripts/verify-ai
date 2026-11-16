@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# verify-ai: runs on Nexus Core 01.
+# Verifies Ollama service, version, listening interface, model availability,
+# and inference health for Nexus AI (Task 14).
+
+set -Eeuo pipefail
+
+PASS=0
+FAIL=0
+
+check() {
+  local desc="$1"
+  shift
+  if "$@"; then
+    echo "  PASS: $desc"
+    PASS=$((PASS + 1))
+  else
+    echo "  FAIL: $desc"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+echo "Running Nexus AI acceptance verification on $(hostname)..."
+
+# 1. Ollama systemd unit is active and enabled
+check "ollama service is active" systemctl is-active --quiet ollama
+check "ollama service is enabled" systemctl is-enabled --quiet ollama
+
+# 2. Ollama is listening strictly on 127.0.0.1:11434
+check "ollama listens on loopback:11434" bash -c "ss -tuln | grep -q '127\.0\.0\.1:11434'"
+check "ollama does not listen on 0.0.0.0:11434" bash -c "! ss -tuln | grep -q '0\.0\.0\.0:11434'"
+
+# 3. Ollama API /api/version answers HTTP 200 and version >= 0.6
+check "ollama API version is accessible" curl -s -f http://127.0.0.1:11434/api/version
+
+# 4. Required models are present in ollama list
+check "gemma3:1b-it-qat model is installed" bash -c "ollama list | grep -q 'gemma3:1b-it-qat'"
+check "nomic-embed-text model is installed" bash -c "ollama list | grep -q 'nomic-embed-text'"
+
+# 5. Local embedding generation succeeds via /api/embeddings
+check "nomic-embed-text generates 768-dim embedding" python3 -c '
+import urllib.request, json
+req = urllib.request.Request("http://127.0.0.1:11434/api/embeddings", data=json.dumps({"model":"nomic-embed-text","prompt":"acceptance test"}).encode(), headers={"Content-Type":"application/json"})
+res = json.loads(urllib.request.urlopen(req, timeout=10).read())
+assert len(res.get("embedding", [])) == 768
+'
+
+# 6. Chat inference succeeds via /api/chat
+check "gemma3:1b-it-qat answers chat completion" python3 -c '
+import urllib.request, json
+req = urllib.request.Request("http://127.0.0.1:11434/api/chat", data=json.dumps({"model":"gemma3:1b-it-qat","messages":[{"role":"user","content":"Respond with the word OK"}],"stream":False}).encode(), headers={"Content-Type":"application/json"})
+res = json.loads(urllib.request.urlopen(req, timeout=15).read())
+assert "content" in res.get("message", {})
+'
+
+echo "Nexus AI verification complete: $PASS passed, $FAIL failed."
+[ "$FAIL" -eq 0 ]
