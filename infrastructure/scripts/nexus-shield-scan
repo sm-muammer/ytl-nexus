@@ -124,8 +124,10 @@ fi
 SSH_FAILS=0
 SFTP_FAILS=0
 if command -v journalctl >/dev/null 2>&1; then
-  SSH_FAILS="$(journalctl -u sshd --since "24 hours ago" 2>/dev/null | grep -Eci "failed|invalid|refused" || echo 0)"
-  SFTP_FAILS="$(journalctl -u sftpgo --since "24 hours ago" 2>/dev/null | grep -Eci "fail|invalid|denied" || echo 0)"
+  ssh_c="$(journalctl -u sshd --since "24 hours ago" 2>/dev/null | grep -Eci "failed|invalid|refused" || true)"
+  [ -n "$ssh_c" ] && SSH_FAILS="$ssh_c"
+  sftp_c="$(journalctl -u sftpgo --since "24 hours ago" 2>/dev/null | grep -Eci "fail|invalid|denied" || true)"
+  [ -n "$sftp_c" ] && SFTP_FAILS="$sftp_c"
 fi
 
 # 6. SSH configuration (SHD-06)
