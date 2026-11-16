@@ -1,0 +1,343 @@
+#!/usr/bin/env bash
+# infrastructure/scripts/nexus-shield-scan
+# Root security posture scanner for YTL Nexus (SHD-01 to SHD-11, SHD-20 to SHD-23).
+# Runs as root via nexus-shield-scan.timer.
+# Reports security findings without automated remediation or lockout risks.
+# Outputs findings JSON to /var/log/nexus/shield-scan.json and ingests directly into
+# shield_findings via nexus_ingest if available.
+
+set -euo pipefail
+
+SCAN_ID="scan-$(date -u +%Y%m%d-%H%M%S)"
+SCANNED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+LOG_DIR="/var/log/nexus"
+OUTPUT_FILE="${LOG_DIR}/shield-scan.json"
+INGEST_ENV="/etc/ytl-nexus/ingest.env"
+
+mkdir -p "$LOG_DIR"
+chmod 0755 "$LOG_DIR"
+
+# 1. TLS Certificates (SHD-01)
+# Inspects internal CA server certificate
+TLS_CERTS_JSON="[]"
+WEB_CRT="/etc/pki/nexus-ca/server.crt"
+if [ -f "$WEB_CRT" ]; then
+  enddate="$(openssl x509 -in "$WEB_CRT" -noout -enddate 2>/dev/null | cut -d= -f2 || true)"
+  if [ -n "$enddate" ]; then
+    end_epoch="$(date -d "$enddate" +%s 2>/dev/null || date -j -f "%b %d %T %Y %Z" "$enddate" +%s 2>/dev/null || echo 0)"
+    now_epoch="$(date +%s)"
+    days_left="$(( (end_epoch - now_epoch) / 86400 ))"
+    subj="$(openssl x509 -in "$WEB_CRT" -noout -subject 2>/dev/null | sed 's/subject=//' || true)"
+    TLS_CERTS_JSON=$(node -e '
+      const arr = JSON.parse(process.argv[1]);
+      arr.push({ name: "internal-ca", path: process.argv[2], days_remaining: Number(process.argv[3]), subject: process.argv[4] });
+      process.stdout.write(JSON.stringify(arr));
+    ' "$TLS_CERTS_JSON" "$WEB_CRT" "$days_left" "$subj")
+  fi
+fi
+
+# 2. Listening ports against allowlist (SHD-02)
+# ss -tulpn
+PORTS_JSON="[]"
+if command -v ss >/dev/null 2>&1; then
+  PORTS_JSON=$(ss -tulpn -H 2>/dev/null | awk '{
+    proto = $1
+    bind = $5
+    proc = $7
+    # extract port from bind (e.g. 0.0.0.0:22 or [::]:22 or *:2022)
+    n = split(bind, a, ":")
+    port = a[n]
+    sub(/.*:"/, "", proc)
+    sub(/".*/, "", proc)
+    if (port ~ /^[0-9]+$/) {
+      # bind address
+      sub(/:[0-9]+$/, "", bind)
+      printf "%s\t%s\t%s\t%s\n", port, proto, bind, proc
+    }
+  }' | node -e '
+    const readline = require("readline");
+    const rl = readline.createInterface({ input: process.stdin });
+    const list = [];
+    const seen = new Set();
+    rl.on("line", (line) => {
+      const parts = line.split("\t");
+      if (parts.length >= 3) {
+        const port = Number(parts[0]);
+        const proto = parts[1];
+        const bind = parts[2];
+        const proc = parts[3] || "";
+        const key = `${proto}:${bind}:${port}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push({ port, proto, bind, process: proc });
+        }
+      }
+    });
+    rl.on("close", () => {
+      process.stdout.write(JSON.stringify(list));
+    });
+  ')
+fi
+
+# 3. firewalld state (SHD-03)
+FW_ACTIVE=false
+FW_ZONE=""
+FW_PORTS="[]"
+FW_SERVICES="[]"
+if command -v firewall-cmd >/dev/null 2>&1; then
+  if firewall-cmd --state >/dev/null 2>&1; then
+    FW_ACTIVE=true
+    FW_ZONE="$(firewall-cmd --get-default-zone 2>/dev/null || echo "public")"
+    FW_PORTS="$(firewall-cmd --list-ports 2>/dev/null | node -e '
+      const fs = require("fs");
+      const text = fs.readFileSync(0, "utf-8").trim();
+      const arr = text ? text.split(/\s+/) : [];
+      process.stdout.write(JSON.stringify(arr));
+    ')"
+    FW_SERVICES="$(firewall-cmd --list-services 2>/dev/null | node -e '
+      const fs = require("fs");
+      const text = fs.readFileSync(0, "utf-8").trim();
+      const arr = text ? text.split(/\s+/) : [];
+      process.stdout.write(JSON.stringify(arr));
+    ')"
+  fi
+fi
+
+# 4. Pending security updates (SHD-04)
+SEC_COUNT=0
+PKG_LIST="[]"
+if command -v dnf >/dev/null 2>&1; then
+  # dnf check-update --security exits 100 if updates exist, 0 if clean
+  update_out="$(dnf check-update --security -q 2>/dev/null || true)"
+  if [ -n "$update_out" ]; then
+    PKG_LIST=$(echo "$update_out" | awk '{ if ($1 && !/^Loaded/ && !/^Security/) print $1 }' | node -e '
+      const fs = require("fs");
+      const text = fs.readFileSync(0, "utf-8").trim();
+      const arr = text ? text.split(/\n+/).filter(Boolean) : [];
+      process.stdout.write(JSON.stringify(arr));
+    ')
+    SEC_COUNT=$(echo "$PKG_LIST" | node -e 'const a = JSON.parse(process.argv[1]); process.stdout.write(String(a.length));' "$PKG_LIST")
+  fi
+fi
+
+# 5. Failed SSH and SFTP logins (24h) (SHD-05)
+SSH_FAILS=0
+SFTP_FAILS=0
+if command -v journalctl >/dev/null 2>&1; then
+  SSH_FAILS="$(journalctl -u sshd --since "24 hours ago" 2>/dev/null | grep -Eci "failed|invalid|refused" || echo 0)"
+  SFTP_FAILS="$(journalctl -u sftpgo --since "24 hours ago" 2>/dev/null | grep -Eci "fail|invalid|denied" || echo 0)"
+fi
+
+# 6. SSH configuration (SHD-06)
+PERMIT_ROOT="unknown"
+PASS_AUTH="unknown"
+if command -v sshd >/dev/null 2>&1; then
+  sshd_dump="$(sshd -T 2>/dev/null || true)"
+  if [ -n "$sshd_dump" ]; then
+    PERMIT_ROOT="$(echo "$sshd_dump" | grep -Ei "^permitrootlogin " | awk '{print $2}' || echo "unknown")"
+    PASS_AUTH="$(echo "$sshd_dump" | grep -Ei "^passwordauthentication " | awk '{print $2}' || echo "unknown")"
+  fi
+fi
+
+# 7. SELinux state (SHD-07)
+SELINUX_MODE="unknown"
+if command -v getenforce >/dev/null 2>&1; then
+  SELINUX_MODE="$(getenforce 2>/dev/null || echo "unknown")"
+fi
+
+# 8. Disk usage per mount (SHD-08)
+DISKS_JSON="[]"
+if command -v df >/dev/null 2>&1; then
+  DISKS_JSON=$(df -hP | awk 'NR>1 {
+    fs = $1
+    pct = $5
+    sub(/%/, "", pct)
+    mount = $6
+    printf "%s\t%s\t%s\n", mount, pct, fs
+  }' | node -e '
+    const readline = require("readline");
+    const rl = readline.createInterface({ input: process.stdin });
+    const list = [];
+    rl.on("line", (line) => {
+      const p = line.split("\t");
+      if (p.length >= 3 && (p[0] === "/" || p[0].startsWith("/srv") || p[0].startsWith("/var") || p[0].startsWith("/boot"))) {
+        list.push({ mount: p[0], use_percent: Number(p[1]), filesystem: p[2] });
+      }
+    });
+    rl.on("close", () => {
+      process.stdout.write(JSON.stringify(list));
+    });
+  ')
+fi
+
+# 9. Time synchronisation (SHD-09)
+CHRONY_SYNC=false
+OFFSET_SEC=0
+STRATUM=0
+if command -v chronyc >/dev/null 2>&1; then
+  track="$(chronyc tracking 2>/dev/null || true)"
+  if [ -n "$track" ]; then
+    strat="$(echo "$track" | grep -Ei "^Stratum" | awk '{print $3}' || echo 0)"
+    if [ "$strat" -gt 0 ] && [ "$strat" -lt 16 ]; then
+      CHRONY_SYNC=true
+      STRATUM="$strat"
+    fi
+    raw_offset="$(echo "$track" | grep -Ei "^Last offset" | awk '{print $4}' || echo 0)"
+    OFFSET_SEC="$(echo "$raw_offset" | sed 's/+//' | tr -d ' ')"
+  fi
+fi
+
+# 10. Backup freshness (SHD-10)
+BACKUP_STATUS="missing"
+HOURS_AGO="null"
+BACKUP_DIR="/var/backups/nexus"
+if [ -d "$BACKUP_DIR" ]; then
+  latest_b="$(find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1 || true)"
+  if [ -n "$latest_b" ]; then
+    b_name="$(basename "$latest_b")"
+    # timestamp format YYYYMMDD-HHMMSS
+    if [[ "$b_name" =~ ^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2})([0-9]{2})$ ]]; then
+      b_iso="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]}T${BASH_REMATCH[4]}:${BASH_REMATCH[5]}:${BASH_REMATCH[6]}Z"
+      b_epoch="$(date -d "$b_iso" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$b_iso" +%s 2>/dev/null || echo 0)"
+      now_epoch="$(date +%s)"
+      diff_hours="$(( (now_epoch - b_epoch) / 3600 ))"
+      HOURS_AGO="$diff_hours"
+      if [ "$diff_hours" -le 26 ]; then
+        BACKUP_STATUS="ok"
+      else
+        BACKUP_STATUS="stale"
+      fi
+    fi
+  fi
+fi
+
+# 11. fail2ban status (SHD-11)
+F2B_ACTIVE=false
+F2B_JAILS="[]"
+if command -v systemctl >/dev/null 2>&1 && systemctl is-active fail2ban >/dev/null 2>&1; then
+  F2B_ACTIVE=true
+  if command -v fail2ban-client >/dev/null 2>&1; then
+    F2B_JAILS="$(fail2ban-client status 2>/dev/null | grep -Ei "jail list:" | cut -d: -f2 | tr -d '\t' | node -e '
+      const fs = require("fs");
+      const text = fs.readFileSync(0, "utf-8").trim();
+      const arr = text ? text.split(/,\s*/).filter(Boolean) : [];
+      process.stdout.write(JSON.stringify(arr));
+    ')"
+  fi
+fi
+
+# Assemble complete JSON report
+REPORT_JSON=$(node -e '
+  const report = {
+    scan_id: process.argv[1],
+    scanned_at: process.argv[2],
+    tls_certs: JSON.parse(process.argv[3]),
+    listening_ports: JSON.parse(process.argv[4]),
+    firewall: {
+      active: process.argv[5] === "true",
+      zone: process.argv[6],
+      open_ports: JSON.parse(process.argv[7]),
+      services: JSON.parse(process.argv[8])
+    },
+    updates: {
+      security_count: Number(process.argv[9]),
+      packages: JSON.parse(process.argv[10])
+    },
+    failed_logins_24h: {
+      ssh_failures: Number(process.argv[11]),
+      sftp_failures: Number(process.argv[12])
+    },
+    sshd_config: {
+      permit_root_login: process.argv[13],
+      password_authentication: process.argv[14]
+    },
+    selinux: {
+      mode: process.argv[15]
+    },
+    disks: JSON.parse(process.argv[16]),
+    time_sync: {
+      synchronized: process.argv[17] === "true",
+      offset_seconds: Number(process.argv[18]),
+      stratum: Number(process.argv[19])
+    },
+    backup_freshness: {
+      latest_backup_hours_ago: process.argv[20] === "null" ? null : Number(process.argv[20]),
+      status: process.argv[21]
+    },
+    fail2ban: {
+      active: process.argv[22] === "true",
+      jails: JSON.parse(process.argv[23])
+    }
+  };
+  process.stdout.write(JSON.stringify(report, null, 2));
+' \
+  "$SCAN_ID" \
+  "$SCANNED_AT" \
+  "$TLS_CERTS_JSON" \
+  "$PORTS_JSON" \
+  "$FW_ACTIVE" \
+  "$FW_ZONE" \
+  "$FW_PORTS" \
+  "$FW_SERVICES" \
+  "$SEC_COUNT" \
+  "$PKG_LIST" \
+  "$SSH_FAILS" \
+  "$SFTP_FAILS" \
+  "$PERMIT_ROOT" \
+  "$PASS_AUTH" \
+  "$SELINUX_MODE" \
+  "$DISKS_JSON" \
+  "$CHRONY_SYNC" \
+  "$OFFSET_SEC" \
+  "$STRATUM" \
+  "$HOURS_AGO" \
+  "$BACKUP_STATUS" \
+  "$F2B_ACTIVE" \
+  "$F2B_JAILS"
+)
+
+# Write report atomically to file (readable by nexus-worker)
+TMP_OUT="${OUTPUT_FILE}.tmp.$$"
+echo "$REPORT_JSON" > "$TMP_OUT"
+chmod 0644 "$TMP_OUT"
+mv "$TMP_OUT" "$OUTPUT_FILE"
+
+echo "Nexus Shield scan completed: $OUTPUT_FILE (Scan ID: $SCAN_ID)"
+
+# Evaluate checks and ingest into database via nexus_ingest if available
+if [ -f "$INGEST_ENV" ] && command -v node >/dev/null 2>&1; then
+  read_env_val() {
+    local key="$1"
+    grep "^${key}=" "$INGEST_ENV" | cut -d= -f2- | tr -d '\"' | sed "s/'//g" | tr -d '\r' | tr -d ' ' || echo ""
+  }
+  u="$(read_env_val NEXUS_DB_USER)"
+  [ -z "$u" ] && u="nexus_ingest"
+  p="$(read_env_val NEXUS_DB_PASSWORD)"
+  h="$(read_env_val NEXUS_DB_HOST)"
+  [ -z "$h" ] && h="127.0.0.1"
+  db="$(read_env_val NEXUS_DB_NAME)"
+  [ -z "$db" ] && db="ytl_nexus"
+
+  # Run evaluator script to generate SQL inserts
+  SQL_INSERTS=$(node -e '
+    const fs = require("fs");
+    const { evaluateShieldChecks, parseShieldReport } = require("/opt/ytl-nexus/current/lib/shield/model.ts");
+    const json = fs.readFileSync(process.argv[1], "utf-8");
+    const rep = parseShieldReport(json);
+    if (!rep) process.exit(0);
+    const findings = evaluateShieldChecks(rep);
+    for (const f of findings) {
+      const escEv = f.evidence.replace(/'\''/g, "''");
+      const escRem = f.remediation.replace(/'\''/g, "''");
+      const ts = f.seen_at.toISOString().slice(0, 19).replace("T", " ");
+      console.log(`INSERT INTO shield_findings (scan_id, check_id, severity, evidence, remediation, seen_at) VALUES (\x27${f.scan_id}\x27, \x27${f.check_id}\x27, \x27${f.severity}\x27, \x27${escEv}\x27, \x27${escRem}\x27, \x27${ts}\x27) ON DUPLICATE KEY UPDATE severity=\x27${f.severity}\x27, evidence=\x27${escEv}\x27, remediation=\x27${escRem}\x27, seen_at=\x27${ts}\x27;`);
+    }
+  ' "$OUTPUT_FILE" 2>/dev/null || true)
+
+  if [ -n "$SQL_INSERTS" ]; then
+    mariadb -h "$h" -u "$u" -p"$p" "$db" <<EOF || true
+$SQL_INSERTS
+EOF
+    echo "Ingested findings into shield_findings table."
+  fi
+fi

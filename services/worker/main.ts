@@ -2,6 +2,7 @@ import { createDb, readDbConfig } from "../../lib/server/db/connection.ts";
 import { CHECK_INTERVAL_MS } from "../../lib/status/checks.ts";
 import { pruneChecks, runCheckRound } from "./run-checks.ts";
 import { indexRunbooks } from "../../lib/server/ai/indexer.ts";
+import { ingestShieldReport } from "./ingest-shield.ts";
 
 // nexus-worker: runs the predefined service checks every 60 seconds. Later
 // tasks add AI indexing and report ingestion to this process. Runs as the
@@ -11,6 +12,7 @@ const db = createDb(readDbConfig(), { connectionLimit: 2 });
 let stopping = false;
 let lastPrune = 0;
 let lastAiIndex = 0;
+let lastShieldIngest = 0;
 
 async function tick(): Promise<void> {
   const now = new Date();
@@ -21,6 +23,20 @@ async function tick(): Promise<void> {
       lastPrune = now.getTime();
       const removed = await pruneChecks(db, now);
       console.log(JSON.stringify({ prune: "ok", removed }));
+    }
+
+    // Periodic Shield report ingestion (every 5 minutes)
+    if (now.getTime() - lastShieldIngest > 5 * 60_000) {
+      lastShieldIngest = now.getTime();
+      try {
+        const { ingested, scanId } = await ingestShieldReport(db);
+        if (ingested > 0) {
+          console.log(JSON.stringify({ shieldIngest: "ok", ingested, scanId }));
+        }
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err.message : "error";
+        console.error(JSON.stringify({ shieldIngest: "failed", error }));
+      }
     }
 
     // Periodic AI runbooks indexing (every 12 hours)
