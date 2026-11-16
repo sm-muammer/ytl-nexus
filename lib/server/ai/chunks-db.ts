@@ -1,12 +1,11 @@
-import "server-only";
 import { sql } from "kysely";
 import type { Kysely } from "kysely";
-import type { Database } from "@/lib/server/db/schema";
-import type { Audience, ScoredChunk } from "@/lib/ai/retrieval";
-import { filterChunksByRole, rankChunks } from "@/lib/ai/retrieval";
-import type { Role } from "@/lib/roles";
-import { deserializeEmbedding, serializeEmbedding } from "./chunking";
-import { generateEmbedding } from "./ollama";
+import type { Database } from "../db/schema.ts";
+import type { Audience, ScoredChunk } from "../../ai/retrieval.ts";
+import { filterChunksByRole, rankChunks } from "../../ai/retrieval.ts";
+import type { Role } from "../../roles.ts";
+import { deserializeEmbedding, serializeEmbedding } from "./chunking.ts";
+import { generateEmbedding } from "./ollama.ts";
 
 export type StoredAiChunk = {
   id: number;

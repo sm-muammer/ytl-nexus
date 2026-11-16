@@ -1,5 +1,4 @@
-import "server-only";
-import type { Audience } from "@/lib/ai/retrieval";
+import type { Audience } from "../../ai/retrieval.ts";
 
 export type ChunkMeta = {
   source: string;

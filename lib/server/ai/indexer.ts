@@ -1,12 +1,11 @@
-import "server-only";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Kysely } from "kysely";
-import type { Database } from "@/lib/server/db/schema";
-import type { Audience } from "@/lib/ai/retrieval";
-import { chunkMarkdown } from "./chunking";
-import { deleteChunksBySource, storeChunk } from "./chunks-db";
-import { generateEmbedding } from "./ollama";
+import type { Database } from "../db/schema.ts";
+import type { Audience } from "../../ai/retrieval.ts";
+import { chunkMarkdown } from "./chunking.ts";
+import { deleteChunksBySource, storeChunk } from "./chunks-db.ts";
+import { generateEmbedding } from "./ollama.ts";
 
 // Map runbooks or docs to audience roles
 const DOCS_AUDIENCE: Record<string, Audience> = {

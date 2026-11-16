@@ -1,4 +1,4 @@
-import { meetsRole, type Role } from "@/lib/roles";
+import { meetsRole, type Role } from "../roles.ts";
 
 export type Audience = "public" | "viewer" | "member" | "operator" | "admin";
 
