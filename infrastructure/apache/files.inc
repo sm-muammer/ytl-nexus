@@ -9,6 +9,11 @@
 
 RedirectMatch 302 "^/files$" "/files/"
 
+# Deny access to the WebAdmin interface (TRF-07) through the public proxy.
+<Location "/files/web/admin">
+    Require all denied
+</Location>
+
 ProxyPass        /files/ http://127.0.0.1:8090/files/ timeout=600
 ProxyPassReverse /files/ http://127.0.0.1:8090/files/
 
