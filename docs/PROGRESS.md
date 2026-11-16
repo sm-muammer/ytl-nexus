@@ -5,16 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                        |
-| --------------------------- | -------------------------------------------- |
-| Last completed              | **Task 17:** Nexus Shield (done 2026-11-16)  |
-| Current task                | **Task 18:** Nexus Tour, Story and Demo Mode |
-| Next task                   | **Task 18:** Nexus Tour, Story and Demo Mode |
-| Recommended model           | Sonnet 5.5, Medium effort                    |
-| Start the next session with | `Continue YTL Nexus: run Task 18`            |
+| Item                        | Value                                                          |
+| --------------------------- | -------------------------------------------------------------- |
+| Last completed              | **Task 18:** Nexus Tour, Story and Demo Mode (done 2026-11-16) |
+| Current task                | **Task 19:** Nexus Control completion and cross-module links   |
+| Next task                   | **Task 19:** Nexus Control completion and cross-module links   |
+| Recommended model           | Sonnet 5.5, Medium effort                                      |
+| Start the next session with | `Continue YTL Nexus: run Task 19`                              |
 
 ## Owner actions waiting
 
+- **Task 18, inspect Nexus Tour and Project Story in a browser:** open `https://ytl-nexus.ytlcomms.my/tour` and `/story`. On `/tour`, step through the 16 guided steps, test Presenter Mode (press `P` or click the toggle, navigate with arrow keys / Space, and exit with `Escape`). On `/story`, verify all 6 chapters describing the internship case study, architecture trade-offs, security lessons, team acknowledgments, and the project disclaimer.
 - **Task 17, inspect Nexus Shield in a browser:** sign in as an Operator or Administrator on `https://ytl-nexus.ytlcomms.my`, open `/shield`, verify the security posture summary cards (High, Medium, Low, Info filters), check that the known operational risks (SELinux Disabled, SSH PermitRootLogin/PasswordAuthentication enabled) are clearly identified with actionable remediation guidance, and confirm the lockout prevention policy notice.
 - **Task 16, inspect Nexus Continuity in a browser:** sign in as an Operator or Administrator on `https://ytl-nexus.ytlcomms.my`, open `/continuity`, check the freshness status badge ("Backups Fresh (<26h)"), verified restore drill status (all 9 monitored components verified in green), and view the disaster recovery runbook and off-box sync command (`rsync -avz --progress -e ssh root@10.26.64.164:/var/backups/nexus/ ~/ytl-nexus-backups/`).
 - **Task 15, browse Yes Experience in a browser:** open `https://ytl-nexus.ytlcomms.my/yes`, `/yes/plans`, `/yes/coverage`, and `/yes/support`. Verify responsive mobile drawer navigation on narrow viewports, petal animations with reduced motion support, coverage checker form, support form validation, and test the Yes 5G Assistant chatbot (`yes-public` scope).
@@ -41,6 +42,25 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 18: Nexus Tour, Project Story and Demo Mode (done 2026-11-16)
+
+- **Nexus Tour (`/tour`):**
+  - Built interactive, accessible tour experience in `components/tour/tour-view.tsx` and `app/(public)/tour/page.tsx` stepping through all 16 modules using deterministic WordPress `tour_step` fixtures.
+  - Features real-time signal-ribbon animated progress bar (`[data-tour-progress-ribbon]`), stepping dots with minimum 24x24 px touch targets for WCAG 2.2 target size compliance, sequential previous/next controls, and step counter.
+  - Integrated full **Presenter Mode**: toggleable with <kbd>P</kbd> keyboard shortcut or dedicated toggle button. Expands typography, removes unnecessary chrome, and supports full keyboard navigation (<kbd>→</kbd>, <kbd>Space</kbd>, <kbd>←</kbd>, and <kbd>Escape</kbd> to exit).
+- **Project Story (`/story`):**
+  - Implemented the complete internship case study in `app/(public)/story/page.tsx` across 6 structured chapters: Starting Point, Architecture Decisions, Engineering Challenges, Security Lessons, Skills Gained, and Team Thanks & Acknowledgments.
+  - Includes required official disclaimer: _"YTL Nexus is an internship project, not an official YTL commercial product"_.
+  - Styled with editorial typography, chapter numbers, `Rise` motion transitions, and honest data source attribution.
+- **Demo Mode Isolation & Documentation:**
+  - Seeded complete `tour_step` and `story_chapter` items in `lib/fixtures/content.ts` and regenerated `infrastructure/wordpress/seed-content.json` via `npm run content:seed-json`.
+  - Authored `docs/operations/demo-mode.md` detailing how to run the full platform offline (`NEXUS_MODE=demo npm run build && npm start`), demo personas (Visitor, Viewer, Member, Operator, Administrator), and fixture isolation rules.
+  - Automated unit test suite in `tests/unit/demo-adapters.test.ts` (DEMO-05) verifying zero outbound sockets (`net.connect`, `net.Socket.prototype.connect`) and zero HTTP `fetch` calls across all 8 adapters and core module read functions in demo mode.
+  - E2E Playwright test in `tests/e2e/tour.spec.ts` covering sequential stepping, presenter mode toggle, keyboard navigation, and zero accessibility violations.
+- **Verification:**
+  - `npm run check` (format check, eslint, TypeScript typegen, and vitest) passes with **65 test files, 919 tests**.
+  - Playwright e2e test suite for `tests/e2e/tour.spec.ts` passed completely.
 
 ### Task 17: Nexus Shield (done 2026-11-16)
 

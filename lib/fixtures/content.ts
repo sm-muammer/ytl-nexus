@@ -1,11 +1,11 @@
 import type { ContentItem, ContentType } from "../content/types.ts";
 
-// Demo content and the seed for WordPress (Task 7). Same shape as live items.
+// Demo content and the seed for WordPress (Task 7 & Task 18). Same shape as live items.
 // `infrastructure/wordpress/seed-content.json` is generated from this list by
 // `npm run content:seed-json`. No company claim here needs a source: the text
 // describes this internship project only.
 
-const MODIFIED = "2026-11-09T09:00:00.000Z";
+const MODIFIED = "2026-11-16T12:00:00.000Z";
 
 let nextId = 1;
 function item(
@@ -86,20 +86,57 @@ export const contentFixtures: readonly ContentItem[] = [
     "internal",
     "<p>Signed-in Viewers and above. Public visitors never receive internal items, not even through the API.</p>",
   ),
+
+  // ---- STORY CHAPTERS (STORY-01, STORY-02, STORY-03) -------------------------
   item(
     "story_chapter",
-    "the-starting-point",
-    "The starting point",
+    "01-the-starting-point",
+    "The Starting Point",
     "public",
-    "<p>The project began with an older set of drafts and an empty server. The drafts were read for ideas only. Everything in the platform was built again from a plan.</p>",
+    "<p>The project began with an existing Rocky Linux host (Nexus Core 01) containing various disconnected, buggy prototype drafts and legacy test scripts left over from earlier explorations. These older prototypes suffered from critical security and reliability flaws: hardcoded passwords, plaintext credential files, exposed unauthenticated web interfaces, and fragile monolithic scripts.</p><p>Rather than patching broken legacy code, the project owner decided on a clean-slate greenfield approach: inspect the older drafts solely to understand business requirements, safely archive the old environment after an exhaustive verified backup, and engineer a brand-new, enterprise-grade unified platform from first principles.</p>",
+    { order: 1 },
   ),
   item(
     "story_chapter",
-    "security-from-the-start",
-    "Security from the start",
+    "02-architecture-decisions",
+    "Architecture Decisions: The Cohesive Single Host",
     "public",
-    "<p>Every protected page checks who is asking on the server. A hidden address is never the protection.</p>",
+    "<p>YTL Nexus is architected as a single Next.js 16.3.5 web application paired with carefully selected, battle-tested system daemons running on one Rocky Linux server. Key architectural choices include:</p><ul><li><strong>Next.js App Router:</strong> Server Components by default, strict role-based access control with server-side guards, and atomic client transitions.</li><li><strong>Dual-Mode Adapters:</strong> Every underlying service adapter (database, auth, mail, SFTPGo, Prometheus, Ollama, operations agent) implements both a <code>live</code> and a deterministic <code>demo</code> mode selectable via <code>NEXUS_MODE</code>.</li><li><strong>Zero-Bypass Reverse Proxy:</strong> Apache acts as the hardened TLS termination gateway, delegating API and page traffic to Next.js while protecting loopback-only service sockets.</li><li><strong>Append-Only Audit Logging:</strong> Every authenticated and state-modifying action is permanently recorded in a dedicated audit log table.</li></ul>",
+    { order: 2 },
   ),
+  item(
+    "story_chapter",
+    "03-engineering-challenges",
+    "Challenges Overcome",
+    "public",
+    "<p>Unifying seven distinct infrastructure subsystems onto a single production host presented significant real-world engineering hurdles:</p><ul><li><strong>Hardened Local IPC:</strong> Connecting Next.js securely to local host daemons without granting unconstrained root privileges required building a scoped UNIX domain socket agent (<code>nexus-ops</code>) authenticated with HMAC request signatures and timestamp validation.</li><li><strong>Headless Content Pipeline:</strong> Bridging WordPress headless REST endpoints with Next.js static and dynamic caching using cryptographically signed revalidation webhooks.</li><li><strong>Hardware Resource Constraints:</strong> Tuning the local Gemma 3 Ollama model and node_exporter metrics polling so that background tasks and indexing do not degrade real-time web responsiveness on constrained virtual CPUs.</li><li><strong>Automated Continuity Verification:</strong> Constructing self-verifying backup scripts with automated restore drills testing checksums and table counts against scratch databases.</li></ul>",
+    { order: 3 },
+  ),
+  item(
+    "story_chapter",
+    "04-security-lessons",
+    "Security Lessons Learned",
+    "public",
+    "<p>Security was not retrofitted at the end—it was enforced from Task 1 onwards:</p><ul><li><strong>Never Trust the Client:</strong> Hidden URLs and client-side UI toggles are never security controls. Every layout, route handler, and server function validates user role authorization via <code>requireRole()</code> on the server.</li><li><strong>Defense in Depth:</strong> Database accounts are segregated with least privilege (e.g. <code>nexus_ingest</code> can only insert into backup and audit tables, with zero SELECT or DELETE capabilities).</li><li><strong>Deterministic Posture Auditing:</strong> Nexus Shield continuously validates 11 host security benchmarks (including TLS expiry, open ports, SSH root-login flags, and backup freshness), converting raw systemd telemetry into prioritized remediation advice.</li></ul>",
+    { order: 4 },
+  ),
+  item(
+    "story_chapter",
+    "05-skills-gained",
+    "Skills & Technical Growth",
+    "public",
+    "<p>Throughout this internship, the project demanded rigorous full-stack systems engineering rather than isolated frontend coding. Core competencies developed include:</p><ul><li>Advanced Linux systems administration (systemd service units, timers, polkit policies, journalctl parsing, and PAM/SELinux security postures).</li><li>Modern Next.js 16 App Router architecture, TypeScript strict type safety, and Test-Driven Development (TDD) using Vitest and Playwright.</li><li>Database schema design, zero-downtime migration scripts, and transactional integrity with Kysely and MariaDB.</li><li>Automated infrastructure testing, cryptographic credential management, and WCAG 2.2 AA accessibility compliance.</li></ul>",
+    { order: 5 },
+  ),
+  item(
+    "story_chapter",
+    "06-team-thanks",
+    "Team Thanks & Acknowledgments",
+    "public",
+    "<p>Special thanks to the YTL Communications IT Infrastructure team mentors—Logesh, Azlin, and Sonu—for their technical guidance, architecture critiques, and continuous support throughout the project. Their insights into real-world datacenter operations and infrastructure resilience made this platform possible.</p><p><em>Disclaimer: YTL Nexus is an internship project, not an official YTL commercial product.</em></p>",
+    { order: 6 },
+  ),
+
   item(
     "announcement",
     "planned-maintenance-example",
@@ -107,13 +144,137 @@ export const contentFixtures: readonly ContentItem[] = [
     "public",
     "<p>This is a sample notice. Real notices written in Nexus Studio appear here and in Nexus Status.</p>",
   ),
+
+  // ---- TOUR STEPS (TOUR-01, TOUR-02, TOUR-03) --------------------------------
   item(
     "tour_step",
-    "tour-welcome",
-    "Welcome",
+    "tour-01-welcome",
+    "Welcome to YTL Nexus",
     "public",
-    "<p>This tour walks through each module using sample data only.</p>",
+    "<p>YTL Nexus unifies infrastructure monitoring, local AI, enterprise mail, secure file transfer, database management, and content publishing into a single high-performance platform on Rocky Linux.</p><p>This guided tour walks through every core module using deterministic demo fixtures. Press Next or use your keyboard arrow keys to navigate.</p>",
+    { order: 1, relatedService: "nexus-web" },
   ),
+  item(
+    "tour_step",
+    "tour-02-command",
+    "Nexus Command: Telemetry & Host Health",
+    "public",
+    "<p>Nexus Command delivers real-time observability into Nexus Core 01. Live CPU, memory, disk I/O, and network metrics are rendered via high-performance charts alongside an ambient particle field that dynamically reflects overall server health.</p>",
+    { order: 2, relatedService: "nexus-prometheus" },
+  ),
+  item(
+    "tour_step",
+    "tour-03-atlas",
+    "Nexus Atlas: Service Topology Graph",
+    "public",
+    "<p>Nexus Atlas visualizes the live dependency graph across all nine platform services. Inspect upstream dependencies, downstream consumers, real-time health badges, and direct links to operational runbooks.</p>",
+    { order: 3, relatedService: "nexus-atlas" },
+  ),
+  item(
+    "tour_step",
+    "tour-04-status",
+    "Nexus Status: Incidents & Uptime",
+    "public",
+    "<p>Nexus Status publishes 30-day uptime records and active operational notices. Role-segregated views allow public visitors to track service status while authorized operators can manage and resolve incidents.</p>",
+    { order: 4, relatedService: "nexus-status" },
+  ),
+  item(
+    "tour_step",
+    "tour-05-ai",
+    "Nexus AI: Grounded Local Intelligence",
+    "public",
+    "<p>Powered by local Gemma 3 models via Ollama, Nexus AI provides real-time streaming answers grounded in internal runbooks and technical documentation, with cited source references and explainable diagnostic analysis.</p>",
+    { order: 5, relatedService: "nexus-ollama" },
+  ),
+  item(
+    "tour_step",
+    "tour-06-transfer",
+    "Nexus Transfer: Enterprise SFTP & File Sync",
+    "public",
+    "<p>Built on SFTPGo, Nexus Transfer provides end-to-end encrypted file exchange with per-user quotas, SSH public key authentication, and audit logs for internal and partner data synchronization.</p>",
+    { order: 6, relatedService: "nexus-sftpgo" },
+  ),
+  item(
+    "tour_step",
+    "tour-07-mail",
+    "Nexus Mail: Unified Webmail & IMAP/SMTP",
+    "public",
+    "<p>Nexus Mail integrates Postfix and Dovecot with Roundcube Webmail, featuring SHA-512 crypt password hashing, internal CA TLS encryption, and responsive webmail within the Nexus dark theme.</p>",
+    { order: 7, relatedService: "nexus-mail" },
+  ),
+  item(
+    "tour_step",
+    "tour-08-data",
+    "Nexus Data: Relational Asset Inventory",
+    "public",
+    "<p>Nexus Data presents an interactive interface for querying and managing infrastructure assets, cell sites, and support tickets with field-level search, pagination, and CSV exports backed by MariaDB.</p>",
+    { order: 8, relatedService: "nexus-db" },
+  ),
+  item(
+    "tour_step",
+    "tour-09-library",
+    "Nexus Library: Knowledge Base & Runbooks",
+    "public",
+    "<p>The central knowledge repository for operating procedures, FAQs, and platform runbooks, synchronized seamlessly from headless WordPress via signed revalidation webhooks.</p>",
+    { order: 9, relatedService: "nexus-wordpress" },
+  ),
+  item(
+    "tour_step",
+    "tour-10-studio",
+    "Nexus Studio: Headless Content Authoring",
+    "public",
+    "<p>An isolated WordPress instance configured exclusively as a headless content store, protected by two-factor authentication and strict IP allowlisting.</p>",
+    { order: 10, relatedService: "nexus-wordpress" },
+  ),
+  item(
+    "tour_step",
+    "tour-11-continuity",
+    "Nexus Continuity: Verified Backups & Drills",
+    "public",
+    "<p>Continuity ensures operational resilience by monitoring automated daily database and filesystem backups alongside weekly verification restore drills across all nine platform services.</p>",
+    { order: 11, relatedService: "nexus-continuity" },
+  ),
+  item(
+    "tour_step",
+    "tour-12-shield",
+    "Nexus Shield: Security Posture Assessment",
+    "public",
+    "<p>Nexus Shield performs automated daily security audits evaluating TLS certificate validity, firewall configuration, open ports, SSH hardening, and kernel update statuses with clear remediation guidance.</p>",
+    { order: 12, relatedService: "nexus-shield" },
+  ),
+  item(
+    "tour_step",
+    "tour-13-story",
+    "Project Story: Internship Case Study",
+    "public",
+    "<p>The engineering case study documenting how YTL Nexus was built: the starting point, architecture trade-offs, security lessons learned, technical competencies gained, and team acknowledgments.</p>",
+    { order: 13, relatedService: "nexus-web" },
+  ),
+  item(
+    "tour_step",
+    "tour-14-control",
+    "Nexus Control: Centralized Governance",
+    "public",
+    "<p>The administrative control plane for user lifecycle management, role-based access delegation, SFTP accounts, virtual mailboxes, and authorized system service operations.</p>",
+    { order: 14, relatedService: "nexus-control" },
+  ),
+  item(
+    "tour_step",
+    "tour-15-yes",
+    "Yes Experience: Brand Showcase",
+    "public",
+    "<p>A showcase of the Yes 5G customer experience featuring cherry-blossom animations, plans, coverage checker, support flows, and the public Yes 5G AI Assistant.</p>",
+    { order: 15, relatedService: "nexus-yes" },
+  ),
+  item(
+    "tour_step",
+    "tour-16-summary",
+    "Tour Complete: Ready for Exploration",
+    "public",
+    "<p>You have explored all 15 core modules of YTL Nexus. Experience the platform live or continue browsing with demo personas across different access levels.</p>",
+    { order: 16, relatedService: "nexus-web" },
+  ),
+
   item(
     "mail_help",
     "signing-in-to-webmail",
