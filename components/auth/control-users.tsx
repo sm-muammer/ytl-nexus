@@ -9,8 +9,18 @@ import {
   resetPasswordAction,
   revokeSessionsAction,
 } from "@/lib/server/control-actions";
+import {
+  setQuotaAction,
+  addKeyAction,
+  removeKeyAction,
+} from "@/lib/server/transfer-actions";
+import { setMailboxQuotaAction } from "@/lib/server/mail-actions";
 import { ROLE_LABEL, ROLES, type Role } from "@/lib/roles";
 import { SubmitButton, inputClass } from "./form-parts";
+import type { TransferAccount } from "@/lib/transfer/types";
+import type { MailAccount } from "@/lib/mail/types";
+import { formatBytes, usagePercent } from "@/lib/transfer/format";
+import { QUOTA_MB_MAX, QUOTA_MB_MIN } from "@/lib/transfer/validation";
 
 export type ControlUser = {
   id: string;
@@ -20,6 +30,8 @@ export type ControlUser = {
   banned?: boolean;
   twoFactorEnabled: boolean;
   activeSessions: number;
+  transferAccount?: TransferAccount | null;
+  mailAccount?: MailAccount | null;
 };
 
 function CreateUser({ demo }: { demo?: boolean }) {
@@ -277,6 +289,289 @@ function RevokeSessions({ user, demo }: { user: ControlUser; demo?: boolean }) {
   );
 }
 
+function UserStorage({
+  user,
+  demo,
+}: {
+  user: ControlUser;
+  demo?: boolean;
+}) {
+  const [transferState, transferAction] = useActionState(setQuotaAction, null);
+  const [mailState, mailAction] = useActionState(setMailboxQuotaAction, null);
+  const [keyState, keyAction] = useActionState(addKeyAction, null);
+  const [, removeKey] = useActionState(removeKeyAction, null);
+
+  const transfer = user.transferAccount;
+  const mail = user.mailAccount;
+
+  const transferPercent = transfer
+    ? usagePercent(transfer.usedBytes, transfer.quotaBytes)
+    : null;
+
+  return (
+    <div className="border-line/60 bg-surface/50 mt-4 rounded-xl border p-4.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/40 pb-3">
+        <div>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted">
+            Storage & Subsystem Access
+          </h4>
+          <p className="text-data text-muted mt-0.5">
+            Single-account storage limits and quotas for SFTP transfers and
+            mailbox storage.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-6 md:grid-cols-2">
+        {/* File Transfer Quota */}
+        <div className="flex flex-col justify-between gap-3 rounded-lg border border-line/40 bg-surface-raised/30 p-3.5">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium">File Portal & SFTP</span>
+              {transfer ? (
+                <span className="text-data text-xs text-emerald-400">
+                  {transfer.enabled ? "Active" : "Disabled"}
+                </span>
+              ) : (
+                <span className="text-data text-xs text-muted">
+                  Auto-provisioned on login
+                </span>
+              )}
+            </div>
+            {transfer ? (
+              <div className="mt-2 text-xs">
+                <p className="text-muted text-data">
+                  {formatBytes(transfer.usedBytes)} used of{" "}
+                  {transfer.quotaBytes > 0
+                    ? formatBytes(transfer.quotaBytes)
+                    : "no limit"}
+                  {transferPercent !== null ? ` (${transferPercent}%)` : ""}
+                </p>
+                {transferPercent !== null ? (
+                  <div className="bg-surface-elevated mt-1.5 h-1.5 w-full overflow-hidden rounded-full">
+                    <div
+                      className={`h-full ${transferPercent >= 90 ? "bg-rose-500" : "bg-sky-400"}`}
+                      style={{ width: `${Math.min(transferPercent, 100)}%` }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          {transfer ? (
+            <form action={transferAction} className="flex flex-col gap-2">
+              <input type="hidden" name="username" value={transfer.username} />
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor={`transfer-quota-${user.id}`}
+                  className="text-muted text-data text-xs shrink-0"
+                >
+                  Limit (MB):
+                </label>
+                <input
+                  id={`transfer-quota-${user.id}`}
+                  name="quotaMb"
+                  type="number"
+                  min={QUOTA_MB_MIN}
+                  max={QUOTA_MB_MAX}
+                  disabled={demo}
+                  defaultValue={
+                    transfer.quotaBytes > 0
+                      ? Math.round(transfer.quotaBytes / (1024 * 1024))
+                      : 1024
+                  }
+                  className="border-line bg-surface rounded px-2 py-1 text-xs font-mono w-24"
+                />
+                <SubmitButton variant="quiet" pendingLabel="Saving" disabled={demo}>
+                  Save
+                  <span className="sr-only"> transfer quota for {user.email}</span>
+                </SubmitButton>
+              </div>
+              <div role="status" aria-live="polite" className="text-xs">
+                {transferState && "error" in transferState ? (
+                  <span className="text-bad-ink">{transferState.error}</span>
+                ) : null}
+                {transferState && "done" in transferState ? (
+                  <span className="text-emerald-400">
+                    File transfer limit updated.
+                  </span>
+                ) : null}
+              </div>
+            </form>
+          ) : (
+            <p className="text-muted text-data text-xs">
+              Portal account initializes automatically when {user.name} visits
+              Nexus Transfer.
+            </p>
+          )}
+        </div>
+
+        {/* Mailbox Quota */}
+        <div className="flex flex-col justify-between gap-3 rounded-lg border border-line/40 bg-surface-raised/30 p-3.5">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium">Internal Mailbox</span>
+              {mail ? (
+                <span className="text-data text-xs text-emerald-400">
+                  {mail.enabled ? "Active" : "Disabled"}
+                </span>
+              ) : (
+                <span className="text-data text-xs text-muted">
+                  Auto-provisioned on login
+                </span>
+              )}
+            </div>
+            {mail ? (
+              <div className="mt-2 text-xs">
+                <p className="font-mono text-muted text-data truncate">
+                  {mail.address}
+                </p>
+                <p className="text-muted text-data mt-0.5">
+                  Limit:{" "}
+                  {mail.quotaBytes > 0
+                    ? formatBytes(mail.quotaBytes)
+                    : "no limit"}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          {mail ? (
+            <form action={mailAction} className="flex flex-col gap-2">
+              <input type="hidden" name="address" value={mail.address} />
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor={`mail-quota-${user.id}`}
+                  className="text-muted text-data text-xs shrink-0"
+                >
+                  Limit (MB):
+                </label>
+                <input
+                  id={`mail-quota-${user.id}`}
+                  name="quotaMb"
+                  type="number"
+                  min={QUOTA_MB_MIN}
+                  max={QUOTA_MB_MAX}
+                  disabled={demo}
+                  defaultValue={
+                    mail.quotaBytes > 0
+                      ? Math.round(mail.quotaBytes / (1024 * 1024))
+                      : 1024
+                  }
+                  className="border-line bg-surface rounded px-2 py-1 text-xs font-mono w-24"
+                />
+                <SubmitButton variant="quiet" pendingLabel="Saving" disabled={demo}>
+                  Save
+                  <span className="sr-only"> mailbox quota for {user.email}</span>
+                </SubmitButton>
+              </div>
+              <div role="status" aria-live="polite" className="text-xs">
+                {mailState && "error" in mailState ? (
+                  <span className="text-bad-ink">{mailState.error}</span>
+                ) : null}
+                {mailState && "done" in mailState ? (
+                  <span className="text-emerald-400">Mailbox limit updated.</span>
+                ) : null}
+              </div>
+            </form>
+          ) : (
+            <p className="text-muted text-data text-xs">
+              Mailbox initializes automatically when {user.name} visits Nexus
+              Mail.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* SSH Keys (if user has transfer account) */}
+      {transfer ? (
+        <div className="mt-4 border-t border-line/30 pt-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium">Public SSH Keys (SFTP)</span>
+            <span className="text-muted text-data text-xs">
+              {transfer.keys.length} of 10 keys
+            </span>
+          </div>
+          {transfer.keys.length > 0 ? (
+            <ul className="mt-2 divide-y divide-line/20 border-y border-line/20">
+              {transfer.keys.map((k) => (
+                <li
+                  key={k.fingerprint}
+                  className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-xs font-mono"
+                >
+                  <span className="break-all text-muted">
+                    {k.fingerprint}{" "}
+                    <span className="font-sans text-xs">({k.comment || k.type})</span>
+                  </span>
+                  <form action={removeKey}>
+                    <input
+                      type="hidden"
+                      name="username"
+                      value={transfer.username}
+                    />
+                    <input
+                      type="hidden"
+                      name="fingerprint"
+                      value={k.fingerprint}
+                    />
+                    <SubmitButton
+                      variant="quiet"
+                      pendingLabel="Removing"
+                      disabled={demo}
+                    >
+                      Remove
+                      <span className="sr-only"> key {k.fingerprint}</span>
+                    </SubmitButton>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted text-data mt-1 text-xs">
+              No SSH keys registered. Authenticates with SSO password.
+            </p>
+          )}
+
+          {transfer.keys.length < 10 ? (
+            <details className="mt-2 text-xs">
+              <summary className="cursor-pointer text-muted hover:text-ink font-medium">
+                Add public key for {transfer.username}
+              </summary>
+              <form action={keyAction} className="mt-2 flex flex-col gap-2">
+                <input
+                  type="hidden"
+                  name="username"
+                  value={transfer.username}
+                />
+                <textarea
+                  name="publicKey"
+                  required
+                  placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... user@host"
+                  rows={2}
+                  disabled={demo}
+                  className="border-line bg-surface rounded-md border p-2 font-mono text-xs w-full"
+                />
+                <div className="flex items-center gap-2">
+                  <SubmitButton variant="quiet" pendingLabel="Adding" disabled={demo}>
+                    Add key
+                  </SubmitButton>
+                  {keyState && "error" in keyState ? (
+                    <span className="text-bad-ink">{keyState.error}</span>
+                  ) : null}
+                  {keyState && "done" in keyState ? (
+                    <span className="text-emerald-400">Public key added.</span>
+                  ) : null}
+                </div>
+              </form>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** Complete accounts management in Nexus Control (CTL-02). */
 export function ControlUsers({
   users,
@@ -293,43 +588,48 @@ export function ControlUsers({
         {users.map((user) => (
           <li
             key={user.id}
-            className="flex flex-col gap-5 py-5 lg:flex-row lg:items-start lg:justify-between"
+            className="flex flex-col gap-5 py-5"
             data-user-row
           >
-            <div className="min-w-0 max-w-sm flex-1 shrink-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-medium">{user.name}</p>
-                {user.banned ? (
-                  <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-xs font-semibold text-rose-300 uppercase">
-                    Disabled
-                  </span>
-                ) : (
-                  <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-xs font-semibold text-emerald-300 uppercase">
-                    Active
-                  </span>
-                )}
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0 max-w-sm flex-1 shrink-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">{user.name}</p>
+                  {user.banned ? (
+                    <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-xs font-semibold text-rose-300 uppercase">
+                      Disabled
+                    </span>
+                  ) : (
+                    <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-xs font-semibold text-emerald-300 uppercase">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-muted text-data mt-0.5 truncate">{user.email}</p>
+                <p className="text-muted text-data mt-1">
+                  {ROLE_LABEL[user.role]}
+                  {" · "}
+                  {user.twoFactorEnabled
+                    ? "Two-factor active"
+                    : "Two-factor not enrolled"}
+                  {" · "}
+                  {user.activeSessions === 1
+                    ? "1 active session"
+                    : `${user.activeSessions} active sessions`}
+                </p>
               </div>
-              <p className="text-muted text-data mt-0.5 truncate">{user.email}</p>
-              <p className="text-muted text-data mt-1">
-                {ROLE_LABEL[user.role]}
-                {" · "}
-                {user.twoFactorEnabled
-                  ? "Two-factor active"
-                  : "Two-factor not enrolled"}
-                {" · "}
-                {user.activeSessions === 1
-                  ? "1 active session"
-                  : `${user.activeSessions} active sessions`}
-              </p>
+
+              <div className="flex min-w-0 flex-1 flex-wrap items-start justify-start gap-2.5 lg:justify-end">
+                <ChangeRole user={user} demo={demo} />
+                <ToggleEnabled user={user} demo={demo} />
+                <ResetPassword user={user} demo={demo} />
+                <ResetTwoFactor user={user} demo={demo} />
+                <RevokeSessions user={user} demo={demo} />
+              </div>
             </div>
 
-            <div className="flex min-w-0 flex-1 flex-wrap items-start justify-start gap-2.5 lg:justify-end">
-              <ChangeRole user={user} demo={demo} />
-              <ToggleEnabled user={user} demo={demo} />
-              <ResetPassword user={user} demo={demo} />
-              <ResetTwoFactor user={user} demo={demo} />
-              <RevokeSessions user={user} demo={demo} />
-            </div>
+            {/* Storage Quotas & Service Management per User */}
+            <UserStorage user={user} demo={demo} />
           </li>
         ))}
       </ul>

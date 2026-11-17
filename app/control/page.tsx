@@ -40,6 +40,20 @@ export default async function ControlPage() {
   const mail = stepUpRequired ? null : await readAllMailboxes();
   const auditEvents = stepUpRequired ? [] : await listAuditEvents({}, 100);
 
+  const transferAccounts = transfer?.state === "ready" ? transfer.accounts : [];
+  const mailAccounts = mail?.state === "ready" ? mail.accounts : [];
+
+  const transferByNexusId = new Map(
+    transferAccounts.map((a) => [a.nexusUserId, a]),
+  );
+  const mailByNexusId = new Map(mailAccounts.map((a) => [a.nexusUserId, a]));
+
+  const usersWithServices = users.map((u) => ({
+    ...u,
+    transferAccount: transferByNexusId.get(u.id) ?? null,
+    mailAccount: mailByNexusId.get(u.id) ?? null,
+  }));
+
   return (
     <ControlShell>
       <PageTransition>
@@ -83,88 +97,96 @@ export default async function ControlPage() {
                       not persist.
                     </p>
                   ) : null}
-                  <ControlUsers users={users} demo={demo} />
+                  <ControlUsers users={usersWithServices} demo={demo} />
                 </section>
 
-                {/* 2. File Transfer Accounts */}
-                {transfer ? (
-                  <section
-                    aria-labelledby="transfer-title"
-                    className="flex flex-col gap-4"
-                    data-control-transfer
-                  >
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h2
-                        id="transfer-title"
-                        className="text-heading-3 font-semibold"
+                {/* Legacy Subsystem Tables: Details & Unlinked Service Accounts */}
+                <details className="group border-line rounded-xl border p-5">
+                  <summary className="cursor-pointer text-sm font-semibold text-muted hover:text-ink">
+                    Advanced Subsystems: Direct SFTPGo & Virtual Mailbox Tables
+                  </summary>
+                  <div className="mt-6 flex flex-col gap-10">
+                    {/* 2. File Transfer Accounts */}
+                    {transfer ? (
+                      <section
+                        aria-labelledby="transfer-title"
+                        className="flex flex-col gap-4"
+                        data-control-transfer
                       >
-                        File Transfer Accounts (SFTPGo)
-                      </h2>
-                    </div>
-                    {demo ? (
-                      <p className="text-muted text-data max-w-(--spacing-prose)">
-                        Demo session: these accounts are examples and file
-                        controls are switched off.
-                      </p>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h2
+                            id="transfer-title"
+                            className="text-heading-3 font-semibold"
+                          >
+                            File Transfer Accounts (SFTPGo)
+                          </h2>
+                        </div>
+                        {demo ? (
+                          <p className="text-muted text-data max-w-(--spacing-prose)">
+                            Demo session: these accounts are examples and file
+                            controls are switched off.
+                          </p>
+                        ) : null}
+                        {transfer.state === "ready" ? (
+                          <ControlTransfer
+                            accounts={transfer.accounts}
+                            people={users.map((u) => ({
+                              id: u.id,
+                              name: u.name,
+                              email: u.email,
+                            }))}
+                            demo={demo}
+                          />
+                        ) : (
+                          <p className="text-muted max-w-(--spacing-prose)">
+                            The file transfer service did not answer. Check its
+                            status on the services section below.
+                          </p>
+                        )}
+                      </section>
                     ) : null}
-                    {transfer.state === "ready" ? (
-                      <ControlTransfer
-                        accounts={transfer.accounts}
-                        people={users.map((u) => ({
-                          id: u.id,
-                          name: u.name,
-                          email: u.email,
-                        }))}
-                        demo={demo}
-                      />
-                    ) : (
-                      <p className="text-muted max-w-(--spacing-prose)">
-                        The file transfer service did not answer. Check its
-                        status on the services section below.
-                      </p>
-                    )}
-                  </section>
-                ) : null}
 
-                {/* 3. Mailboxes */}
-                {mail ? (
-                  <section
-                    aria-labelledby="mail-title"
-                    className="flex flex-col gap-4"
-                    data-control-mail
-                  >
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h2
-                        id="mail-title"
-                        className="text-heading-3 font-semibold"
+                    {/* 3. Mailboxes */}
+                    {mail ? (
+                      <section
+                        aria-labelledby="mail-title"
+                        className="flex flex-col gap-4"
+                        data-control-mail
                       >
-                        Mailboxes & Virtual Accounts
-                      </h2>
-                    </div>
-                    {demo ? (
-                      <p className="text-muted text-data max-w-(--spacing-prose)">
-                        Demo session: these mailboxes are examples and every
-                        control is simulated.
-                      </p>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h2
+                            id="mail-title"
+                            className="text-heading-3 font-semibold"
+                          >
+                            Mailboxes & Virtual Accounts
+                          </h2>
+                        </div>
+                        {demo ? (
+                          <p className="text-muted text-data max-w-(--spacing-prose)">
+                            Demo session: these mailboxes are examples and every
+                            control is simulated.
+                          </p>
+                        ) : null}
+                        {mail.state === "ready" ? (
+                          <ControlMail
+                            accounts={mail.accounts}
+                            people={users.map((u) => ({
+                              id: u.id,
+                              name: u.name,
+                              email: u.email,
+                            }))}
+                            demo={demo}
+                          />
+                        ) : (
+                          <p className="text-muted max-w-(--spacing-prose)">
+                            The mail database did not answer. Check it on the
+                            services section below.
+                          </p>
+                        )}
+                      </section>
                     ) : null}
-                    {mail.state === "ready" ? (
-                      <ControlMail
-                        accounts={mail.accounts}
-                        people={users.map((u) => ({
-                          id: u.id,
-                          name: u.name,
-                          email: u.email,
-                        }))}
-                        demo={demo}
-                      />
-                    ) : (
-                      <p className="text-muted max-w-(--spacing-prose)">
-                        The mail database did not answer. Check it on the
-                        services section below.
-                      </p>
-                    )}
-                  </section>
-                ) : null}
+                  </div>
+                </details>
 
                 {/* 4. Service Actions (Allowlist) */}
                 <section
