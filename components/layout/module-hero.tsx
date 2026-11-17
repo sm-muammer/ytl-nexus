@@ -26,7 +26,7 @@ export function ModuleHero({
 }) {
   if (register === "workspace") {
     return (
-      <div className="border-line border-b px-(--spacing-gutter) py-6">
+      <div className="px-(--spacing-gutter) py-6">
         {page.parent ? (
           <nav aria-label="Breadcrumb" className="text-data mb-1">
             <Link
@@ -48,7 +48,7 @@ export function ModuleHero({
   }
 
   return (
-    <div className="border-line border-b">
+    <div>
       <div className="px-(--spacing-gutter) py-(--spacing-section)">
         <Rise>
           <span

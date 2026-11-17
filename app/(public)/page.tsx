@@ -21,7 +21,7 @@ export default function HomePage() {
         <Backdrop path="/" />
         <section
           aria-labelledby="home-title"
-          className="border-line flex min-h-[78dvh] flex-col justify-center border-b"
+          className="flex min-h-[78dvh] flex-col justify-center"
         >
           <div className="px-(--spacing-gutter) py-(--spacing-section)">
             <Rise>
