@@ -46,20 +46,22 @@
 
 ## Task log
 
-### Platform UX & Auth Adjustments (done 2026-11-17)
+### Platform UX, SSO & Auth Adjustments (done 2026-11-17)
 
+- **Single Sign-On (1 Login For All Things):**
+  - **Nexus Webmail (Roundcube):** Implemented native auto-login plugin `nexus_sso` for Roundcube Webmail on `/var/www/webmail/plugins/nexus_sso/` coupled with Dovecot master user authentication. When a user logs in to Nexus at `/signin`, navigating to `/mail` now transparently and automatically authenticates the user into their webmail inbox without any password prompt.
+  - **Auto-Provisioned Mailbox:** Linked user account to internal mailbox (`muammer@ytl-nexus.internal`).
+  - **Nexus Transfer (SFTPGo):** Implemented seamless authentication bridge via `/api/transfer/sso-ticket` and SFTPGo WebClient auto-signin in `baselogin.html`. When accessing `/transfer`, the embedded transfer panel seamlessly authenticates with their active Nexus credentials.
+- **Removed Live Mode & Demo Badges:**
+  - Removed `<EnvironmentBadge />` ("Live mode") from the top navigation header (`components/layout/site-header.tsx`), footer (`components/layout/site-footer.tsx`), and mobile navigation sheet (`components/layout/nav-sheet.tsx`).
+  - Removed all `<LiveDemoLabel />` pills from all module pages, keeping indicators exclusively on `/status` (`app/(public)/status/page.tsx`).
 - **Idle Logout Timer:**
   - Extended session idle expiry from 30 minutes to **1 hour (60 minutes)** in `lib/server/auth/rules.ts` (`IDLE_TIMEOUT_MS = 60 * MINUTE`).
-  - Updated all unit and integration auth test suites (`tests/unit/auth-rules.test.ts`) and security documentation (`docs/security/auth.md`).
-- **Live/Demo Badge Cleanup:**
-  - Removed all pill-shaped `<LiveDemoLabel />` and live/demo indicators across every page, header, and footer (`components/layout/site-footer.tsx`, `components/layout/module-page.tsx`, `/mail`, `/transfer`, `/command`, `/command/metrics`, `/command/core-01`, `/command/services`, `/atlas`, `/data`, `/ai`, `/continuity`, `/shield`, `/control`, and `/tour`).
-  - **Preserved exclusively on `/status`** (`app/(public)/status/page.tsx`) as instructed.
-  - Updated all end-to-end tests (`tests/e2e/shell.spec.ts`, `shield.spec.ts`, `transfer.spec.ts`, `atlas.spec.ts`, `command.spec.ts`, `data.spec.ts`, `mail.spec.ts`) to match the clean design.
-- **Integrated In-App Workspace Panels for Mail & Transfer:**
-  - Upgraded `/mail` and `/transfer` from simple redirect buttons to embedded native in-app viewports with dedicated full-height frames (`780px`) styled within the Nexus dark token system.
-  - Added "Pop out window" controls for power users wishing to view in a dedicated separate tab while retaining the seamless in-app portal by default.
-- **Verification:**
-  - `npm run check` passes 100% clean across all 73 test files (986 tests).
+- **Embedded In-App Workspaces:**
+  - Integrated both Nexus Mail and Nexus Transfer directly inside the workspace layout using native styled iframe viewports (`780px` height) with pop-out options.
+- **Verification & Deployment:**
+  - All test suites passing.
+  - Deployed cleanly to Nexus Core 01 (`sn1lyvx1d0002.ytlcomms.my`, `10.26.64.164`) via `infrastructure/scripts/deploy-remote`. Health checks all reported `ok`.
 
 ### Task 20: Quality, motion and 4K pass (done 2026-11-17)
 
