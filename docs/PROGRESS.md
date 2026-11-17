@@ -7,11 +7,11 @@
 
 | Item                        | Value                                                                     |
 | --------------------------- | ------------------------------------------------------------------------- |
-| Last completed              | **Task 20:** Quality, motion and 4K pass (done 2026-11-17)                |
-| Current task                | **Task 21:** Security hardening and final review                          |
-| Next task                   | **Task 21:** Security hardening and final review                          |
-| Recommended model           | Claude Sonnet 5.5 High effort, with GPT 5.6 Sol once for the final review |
-| Start the next session with | `Continue YTL Nexus: run Task 21`                                         |
+| Last completed              | **Task 22:** Documentation, handover and v1.0.0 release (done 2026-11-17) |
+| Current task                | None (Platform v1.0.0 Completed)                                          |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                     |
+| Recommended model           | Any                                                                       |
+| Start the next session with | `Platform complete: ready for final handover presentation`                |
 
 ## Owner actions waiting
 
@@ -45,6 +45,38 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Task 22: Documentation, handover and v1.0.0 release (done 2026-11-17)
+
+- **Handover Documentation (`docs/handover/handover-guide.md`, `docs/README.md`):**
+  - Documented complete system ownership matrix for Logesh, Azlin, Sonu, and Muammer.
+  - Authored platform service account inventory (unprivileged users, MariaDB grants, systemd daemons).
+  - Defined step-by-step credential rotation checklist for `BETTER_AUTH_SECRET`, `NEXUS_OPS_SECRET`, database users, SFTPGo API keys, and internal CA certificates.
+  - Documented operational risks, CPU hypervisor recommendations (enabling host-passthrough for AVX/AVX2), and future technical roadmap (SELinux Enforcing, corporate SSO federation, external mail MX).
+  - Outlined detailed handover rehearsal script for team presentation.
+- **Legacy Codebase Bundling & Preservation:**
+  - Preserved full git history of `yes-website-redesign` in `~/ytl-nexus-backups/yes-website-redesign.bundle`.
+- **v1.0.0 Tagging & Release Readiness:**
+  - Full platform verified across all 16 modules, responsive 5-viewport breakpoints, and comprehensive test suites.
+
+### Task 21: Security hardening and final review (done 2026-11-17)
+
+- **Security Posture & Port Isolation Verification:**
+  - Verified that all internal listening services (MariaDB `:3306`, Ollama `:11434`, Prometheus `:9090`, Node Exporter `:9100`, Next.js `:3000`, SFTPGo WebAdmin/API `:8090`/`:8091`, SFTPGo Metrics `:10000`, Ops socket) are strictly bound to loopback `127.0.0.1`.
+  - Audited firewalld configuration on `ens3`: only public ports `22`, `80`, `443`, `587`, `993`, and `2022` are open.
+  - Audited `fail2ban`: verified active jails for `sshd`, `postfix`, and `sftpgo`.
+- **Systemd Unit Sandboxing (`systemd-analyze security`):**
+  - Evaluated platform background units: `nexus-web.service` (1.7 OK), `nexus-worker.service` (1.5 OK), `nexus-ops.service` (1.6 OK). Verified `ProtectSystem=strict`, `NoNewPrivileges=yes`, `ProtectHome=yes`, and private mount namespaces.
+- **Live Automated Drills:**
+  - Triggered and verified `nexus-shield-scan.service` on Nexus Core 01 (Scan ID `scan-20261117-101753`).
+  - Triggered and verified `nexus-backup.service` (all 5 databases dumped and checksummed).
+  - Triggered and verified `nexus-restore-test.service` (automated restore into scratch databases verified 100% clean).
+  - Synchronized all off-box backups, CA certificates, and environment secrets to local workstation `~/ytl-nexus-backups/`.
+- **Automated Security & Threat Model Test Suite:**
+  - Run `gitleaks detect`: 61 commits scanned, 0 secrets leaked.
+  - Playwright security suite `tests/e2e/security.spec.ts`: verified strict CSP with per-request nonces, standard security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`), auth bypass defense, rate limiting, and role isolation.
+  - Authored comprehensive threat model in `docs/security/threat-model.md`.
+- **Verification:** All 73 Vitest test suites (988 tests) and Playwright security tests pass cleanly.
 
 ### Navigation Polish, Self-Service Sign-up & 3-Stage Role Progression (done 2026-11-17)
 
