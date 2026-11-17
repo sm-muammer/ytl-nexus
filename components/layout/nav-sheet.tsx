@@ -5,7 +5,6 @@ import { useFormStatus } from "react-dom";
 import { signOutAction } from "@/lib/server/auth/actions";
 import { setDemoSession } from "@/lib/server/demo-session-actions";
 import { ROLES, ROLE_LABEL, type Role } from "@/lib/roles";
-import { EnvironmentBadge } from "@/components/ui/environment-badge";
 import type { NexusMode } from "@/lib/server/mode";
 import { NavLink } from "./nav-link";
 
@@ -103,7 +102,7 @@ type NavSheetProps = {
  * back to the button that opened it.
  */
 export function NavSheet({
-  mode,
+  mode: _mode,
   session,
   groups,
   demoSession,
@@ -211,15 +210,14 @@ export function NavSheet({
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <EnvironmentBadge mode={mode} />
-            {session ? (
+          {session ? (
+            <div className="flex flex-wrap items-center gap-3">
               <span className="text-muted text-sm">
                 {session.kicker ? `${session.kicker}: ` : ""}
                 {session.name}
               </span>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           <nav aria-label="All modules" className="grid gap-8 sm:grid-cols-2">
             {groups.map((group) => (

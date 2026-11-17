@@ -202,6 +202,12 @@ export const HANDLER_POLICY: readonly HandlerPolicy[] = [
     path: "/api/control/audit/export",
     ...CONTROL,
   },
+  {
+    id: "transfer.sso-ticket",
+    method: "GET",
+    path: "/api/transfer/sso-ticket",
+    minRole: "viewer",
+  },
 ];
 
 export function policyForHandler(id: string): HandlerPolicy {

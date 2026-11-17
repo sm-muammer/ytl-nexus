@@ -14,6 +14,7 @@ import {
   PublicServiceList,
   ServiceHistoryTable,
 } from "@/components/status/status-parts";
+import { EnvironmentBadge } from "@/components/ui/environment-badge";
 import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { meetsRole } from "@/lib/roles";
 import { pageInfo } from "@/lib/navigation/modules";
@@ -58,6 +59,7 @@ export default async function StatusPage() {
                 </h2>
                 <OverallBanner services={view.services} />
                 <p className="text-data mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <EnvironmentBadge mode={demo ? "demo" : "live"} />
                   <LiveDemoLabel source={view.source} />
                   <span className="text-muted">
                     Read {formatTime(view.takenAt)}. Checks run every minute.

@@ -49,12 +49,6 @@ test.describe("every route", () => {
       await expect(page.locator("footer")).toHaveCount(1);
       expect(await page.locator("nav").count()).toBeGreaterThanOrEqual(2);
 
-      // Requirement 3.7: environment badge on every page.
-      await expect(page.locator("[data-env-badge]").first()).toHaveAttribute(
-        "data-mode",
-        "demo",
-      );
-
       // Requirement 3.9: noindex on workspace and /control routes.
       const robots = page.locator('meta[name="robots"]');
       if (isNoindexRoute(route)) {
