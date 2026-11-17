@@ -28,6 +28,12 @@ export type ControlUser = {
   email: string;
   role: Role;
   banned?: boolean;
+  banReason?: string | null;
+  stageRequest?: {
+    role: Role;
+    requestedAt: string;
+    reason?: string;
+  } | null;
   twoFactorEnabled: boolean;
   activeSessions: number;
   transferAccount?: TransferAccount | null;
@@ -289,13 +295,7 @@ function RevokeSessions({ user, demo }: { user: ControlUser; demo?: boolean }) {
   );
 }
 
-function UserStorage({
-  user,
-  demo,
-}: {
-  user: ControlUser;
-  demo?: boolean;
-}) {
+function UserStorage({ user, demo }: { user: ControlUser; demo?: boolean }) {
   const [transferState, transferAction] = useActionState(setQuotaAction, null);
   const [mailState, mailAction] = useActionState(setMailboxQuotaAction, null);
   const [keyState, keyAction] = useActionState(addKeyAction, null);
@@ -310,9 +310,9 @@ function UserStorage({
 
   return (
     <div className="border-line/60 bg-surface/50 mt-4 rounded-xl border p-4.5">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/40 pb-3">
+      <div className="border-line/40 flex flex-wrap items-center justify-between gap-2 border-b pb-3">
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted">
+          <h4 className="text-muted text-xs font-semibold tracking-wider uppercase">
             Storage & Subsystem Access
           </h4>
           <p className="text-data text-muted mt-0.5">
@@ -324,7 +324,7 @@ function UserStorage({
 
       <div className="mt-4 grid gap-6 md:grid-cols-2">
         {/* File Transfer Quota */}
-        <div className="flex flex-col justify-between gap-3 rounded-lg border border-line/40 bg-surface-raised/30 p-3.5">
+        <div className="border-line/40 bg-surface-raised/30 flex flex-col justify-between gap-3 rounded-lg border p-3.5">
           <div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-medium">File Portal & SFTP</span>
@@ -333,7 +333,7 @@ function UserStorage({
                   {transfer.enabled ? "Active" : "Disabled"}
                 </span>
               ) : (
-                <span className="text-data text-xs text-muted">
+                <span className="text-data text-muted text-xs">
                   Auto-provisioned on login
                 </span>
               )}
@@ -365,7 +365,7 @@ function UserStorage({
               <div className="flex items-center gap-2">
                 <label
                   htmlFor={`transfer-quota-${user.id}`}
-                  className="text-muted text-data text-xs shrink-0"
+                  className="text-muted text-data shrink-0 text-xs"
                 >
                   Limit (MB):
                 </label>
@@ -381,11 +381,18 @@ function UserStorage({
                       ? Math.round(transfer.quotaBytes / (1024 * 1024))
                       : 1024
                   }
-                  className="border-line bg-surface rounded px-2 py-1 text-xs font-mono w-24"
+                  className="border-line bg-surface w-24 rounded px-2 py-1 font-mono text-xs"
                 />
-                <SubmitButton variant="quiet" pendingLabel="Saving" disabled={demo}>
+                <SubmitButton
+                  variant="quiet"
+                  pendingLabel="Saving"
+                  disabled={demo}
+                >
                   Save
-                  <span className="sr-only"> transfer quota for {user.email}</span>
+                  <span className="sr-only">
+                    {" "}
+                    transfer quota for {user.email}
+                  </span>
                 </SubmitButton>
               </div>
               <div role="status" aria-live="polite" className="text-xs">
@@ -408,7 +415,7 @@ function UserStorage({
         </div>
 
         {/* Mailbox Quota */}
-        <div className="flex flex-col justify-between gap-3 rounded-lg border border-line/40 bg-surface-raised/30 p-3.5">
+        <div className="border-line/40 bg-surface-raised/30 flex flex-col justify-between gap-3 rounded-lg border p-3.5">
           <div>
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-medium">Internal Mailbox</span>
@@ -417,14 +424,14 @@ function UserStorage({
                   {mail.enabled ? "Active" : "Disabled"}
                 </span>
               ) : (
-                <span className="text-data text-xs text-muted">
+                <span className="text-data text-muted text-xs">
                   Auto-provisioned on login
                 </span>
               )}
             </div>
             {mail ? (
               <div className="mt-2 text-xs">
-                <p className="font-mono text-muted text-data truncate">
+                <p className="text-muted text-data truncate font-mono">
                   {mail.address}
                 </p>
                 <p className="text-muted text-data mt-0.5">
@@ -443,7 +450,7 @@ function UserStorage({
               <div className="flex items-center gap-2">
                 <label
                   htmlFor={`mail-quota-${user.id}`}
-                  className="text-muted text-data text-xs shrink-0"
+                  className="text-muted text-data shrink-0 text-xs"
                 >
                   Limit (MB):
                 </label>
@@ -459,11 +466,18 @@ function UserStorage({
                       ? Math.round(mail.quotaBytes / (1024 * 1024))
                       : 1024
                   }
-                  className="border-line bg-surface rounded px-2 py-1 text-xs font-mono w-24"
+                  className="border-line bg-surface w-24 rounded px-2 py-1 font-mono text-xs"
                 />
-                <SubmitButton variant="quiet" pendingLabel="Saving" disabled={demo}>
+                <SubmitButton
+                  variant="quiet"
+                  pendingLabel="Saving"
+                  disabled={demo}
+                >
                   Save
-                  <span className="sr-only"> mailbox quota for {user.email}</span>
+                  <span className="sr-only">
+                    {" "}
+                    mailbox quota for {user.email}
+                  </span>
                 </SubmitButton>
               </div>
               <div role="status" aria-live="polite" className="text-xs">
@@ -471,7 +485,9 @@ function UserStorage({
                   <span className="text-bad-ink">{mailState.error}</span>
                 ) : null}
                 {mailState && "done" in mailState ? (
-                  <span className="text-emerald-400">Mailbox limit updated.</span>
+                  <span className="text-emerald-400">
+                    Mailbox limit updated.
+                  </span>
                 ) : null}
               </div>
             </form>
@@ -486,7 +502,7 @@ function UserStorage({
 
       {/* SSH Keys (if user has transfer account) */}
       {transfer ? (
-        <div className="mt-4 border-t border-line/30 pt-3">
+        <div className="border-line/30 mt-4 border-t pt-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium">Public SSH Keys (SFTP)</span>
             <span className="text-muted text-data text-xs">
@@ -494,15 +510,17 @@ function UserStorage({
             </span>
           </div>
           {transfer.keys.length > 0 ? (
-            <ul className="mt-2 divide-y divide-line/20 border-y border-line/20">
+            <ul className="divide-line/20 border-line/20 mt-2 divide-y border-y">
               {transfer.keys.map((k) => (
                 <li
                   key={k.fingerprint}
-                  className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-xs font-mono"
+                  className="flex flex-wrap items-center justify-between gap-2 py-1.5 font-mono text-xs"
                 >
-                  <span className="break-all text-muted">
+                  <span className="text-muted break-all">
                     {k.fingerprint}{" "}
-                    <span className="font-sans text-xs">({k.comment || k.type})</span>
+                    <span className="font-sans text-xs">
+                      ({k.comment || k.type})
+                    </span>
                   </span>
                   <form action={removeKey}>
                     <input
@@ -535,7 +553,7 @@ function UserStorage({
 
           {transfer.keys.length < 10 ? (
             <details className="mt-2 text-xs">
-              <summary className="cursor-pointer text-muted hover:text-ink font-medium">
+              <summary className="text-muted hover:text-ink cursor-pointer font-medium">
                 Add public key for {transfer.username}
               </summary>
               <form action={keyAction} className="mt-2 flex flex-col gap-2">
@@ -550,10 +568,14 @@ function UserStorage({
                   placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... user@host"
                   rows={2}
                   disabled={demo}
-                  className="border-line bg-surface rounded-md border p-2 font-mono text-xs w-full"
+                  className="border-line bg-surface w-full rounded-md border p-2 font-mono text-xs"
                 />
                 <div className="flex items-center gap-2">
-                  <SubmitButton variant="quiet" pendingLabel="Adding" disabled={demo}>
+                  <SubmitButton
+                    variant="quiet"
+                    pendingLabel="Adding"
+                    disabled={demo}
+                  >
                     Add key
                   </SubmitButton>
                   {keyState && "error" in keyState ? (
@@ -586,13 +608,9 @@ export function ControlUsers({
 
       <ul className="divide-line border-line divide-y border-y">
         {users.map((user) => (
-          <li
-            key={user.id}
-            className="flex flex-col gap-5 py-5"
-            data-user-row
-          >
+          <li key={user.id} className="flex flex-col gap-5 py-5" data-user-row>
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 max-w-sm flex-1 shrink-0">
+              <div className="max-w-sm min-w-0 flex-1 shrink-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{user.name}</p>
                   {user.banned ? (
@@ -604,8 +622,15 @@ export function ControlUsers({
                       Active
                     </span>
                   )}
+                  {user.stageRequest ? (
+                    <span className="animate-pulse rounded border border-amber-500/40 bg-amber-500/20 px-1.5 py-0.5 text-xs font-semibold text-amber-300">
+                      Pending Request: {ROLE_LABEL[user.stageRequest.role]}
+                    </span>
+                  ) : null}
                 </div>
-                <p className="text-muted text-data mt-0.5 truncate">{user.email}</p>
+                <p className="text-muted text-data mt-0.5 truncate">
+                  {user.email}
+                </p>
                 <p className="text-muted text-data mt-1">
                   {ROLE_LABEL[user.role]}
                   {" · "}
@@ -617,6 +642,25 @@ export function ControlUsers({
                     ? "1 active session"
                     : `${user.activeSessions} active sessions`}
                 </p>
+                {user.stageRequest ? (
+                  <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-950/20 p-2.5 text-xs text-amber-200">
+                    <p className="font-medium">
+                      Stage Promotion Requested:{" "}
+                      <span className="text-white">
+                        {ROLE_LABEL[user.stageRequest.role]}
+                      </span>
+                    </p>
+                    {user.stageRequest.reason ? (
+                      <p className="mt-1 text-slate-300 italic">
+                        &ldquo;{user.stageRequest.reason}&rdquo;
+                      </p>
+                    ) : null}
+                    <p className="mt-1.5 text-[10px] text-amber-300/80">
+                      To approve, select {ROLE_LABEL[user.stageRequest.role]}{" "}
+                      from the role dropdown and click Save.
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex min-w-0 flex-1 flex-wrap items-start justify-start gap-2.5 lg:justify-end">

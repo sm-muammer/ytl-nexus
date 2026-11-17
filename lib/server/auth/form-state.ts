@@ -40,6 +40,12 @@ export type SetUserEnabledState =
 export type ResetTwoFactorState =
   null | { error: string } | { done: true; email: string };
 
+export type SignUpState =
+  null | { error: string } | { done: true; email: string };
+
+export type RequestStageUpgradeState =
+  null | { error: string } | { done: true; requestedRole: Role };
+
 export const MESSAGES = {
   invalidCredentials: "The email or password is not correct.",
   locked: "Too many failed attempts. Try again in 15 minutes.",

@@ -46,6 +46,25 @@
 
 ## Task log
 
+### Navigation Polish, Self-Service Sign-up & 3-Stage Role Progression (done 2026-11-17)
+
+- **Header & Search Visual Redesign**:
+  - Re-architected the header actions to eliminate competing identical capsules: "Search modules..." trigger now uses a sleek subtle dark pill with glowing cyan hover state, unified text "Sign in" + distinct cyan accent pill "Sign up", and refined "All modules" drawer trigger.
+  - Redesigned `CommandPalette` modal into a crisp dark glassmorphism card (`bg-slate-950/95 border-slate-800/90 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10`).
+  - Fixed Safari / WebKit native blue outline issue on search input with `border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none [-webkit-appearance:none]`.
+  - Added subtle role badge indicators, shortcut hints (`↑↓`, `↵`, `esc`), and keyboard navigation highlight styling.
+- **Easy Sign-up & Password Experience**:
+  - Added public self-service registration (`signUpAction` guarded with `auth.sign-up`, creates account as Stage 1 `member`).
+  - Added tab switcher (`/signin` vs `/signin?tab=signup`) allowing easy switching between signing in and signing up.
+  - Implemented interactive password visibility toggle (eye / eye-off SVG icon) on all password fields.
+  - Added "Forgot password?" modal guidance advising users on how administrators issue secure password resets in Nexus Control.
+- **Role Scoping & 3-Stage Role Approval System**:
+  - Scoped 2FA authenticator requirements strictly to **Administrator** (`admin`). Operators and Members can sign in directly without being forced to configure an authenticator app.
+  - Established 3-stage user progression: Stage 1 (`member`), Stage 2 (`operator`), Stage 3 (`admin`).
+  - Built `StageUpgradeBanner` on the workspace (`/command`) allowing Members and Operators to request promotion to the next stage with optional justification notes.
+  - Added pending stage upgrade badges, details, and approval workflow to Nexus Control (`/control`) for administrators.
+- **Verification**: `npm run check` passes cleanly (Prettier, ESLint, TypeScript, and all 73 Vitest test suites with 988 tests passing).
+
 ### Unified Account Management & Storage Controls in Nexus Control (done 2026-11-17)
 
 - **Unified Account Controls (Nexus Control):** Enhanced `/control` account management to reflect the 1-account unified architecture.

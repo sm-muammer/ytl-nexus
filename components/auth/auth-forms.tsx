@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import {
   confirmEnrolmentAction,
   signInAction,
+  signUpAction,
   startEnrolmentAction,
   stepUpAction,
   verifyTwoFactorAction,
@@ -14,28 +15,99 @@ const formClass = "flex max-w-md flex-col gap-5";
 
 export function SignInForm({ next }: { next: string }) {
   const [state, action] = useActionState(signInAction, null);
+  const [showForgotNotice, setShowForgotNotice] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <form action={action} className={formClass} noValidate={false}>
+        <input type="hidden" name="next" value={next} />
+        <Field
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="username"
+          inputMode="email"
+          maxLength={255}
+          autoFocus
+        />
+        <Field
+          label="Password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          maxLength={128}
+          action={
+            <button
+              type="button"
+              onClick={() => setShowForgotNotice((prev) => !prev)}
+              className="text-xs text-cyan-400 transition-colors hover:text-cyan-300"
+            >
+              Forgot password?
+            </button>
+          }
+        />
+        <FormError message={state?.error} />
+        <div>
+          <SubmitButton pendingLabel="Signing in">Sign in</SubmitButton>
+        </div>
+      </form>
+
+      {showForgotNotice ? (
+        <div className="max-w-md rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4 text-xs text-slate-300">
+          <p className="font-semibold text-cyan-300">Password Recovery</p>
+          <p className="mt-1">
+            YTL Nexus accounts are protected under enterprise operational
+            controls. If you forgot your password, please request an
+            Administrator in Nexus Control (
+            <code className="font-mono text-cyan-200">/control</code>) to issue
+            a secure password reset.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function SignUpForm() {
+  const [state, action] = useActionState(signUpAction, null);
   return (
     <form action={action} className={formClass} noValidate={false}>
-      <input type="hidden" name="next" value={next} />
+      <p className="text-sm text-slate-400">
+        Create your YTL Nexus account. New accounts join at{" "}
+        <span className="font-medium text-slate-200">Stage 1 (Member)</span>.
+        You can subsequently request promotion to Operator or Administrator.
+      </p>
       <Field
-        label="Email"
+        label="Full Name"
+        name="name"
+        type="text"
+        autoComplete="name"
+        maxLength={120}
+        autoFocus
+      />
+      <Field
+        label="Work Email"
         name="email"
         type="email"
-        autoComplete="username"
+        autoComplete="email"
         inputMode="email"
         maxLength={255}
-        autoFocus
       />
       <Field
         label="Password"
         name="password"
         type="password"
-        autoComplete="current-password"
+        autoComplete="new-password"
         maxLength={128}
+        hint="Minimum 12 characters."
       />
-      <FormError message={state?.error} />
+      <FormError
+        message={state && "error" in state ? state.error : undefined}
+      />
       <div>
-        <SubmitButton pendingLabel="Signing in">Sign in</SubmitButton>
+        <SubmitButton pendingLabel="Creating account">
+          Create account
+        </SubmitButton>
       </div>
     </form>
   );
@@ -93,8 +165,8 @@ export function EnrolForm({ next }: { next: string }) {
     return (
       <form action={start} className={formClass}>
         <p className="text-muted max-w-prose">
-          Operators and Administrators sign in with a second factor. Enter your
-          password to get a QR code for your authenticator app.
+          Administrators sign in with a second factor. Enter your password to
+          get a QR code for your authenticator app.
         </p>
         <Field
           label="Password"

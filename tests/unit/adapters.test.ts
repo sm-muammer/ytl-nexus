@@ -198,12 +198,27 @@ describe("live adapters (Live_Mode)", () => {
     expect(readDemoRole).not.toHaveBeenCalled();
   });
 
-  it("does not treat an unenrolled Operator as signed in", async () => {
+  it("treats an unenrolled Operator as signed in without 2FA requirement", async () => {
     const set = createAdapters("live", { readDemoRole: noCookie });
     liveIdentity = {
       kind: "user",
       userId: "u2",
       role: "operator",
+      twoFactorEnabled: false,
+      stepUpAt: null,
+    };
+    expect(await set.auth.getActor()).toEqual({
+      userId: "u2",
+      role: "operator",
+    });
+  });
+
+  it("does not treat an unenrolled Administrator as signed in without 2FA", async () => {
+    const set = createAdapters("live", { readDemoRole: noCookie });
+    liveIdentity = {
+      kind: "user",
+      userId: "u3",
+      role: "admin",
       twoFactorEnabled: false,
       stepUpAt: null,
     };

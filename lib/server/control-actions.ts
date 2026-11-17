@@ -113,6 +113,8 @@ const changeRole = guardAction(
     const email = await findUserEmail(rt, input.userId);
     if (!email) return { ok: false as const, error: "not-found" as const };
     await changeUserRole(rt, input.userId, input.role as Role);
+    const { clearStageRequest } = await import("@/lib/server/auth/service");
+    await clearStageRequest(rt, input.userId);
     return { ok: true as const, email, role: input.role as Role };
   },
 );

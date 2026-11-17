@@ -235,6 +235,16 @@ export const ACTION_POLICY: readonly ActionPolicy[] = [
     note: "Credentials are checked by Better Auth, behind the lockout.",
   },
   {
+    id: "auth.sign-up",
+    minRole: null,
+    note: "Public self-service registration into Stage 1 (Member).",
+  },
+  {
+    id: "auth.request-stage-upgrade",
+    minRole: "member",
+    note: "Members request promotion to Operator (Stage 2) or Administrator (Stage 3).",
+  },
+  {
     id: "auth.verify-two-factor",
     minRole: null,
     note: "Needs the pending two-factor cookie issued by a correct password.",

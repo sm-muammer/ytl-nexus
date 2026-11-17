@@ -160,13 +160,13 @@ export function NavSheet({
         type="button"
         onClick={open}
         aria-haspopup="dialog"
-        className="border-border-strong hover:bg-surface-raised hidden min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors duration-(--duration-fast) md:inline-flex"
+        className="group relative hidden min-h-9 items-center gap-2 rounded-full border border-slate-700/70 bg-slate-900/40 px-3.5 py-1.5 text-xs font-medium whitespace-nowrap text-slate-200 shadow-sm backdrop-blur-md transition-all duration-200 hover:border-slate-500 hover:bg-slate-800/60 hover:text-white md:inline-flex"
       >
-        All modules
+        <span>All modules</span>
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
-          className="size-4 fill-none stroke-current stroke-2"
+          className="size-3.5 fill-none stroke-current stroke-2 text-slate-400 transition-transform duration-200 group-hover:translate-y-0.5 group-hover:text-slate-200"
           strokeLinecap="round"
           strokeLinejoin="round"
         >

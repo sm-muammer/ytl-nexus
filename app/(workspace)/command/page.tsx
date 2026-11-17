@@ -4,6 +4,7 @@ import {
   CommandFrame,
   CommandLoading,
 } from "@/components/command/command-frame";
+import { StageUpgradeBanner } from "@/components/auth/stage-upgrade";
 import { pageMetadata } from "@/components/layout/module-page";
 import { getAdapters } from "@/lib/server/adapters";
 import { requirePage } from "@/lib/server/guards";
@@ -18,9 +19,13 @@ async function Overview() {
 }
 
 export default async function CommandPage() {
-  await requirePage("/command");
+  const { identity } = await requirePage("/command");
+  const role = identity.kind === "user" ? identity.role : null;
   return (
     <CommandFrame path="/command">
+      {role && role !== "admin" ? (
+        <StageUpgradeBanner currentRole={role} />
+      ) : null}
       <Suspense fallback={<CommandLoading what="the server readings" />}>
         <Overview />
       </Suspense>

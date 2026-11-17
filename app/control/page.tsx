@@ -102,7 +102,7 @@ export default async function ControlPage() {
 
                 {/* Legacy Subsystem Tables: Details & Unlinked Service Accounts */}
                 <details className="group border-line rounded-xl border p-5">
-                  <summary className="cursor-pointer text-sm font-semibold text-muted hover:text-ink">
+                  <summary className="text-muted hover:text-ink cursor-pointer text-sm font-semibold">
                     Advanced Subsystems: Direct SFTPGo & Virtual Mailbox Tables
                   </summary>
                   <div className="mt-6 flex flex-col gap-10">

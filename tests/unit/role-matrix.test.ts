@@ -102,17 +102,15 @@ describe("Role Matrix Access Across All Module Pages", () => {
     expect(decide(member, policyForPage("/shield"), now).allow).toBe(false);
   });
 
-  it("requires 2FA enrolment for operators before accessing workspace modules", () => {
-    // Unenrolled operator redirected/refused on workspace
+  it("allows operators to access workspace modules without 2FA enrolment", () => {
+    // Unenrolled operator allowed without 2FA (only admins require authenticator)
     expect(
       decide(operatorWithout2FA, policyForPage("/continuity"), now),
     ).toEqual({
-      allow: false,
-      reason: "two-factor-enrolment",
+      allow: true,
     });
     expect(decide(operatorWithout2FA, policyForPage("/shield"), now)).toEqual({
-      allow: false,
-      reason: "two-factor-enrolment",
+      allow: true,
     });
 
     // Enrolled operator permitted

@@ -93,16 +93,26 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 xl:ml-2">
+        <div className="ml-auto flex items-center gap-2.5 xl:ml-4">
           <CommandPalette actor={actor} />
+
           {actor === null ? (
-            <NavLink
-              href="/signin"
-              className="border-accent-ink text-accent-ink hover:bg-surface-raised hidden min-h-11 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors duration-(--duration-fast) md:inline-flex"
-            >
-              Sign in
-            </NavLink>
+            <div className="flex items-center gap-1.5 pl-1">
+              <NavLink
+                href="/signin"
+                className="text-muted hover:text-ink hidden min-h-9 items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors md:inline-flex"
+              >
+                Sign in
+              </NavLink>
+              <NavLink
+                href="/signin?tab=signup"
+                className="hidden min-h-9 items-center rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)] transition-all hover:border-cyan-400 hover:bg-cyan-500/20 md:inline-flex"
+              >
+                Sign up
+              </NavLink>
+            </div>
           ) : null}
+
           <NavSheet
             mode={mode}
             session={session}

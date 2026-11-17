@@ -17,9 +17,12 @@ import {
   MESSAGES,
   type EnrolState,
   type SignInState,
+  type SignUpState,
+  type RequestStageUpgradeState,
   type StepUpState,
   type TotpState,
 } from "@/lib/server/auth/form-state";
+import { createAccount, requestStageUpgrade } from "@/lib/server/auth/service";
 
 // Server Functions for signing in and out, enrolling two-factor and Step_Up.
 // Each is a public endpoint, so each goes through guardAction: the policy table
@@ -70,7 +73,7 @@ const signIn = guardAction(
       }
       const user = result.user as { role?: string; twoFactorEnabled?: boolean };
       const needsEnrolment =
-        (user.role === "operator" || user.role === "admin") &&
+        user.role === "admin" &&
         requiresTwoFactor(user.role) &&
         !user.twoFactorEnabled;
       return {
@@ -339,5 +342,128 @@ export async function stepUpAction(
       return { error: MESSAGES.invalidInput };
     default:
       return { error: MESSAGES.invalidStepUp };
+  }
+}
+
+// ---- Sign up (Self-service registration) ------------------------------------------------
+
+const signUpSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  email: z.string().trim().email("Enter a valid email address").max(255),
+  password: z
+    .string()
+    .min(12, "Password must be at least 12 characters")
+    .max(128),
+});
+
+const signUp = guardAction(
+  {
+    id: "auth.sign-up",
+    schema: signUpSchema,
+    target: (i) => i.email.toLowerCase(),
+    audit: "all",
+  },
+  async (input) => {
+    const demo = demoOnly();
+    if (demo) return demo;
+    const rt = getAuthRuntime();
+    try {
+      await createAccount(rt, {
+        name: input.name,
+        email: input.email,
+        password: input.password,
+        role: "member",
+      });
+      // Automatically attempt sign in for smooth onboarding
+      try {
+        await rt.auth.api.signInEmail({
+          body: { email: input.email, password: input.password },
+          headers: await headers(),
+        });
+        return { ok: true as const, to: "/command", email: input.email };
+      } catch {
+        return {
+          ok: true as const,
+          to: "/signin?tab=signin",
+          email: input.email,
+        };
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("already exists")) {
+        return { ok: false as const, error: "email-exists" as const };
+      }
+      return { ok: false as const, error: "generic" as const };
+    }
+  },
+);
+
+export async function signUpAction(
+  _previous: SignUpState,
+  formData: FormData,
+): Promise<SignUpState> {
+  const result = await signUp(form(formData, "name", "email", "password"));
+  if (result.ok) redirect(result.to);
+  switch (result.error) {
+    case "demo":
+      return { error: MESSAGES.demo };
+    case "email-exists":
+      return { error: MESSAGES.emailExists };
+    case "invalid-input":
+      return { error: MESSAGES.invalidInput };
+    default:
+      return { error: MESSAGES.genericFailure };
+  }
+}
+
+// ---- Request stage upgrade -------------------------------------------------------------
+
+const requestStageUpgradeSchema = z.object({
+  role: z.enum(["operator", "admin"]),
+  reason: z.string().trim().max(500).optional(),
+});
+
+const requestStageUpgradeGuard = guardAction(
+  {
+    id: "auth.request-stage-upgrade",
+    schema: requestStageUpgradeSchema,
+    target: (i) => `stage-upgrade:${i.role}`,
+    audit: "all",
+  },
+  async (input, ctx) => {
+    const demo = demoOnly();
+    if (demo) return demo;
+    if (ctx.identity.kind !== "user") {
+      return { ok: false as const, error: "unauthenticated" as const };
+    }
+    const rt = getAuthRuntime();
+    await requestStageUpgrade(
+      rt,
+      ctx.identity.userId,
+      input.role,
+      input.reason,
+    );
+    return { ok: true as const, requestedRole: input.role };
+  },
+);
+
+export async function requestStageUpgradeAction(
+  _previous: RequestStageUpgradeState,
+  formData: FormData,
+): Promise<RequestStageUpgradeState> {
+  const result = await requestStageUpgradeGuard({
+    role: formData.get("role") as "operator" | "admin",
+    reason: (formData.get("reason") as string) || undefined,
+  });
+  if (result.ok) {
+    return { done: true, requestedRole: result.requestedRole };
+  }
+  switch (result.error) {
+    case "demo":
+      return { error: MESSAGES.demo };
+    case "invalid-input":
+      return { error: MESSAGES.invalidInput };
+    default:
+      return { error: MESSAGES.genericFailure };
   }
 }

@@ -159,19 +159,30 @@ describe("/control (requirements 6.10, 6.11)", () => {
 });
 
 describe("two-factor enrolment on pages (requirement 6.9)", () => {
-  it("sends an unenrolled Operator to enrol before any protected page", async () => {
+  it("sends an unenrolled Administrator to enrol before protected pages", async () => {
     const { guards, audits } = setup(
-      user("operator", { twoFactorEnabled: false }),
+      user("admin", { twoFactorEnabled: false }),
     );
-    expect(await navOutcome(() => guards.requirePage("/command"))).toBe(
-      `redirect:/signin?step=enrol&next=${encodeURIComponent("/command")}`,
+    expect(await navOutcome(() => guards.requirePage("/control"))).toBe(
+      `redirect:/signin?step=enrol&next=${encodeURIComponent("/control")}`,
     );
     expect(audits).toHaveLength(1);
   });
 
-  it("does not ask a Member for it", async () => {
-    const { guards } = setup(user("member", { twoFactorEnabled: false }));
-    expect(await navOutcome(() => guards.requirePage("/ai"))).toBe("allow");
+  it("does not ask an Operator or Member for it", async () => {
+    const { guards: operatorGuards } = setup(
+      user("operator", { twoFactorEnabled: false }),
+    );
+    expect(await navOutcome(() => operatorGuards.requirePage("/command"))).toBe(
+      "allow",
+    );
+
+    const { guards: memberGuards } = setup(
+      user("member", { twoFactorEnabled: false }),
+    );
+    expect(await navOutcome(() => memberGuards.requirePage("/ai"))).toBe(
+      "allow",
+    );
   });
 });
 

@@ -305,10 +305,71 @@ export type AdminUserDto = {
   email: string;
   role: Role;
   banned: boolean;
+  banReason?: string | null;
+  stageRequest?: {
+    role: Role;
+    requestedAt: string;
+    reason?: string;
+  } | null;
   twoFactorEnabled: boolean;
   activeSessions: number;
   createdAt: string;
 };
+
+export function parseStageRequest(banReason: string | null | undefined): {
+  role: Role;
+  requestedAt: string;
+  reason?: string;
+} | null {
+  if (!banReason || !banReason.startsWith("STAGE_REQUEST:")) return null;
+  try {
+    const raw = JSON.parse(banReason.slice("STAGE_REQUEST:".length));
+    if (raw && (raw.role === "operator" || raw.role === "admin")) {
+      return raw;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export async function requestStageUpgrade(
+  rt: AuthRuntime,
+  userId: string,
+  role: Role,
+  reason?: string,
+): Promise<void> {
+  const payload = JSON.stringify({
+    role,
+    requestedAt: new Date().toISOString(),
+    reason: reason || undefined,
+  });
+  await rt.db
+    .updateTable("user")
+    .set({
+      banReason: `STAGE_REQUEST:${payload}`,
+    })
+    .where("id", "=", userId)
+    .execute();
+}
+
+export async function clearStageRequest(
+  rt: AuthRuntime,
+  userId: string,
+): Promise<void> {
+  const user = await rt.db
+    .selectFrom("user")
+    .select(["banReason", "banned"])
+    .where("id", "=", userId)
+    .executeTakeFirst();
+  if (user && user.banReason?.startsWith("STAGE_REQUEST:") && !user.banned) {
+    await rt.db
+      .updateTable("user")
+      .set({ banReason: null })
+      .where("id", "=", userId)
+      .execute();
+  }
+}
 
 export async function listUsersForAdmin(
   rt: AuthRuntime,
@@ -321,6 +382,7 @@ export async function listUsersForAdmin(
       "user.email",
       "user.role",
       "user.banned",
+      "user.banReason",
       "user.twoFactorEnabled",
       "user.createdAt",
       (eb) =>
@@ -334,16 +396,21 @@ export async function listUsersForAdmin(
     .orderBy("user.email")
     .limit(200)
     .execute();
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    email: r.email,
-    role: r.role,
-    banned: Boolean(r.banned),
-    twoFactorEnabled: Boolean(r.twoFactorEnabled),
-    activeSessions: Number(r.activeSessions ?? 0),
-    createdAt: new Date(r.createdAt).toISOString(),
-  }));
+  return rows.map((r) => {
+    const stageReq = parseStageRequest(r.banReason);
+    return {
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      role: r.role,
+      banned: Boolean(r.banned),
+      banReason: r.banReason,
+      stageRequest: stageReq,
+      twoFactorEnabled: Boolean(r.twoFactorEnabled),
+      activeSessions: Number(r.activeSessions ?? 0),
+      createdAt: new Date(r.createdAt).toISOString(),
+    };
+  });
 }
 
 export async function findUserEmail(

@@ -119,7 +119,7 @@ export function CommandPalette({ actor }: { actor: Actor }) {
       <button
         type="button"
         onClick={openPalette}
-        className="border-line bg-surface hover:border-ink hover:text-ink text-muted hidden items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors sm:inline-flex"
+        className="group relative flex h-9 items-center gap-2 rounded-full border border-slate-700/60 bg-slate-900/40 px-3 py-1.5 text-xs font-normal text-slate-300 shadow-sm backdrop-blur-md transition-all duration-200 hover:border-cyan-500/50 hover:bg-slate-800/60 hover:text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] sm:inline-flex"
         data-command-palette-trigger
       >
         <svg
@@ -132,15 +132,18 @@ export function CommandPalette({ actor }: { actor: Actor }) {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          className="text-slate-400 transition-colors group-hover:text-cyan-400"
           aria-hidden="true"
         >
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.3-4.3" />
         </svg>
-        <span className="text-muted text-[11px]">Search...</span>
+        <span className="text-xs text-slate-400 transition-colors group-hover:text-slate-200">
+          Search modules...
+        </span>
         <kbd
           aria-hidden="true"
-          className="border-line bg-surface-elevated text-muted rounded border px-1.5 py-0.5 font-mono text-[10px]"
+          className="ml-1 rounded border border-slate-700/80 bg-slate-800/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400 group-hover:border-cyan-500/40 group-hover:text-cyan-300"
         >
           ⌘K
         </kbd>
@@ -152,27 +155,27 @@ export function CommandPalette({ actor }: { actor: Actor }) {
           role="dialog"
           aria-modal="true"
           aria-label="Navigation Command Palette"
-          className="bg-canvas/80 fixed inset-0 z-(--z-overlay) flex items-start justify-center p-4 pt-[15vh] backdrop-blur-md"
+          className="animate-in fade-in fixed inset-0 z-(--z-overlay) flex items-start justify-center bg-black/75 p-4 pt-[12vh] backdrop-blur-xl duration-150"
           onClick={() => setOpen(false)}
         >
           <div
-            className="border-line bg-surface-elevated flex w-full max-w-xl flex-col overflow-hidden rounded-xl border shadow-2xl"
+            className="flex w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-800/90 bg-slate-950/95 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),0_0_20px_rgba(6,182,212,0.1)] ring-1 ring-white/10 backdrop-blur-2xl"
             onClick={(e) => e.stopPropagation()}
             data-command-palette-modal
           >
-            {/* Search Input */}
-            <div className="border-line flex items-center border-b px-4 py-3">
+            {/* Search Input Bar */}
+            <div className="flex items-center border-b border-slate-800/80 bg-slate-900/30 px-4 py-3.5">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-muted mr-3 shrink-0"
+                className="mr-3 shrink-0 text-cyan-400"
                 aria-hidden="true"
               >
                 <circle cx="11" cy="11" r="8" />
@@ -187,16 +190,16 @@ export function CommandPalette({ actor }: { actor: Actor }) {
                   setSelectedIndex(0);
                 }}
                 onKeyDown={handleInputKeyDown}
-                placeholder="Jump to module or subpage..."
+                placeholder="Jump to module, tool, or subpage..."
                 role="combobox"
                 aria-expanded="true"
                 aria-autocomplete="list"
                 aria-controls="command-results-list"
-                className="text-ink placeholder:text-muted w-full bg-transparent text-sm outline-none"
+                className="w-full border-none bg-transparent text-sm text-slate-100 outline-none [-webkit-appearance:none] placeholder:text-slate-400 focus:ring-0 focus:outline-none focus-visible:outline-none"
               />
               <kbd
                 onClick={() => setOpen(false)}
-                className="border-line text-muted hover:text-ink cursor-pointer rounded border px-1.5 py-0.5 text-[10px]"
+                className="cursor-pointer rounded border border-slate-700/80 bg-slate-800/60 px-1.5 py-0.5 font-mono text-[10px] text-slate-400 transition-colors hover:border-slate-600 hover:text-slate-200"
               >
                 ESC
               </kbd>
@@ -206,11 +209,12 @@ export function CommandPalette({ actor }: { actor: Actor }) {
             <ul
               id="command-results-list"
               role="listbox"
-              className="max-h-80 overflow-y-auto p-2"
+              className="max-h-84 divide-y divide-slate-800/30 overflow-y-auto p-2"
             >
               {filtered.length === 0 ? (
-                <li className="text-muted px-4 py-6 text-center text-xs">
-                  No matching modules or pages found.
+                <li className="px-4 py-10 text-center text-xs text-slate-400">
+                  No matching modules or subpages found for &ldquo;{query}
+                  &rdquo;.
                 </li>
               ) : (
                 filtered.map((item, index) => {
@@ -222,23 +226,37 @@ export function CommandPalette({ actor }: { actor: Actor }) {
                       aria-selected={selected}
                       onClick={() => navigateTo(item.href)}
                       onMouseEnter={() => setSelectedIndex(index)}
-                      className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 transition-colors ${
+                      className={`group flex cursor-pointer items-center justify-between rounded-xl px-3.5 py-2.5 transition-all duration-150 ${
                         selected
-                          ? "bg-surface-elevated/80 border-border-strong text-ink border"
-                          : "text-muted hover:text-ink border border-transparent"
+                          ? "bg-slate-800/70 text-white shadow-sm ring-1 ring-cyan-500/30"
+                          : "text-slate-300 hover:bg-slate-800/40 hover:text-white"
                       }`}
                     >
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-slate-200">
-                          {item.title}
-                        </p>
-                        <p className="text-muted truncate text-[11px]">
+                      <div className="min-w-0 pr-3">
+                        <div className="flex items-center gap-2">
+                          <p
+                            className={`text-xs font-semibold ${selected ? "text-cyan-300" : "text-slate-200"}`}
+                          >
+                            {item.title}
+                          </p>
+                          {item.minRole ? (
+                            <span className="py-0.2 rounded border border-slate-700/60 bg-slate-800/80 px-1.5 font-mono text-[9px] tracking-wider text-slate-400 uppercase">
+                              {item.minRole}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="truncate text-[11px] text-slate-400">
                           {item.subtitle}
                         </p>
                       </div>
-                      <span className="text-muted ml-3 shrink-0 font-mono text-[10px] uppercase">
-                        {item.group}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="font-mono text-[10px] tracking-wider text-slate-400 uppercase">
+                          {item.group}
+                        </span>
+                        {selected ? (
+                          <span className="text-xs text-cyan-400">↵</span>
+                        ) : null}
+                      </div>
                     </li>
                   );
                 })
@@ -246,19 +264,30 @@ export function CommandPalette({ actor }: { actor: Actor }) {
             </ul>
 
             {/* Footer / Instructions */}
-            <div className="border-line bg-surface/50 text-muted flex items-center justify-between border-t px-4 py-2 text-[11px]">
-              <div className="flex items-center gap-3">
-                <span>
-                  <kbd className="font-mono">↑↓</kbd> navigate
+            <div className="flex items-center justify-between border-t border-slate-800/80 bg-slate-900/60 px-4 py-2.5 text-[11px] text-slate-400">
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1">
+                  <kbd className="rounded border border-slate-700 bg-slate-800/80 px-1 py-0.5 font-mono text-[10px] text-slate-300">
+                    ↑↓
+                  </kbd>{" "}
+                  navigate
                 </span>
-                <span>
-                  <kbd className="font-mono">↵</kbd> select
+                <span className="flex items-center gap-1">
+                  <kbd className="rounded border border-slate-700 bg-slate-800/80 px-1 py-0.5 font-mono text-[10px] text-slate-300">
+                    ↵
+                  </kbd>{" "}
+                  select
                 </span>
-                <span>
-                  <kbd className="font-mono">esc</kbd> close
+                <span className="flex items-center gap-1">
+                  <kbd className="rounded border border-slate-700 bg-slate-800/80 px-1 py-0.5 font-mono text-[10px] text-slate-300">
+                    esc
+                  </kbd>{" "}
+                  close
                 </span>
               </div>
-              <span>Navigation only</span>
+              <span className="font-mono text-[10px] text-slate-400">
+                YTL Nexus
+              </span>
             </div>
           </div>
         </div>

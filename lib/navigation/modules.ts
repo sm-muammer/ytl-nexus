@@ -497,7 +497,12 @@ const extraPages: readonly PageInfo[] = [
 ];
 
 const moduleLandingPages: readonly PageInfo[] = MODULES.map((m) => ({
-  path: m.slug === "studio" ? "/studio" : m.href.length > 1 ? m.href.replace(/\/$/, "") : m.href,
+  path:
+    m.slug === "studio"
+      ? "/studio"
+      : m.href.length > 1
+        ? m.href.replace(/\/$/, "")
+        : m.href,
   title: m.name,
   subtitle: m.subtitle,
   summary: m.summary,

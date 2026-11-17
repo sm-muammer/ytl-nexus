@@ -74,8 +74,8 @@ describe("Property 3: role-matrix authorization (requirements 6.3, 6.4, 6.11)", 
 });
 
 describe("two-factor enrolment (requirement 6.9)", () => {
-  it("blocks Operators and Administrators who have not enrolled, on any protected requirement", () => {
-    for (const role of ["operator", "admin"] as const) {
+  it("blocks Administrators who have not enrolled, on any protected requirement", () => {
+    for (const role of ["admin"] as const) {
       expect(
         decide(
           user(role, { twoFactorEnabled: false }),
@@ -86,8 +86,8 @@ describe("two-factor enrolment (requirement 6.9)", () => {
     }
   });
 
-  it("does not require it of Viewers and Members", () => {
-    for (const role of ["viewer", "member"] as const) {
+  it("does not require it of Viewers, Members and Operators", () => {
+    for (const role of ["viewer", "member", "operator"] as const) {
       expect(
         decide(
           user(role, { twoFactorEnabled: false }),

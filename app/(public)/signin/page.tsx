@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation";
-import { EnrolForm, SignInForm, TotpForm } from "@/components/auth/auth-forms";
+import {
+  EnrolForm,
+  SignInForm,
+  SignUpForm,
+  TotpForm,
+} from "@/components/auth/auth-forms";
 import { ModuleHero } from "@/components/layout/module-hero";
 import { pageMetadata } from "@/components/layout/module-page";
 import { PageTransition } from "@/components/motion/page-transition";
@@ -9,8 +14,6 @@ import { getIdentity } from "@/lib/server/identity";
 import { getMode } from "@/lib/server/mode";
 import { identityToActor } from "@/lib/server/policy";
 
-// The form page: no particle field. In Demo_Mode there is nothing to sign in
-// to; the session switcher in the menu stands in for it.
 export const metadata = pageMetadata("/signin");
 
 const single = (value: string | string[] | undefined) =>
@@ -21,6 +24,7 @@ export default async function SignInPage({
 }: PageProps<"/signin">) {
   const query = await searchParams;
   const step = single(query.step);
+  const tab = single(query.tab) ?? "signin";
   const next = safeNext(single(query.next));
   const page = pageInfo("/signin");
 
@@ -41,7 +45,7 @@ export default async function SignInPage({
 
   const identity = await getIdentity();
   const signedIn = identity.kind === "user";
-  // Signed in, but an Operator or Administrator who has not set up two-factor yet.
+  // Signed in, but an Administrator who has not set up two-factor yet.
   const needsEnrolment = signedIn && identityToActor(identity) === null;
 
   if (signedIn && !needsEnrolment) redirect(next);
@@ -59,8 +63,11 @@ export default async function SignInPage({
           <TotpForm next={next} />
         </Body>
       ) : (
-        <Body title="Sign in">
-          <SignInForm next={next} />
+        <Body
+          title={tab === "signup" ? "Create an account" : "Sign in"}
+          tab={tab}
+        >
+          {tab === "signup" ? <SignUpForm /> : <SignInForm next={next} />}
         </Body>
       )}
     </Frame>
@@ -77,9 +84,11 @@ function Frame({ children }: { children: React.ReactNode }) {
 
 function Body({
   title,
+  tab,
   children,
 }: {
   title: string;
+  tab?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -87,9 +96,35 @@ function Body({
       aria-labelledby="signin-title"
       className="flex flex-col gap-6 px-(--spacing-gutter) py-12"
     >
-      <h2 id="signin-title" className="text-heading-3 font-semibold">
-        {title}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 id="signin-title" className="text-heading-3 font-semibold">
+          {title}
+        </h2>
+        {tab ? (
+          <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/60 p-1 text-xs">
+            <a
+              href="/signin"
+              className={`rounded-full px-3.5 py-1.5 font-medium transition-colors ${
+                tab !== "signup"
+                  ? "bg-cyan-500/15 text-cyan-300 shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Sign in
+            </a>
+            <a
+              href="/signin?tab=signup"
+              className={`rounded-full px-3.5 py-1.5 font-medium transition-colors ${
+                tab === "signup"
+                  ? "bg-cyan-500/15 text-cyan-300 shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Sign up
+            </a>
+          </div>
+        ) : null}
+      </div>
       {children}
     </section>
   );

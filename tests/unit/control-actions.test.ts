@@ -66,6 +66,7 @@ vi.mock("@/lib/server/auth/service", () => ({
     id === "user-target" ? "member" : id === "user-admin" ? "admin" : null,
   createAccount: async () => ({ id: "user-created" }),
   changeUserRole: async () => {},
+  clearStageRequest: async () => {},
   setUserBanned: async () => {},
   resetTwoFactor: async () => {},
   resetPasswordAsAdmin: async () => {},

@@ -199,10 +199,10 @@ describe("step-up and enrolment rules", () => {
     expect(isStepUpFresh(now + MIN, now)).toBe(false);
   });
 
-  it("two-factor is required for operators and administrators only", () => {
+  it("two-factor is required for administrators only", () => {
     expect(requiresTwoFactor("viewer")).toBe(false);
     expect(requiresTwoFactor("member")).toBe(false);
-    expect(requiresTwoFactor("operator")).toBe(true);
+    expect(requiresTwoFactor("operator")).toBe(false);
     expect(requiresTwoFactor("admin")).toBe(true);
   });
 });

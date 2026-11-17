@@ -48,9 +48,9 @@ export function isStepUpFresh(stepUpAt: number | null, now: number): boolean {
   return now - stepUpAt < STEP_UP_WINDOW_MS;
 }
 
-/** Operators and Administrators must enrol TOTP (requirement 6.9). */
+/** Only Administrators must enrol TOTP. Members and Operators do not need an authenticator. */
 export function requiresTwoFactor(role: Role): boolean {
-  return role === "operator" || role === "admin";
+  return role === "admin";
 }
 
 /**
