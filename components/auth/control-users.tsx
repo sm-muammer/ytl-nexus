@@ -151,7 +151,8 @@ function ChangeRole({ user, demo }: { user: ControlUser; demo?: boolean }) {
           ))}
         </select>
         <SubmitButton variant="quiet" pendingLabel="Saving">
-          {`Update role for ${user.email}`}
+          Update role
+          <span className="sr-only"> for {user.email}</span>
         </SubmitButton>
       </div>
       <div role="status" aria-live="polite" className="text-xs">
@@ -181,7 +182,8 @@ function ToggleEnabled({ user, demo }: { user: ControlUser; demo?: boolean }) {
         pendingLabel={isBanned ? "Enabling" : "Disabling"}
         disabled={demo}
       >
-        {isBanned ? `Enable ${user.email}` : `Disable ${user.email}`}
+        {isBanned ? "Enable" : "Disable"}
+        <span className="sr-only"> {user.email}</span>
       </SubmitButton>
       <div role="status" aria-live="polite" className="text-xs">
         {state && "error" in state ? (
@@ -209,7 +211,8 @@ function ResetTwoFactor({ user, demo }: { user: ControlUser; demo?: boolean }) {
         pendingLabel="Resetting 2FA"
         disabled={demo}
       >
-        {`Reset 2FA for ${user.email}`}
+        Reset 2FA
+        <span className="sr-only"> for {user.email}</span>
       </SubmitButton>
       <div role="status" aria-live="polite" className="text-xs">
         {state && "error" in state ? (
@@ -232,7 +235,8 @@ function ResetPassword({ user, demo }: { user: ControlUser; demo?: boolean }) {
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="userId" value={user.id} />
       <SubmitButton variant="quiet" pendingLabel="Resetting" disabled={demo}>
-        {`Reset password for ${user.email}`}
+        Reset password
+        <span className="sr-only"> for {user.email}</span>
       </SubmitButton>
       <div role="status" aria-live="polite" className="text-data">
         {state && "error" in state ? (
@@ -258,7 +262,8 @@ function RevokeSessions({ user, demo }: { user: ControlUser; demo?: boolean }) {
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="userId" value={user.id} />
       <SubmitButton variant="quiet" pendingLabel="Ending" disabled={demo}>
-        {`End sessions for ${user.email}`}
+        End sessions
+        <span className="sr-only"> for {user.email}</span>
       </SubmitButton>
       <div role="status" aria-live="polite" className="text-data">
         {state && "error" in state ? (
@@ -288,12 +293,12 @@ export function ControlUsers({
         {users.map((user) => (
           <li
             key={user.id}
-            className="flex flex-col gap-4 py-5 lg:flex-row lg:items-start lg:justify-between"
+            className="flex flex-col gap-5 py-5 lg:flex-row lg:items-start lg:justify-between"
             data-user-row
           >
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 max-w-sm flex-1 shrink-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="font-medium break-words">{user.name}</p>
+                <p className="font-medium">{user.name}</p>
                 {user.banned ? (
                   <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-xs font-semibold text-rose-300 uppercase">
                     Disabled
@@ -304,7 +309,7 @@ export function ControlUsers({
                   </span>
                 )}
               </div>
-              <p className="text-muted text-data break-all">{user.email}</p>
+              <p className="text-muted text-data mt-0.5 truncate">{user.email}</p>
               <p className="text-muted text-data mt-1">
                 {ROLE_LABEL[user.role]}
                 {" · "}
@@ -318,7 +323,7 @@ export function ControlUsers({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-start gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-start justify-start gap-2.5 lg:justify-end">
               <ChangeRole user={user} demo={demo} />
               <ToggleEnabled user={user} demo={demo} />
               <ResetPassword user={user} demo={demo} />

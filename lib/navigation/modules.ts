@@ -226,8 +226,8 @@ export const MODULES: readonly ModuleInfo[] = [
     name: "Nexus Studio",
     subtitle: "WordPress content management",
     summary:
-      "Where editors write Library, Story and Tour content. On Nexus Core 01 it is headless WordPress served by Apache at /studio/; where Apache is absent (local and demo) this page stands in for it.",
-    href: "/studio/",
+      "Where editors write Library, Story and Tour content. On Nexus Core 01 it is headless WordPress served by Apache at /studio/wp-admin/; where Apache is absent (local and demo) this page stands in for it.",
+    href: "/studio/wp-admin/",
     minRole: "operator",
     group: "manage",
     accent: "blue",
@@ -497,8 +497,7 @@ const extraPages: readonly PageInfo[] = [
 ];
 
 const moduleLandingPages: readonly PageInfo[] = MODULES.map((m) => ({
-  // "/studio/" is the Apache URL; Next.js serves the fallback at "/studio".
-  path: m.href.length > 1 ? m.href.replace(/\/$/, "") : m.href,
+  path: m.slug === "studio" ? "/studio" : m.href.length > 1 ? m.href.replace(/\/$/, "") : m.href,
   title: m.name,
   subtitle: m.subtitle,
   summary: m.summary,
