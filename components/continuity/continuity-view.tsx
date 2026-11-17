@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ModuleHero } from "@/components/layout/module-hero";
 import { RelatedModules } from "@/components/layout/related-modules";
 import { PageTransition } from "@/components/motion/page-transition";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { pageInfo } from "@/lib/navigation/modules";
 import type { ComponentItemView, ContinuityDto } from "@/lib/continuity/model";
 
@@ -22,7 +21,7 @@ function formatIso(iso?: string | null): string {
 
 export function ContinuityView({
   continuity,
-  mode,
+  mode: _mode,
 }: {
   continuity: ContinuityDto;
   mode: "live" | "demo";
@@ -35,9 +34,6 @@ export function ContinuityView({
     <PageTransition>
       <div className="space-y-12">
         <ModuleHero page={page} register="workspace" />
-        <div className="flex items-center gap-3">
-          <LiveDemoLabel source={mode === "demo" ? "demo" : "live"} />
-        </div>
 
         {/* Global Freshness & Verification Banner */}
         <section

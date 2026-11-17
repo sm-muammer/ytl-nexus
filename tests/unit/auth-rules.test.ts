@@ -19,7 +19,7 @@ const HOUR = 60 * MIN;
 
 describe("limits", () => {
   it("match the requirements", () => {
-    expect(IDLE_TIMEOUT_MS).toBe(30 * MIN);
+    expect(IDLE_TIMEOUT_MS).toBe(60 * MIN);
     expect(ABSOLUTE_TIMEOUT_MS).toBe(12 * HOUR);
     expect(STEP_UP_WINDOW_MS).toBe(10 * MIN);
     expect(LOCKOUT_FAILURES).toBe(5);
@@ -29,7 +29,7 @@ describe("limits", () => {
 });
 
 describe("Property 7a: session validity (requirements 6.16, 6.17)", () => {
-  it("is valid exactly when idle < 30 min, age < 12 h and not revoked", () => {
+  it("is valid exactly when idle < 60 min, age < 12 h and not revoked", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 0, max: 20 * HOUR }), // age
@@ -57,7 +57,7 @@ describe("Property 7a: session validity (requirements 6.16, 6.17)", () => {
     const now = 10 * HOUR;
     const base = { now, createdAt: now - HOUR, lastActivityAt: now - MIN };
     expect(sessionVerdict(base)).toBe("valid");
-    expect(sessionVerdict({ ...base, lastActivityAt: now - 31 * MIN })).toBe(
+    expect(sessionVerdict({ ...base, lastActivityAt: now - 61 * MIN })).toBe(
       "idle",
     );
     expect(sessionVerdict({ ...base, createdAt: now - 13 * HOUR })).toBe(
@@ -67,7 +67,7 @@ describe("Property 7a: session validity (requirements 6.16, 6.17)", () => {
       sessionVerdict({
         ...base,
         createdAt: now - 13 * HOUR,
-        lastActivityAt: now - 31 * MIN,
+        lastActivityAt: now - 61 * MIN,
         revoked: true,
       }),
     ).toBe("revoked");

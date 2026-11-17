@@ -126,3 +126,38 @@ describe("proxy request header", () => {
     );
   });
 });
+
+describe("Content Security Policy and security headers (Task 21, O-013)", () => {
+  it("generates a unique base64 nonce and injects strict CSP on responses", () => {
+    vi.stubEnv("NEXUS_MODE", "live");
+    const res1 = proxy(request("/status"));
+    const res2 = proxy(request("/status"));
+
+    const csp1 = res1.headers.get("Content-Security-Policy");
+    const csp2 = res2.headers.get("Content-Security-Policy");
+
+    expect(csp1).toBeTruthy();
+    expect(csp2).toBeTruthy();
+    expect(csp1).toContain("script-src 'self' 'nonce-");
+    expect(csp1).toContain("'strict-dynamic'");
+    expect(csp1).toContain("object-src 'none'");
+    expect(csp1).toContain("frame-ancestors 'none'");
+
+    // Extract nonces and verify uniqueness
+    const nonce1 = csp1?.match(/'nonce-([^']+)'/)?.[1];
+    const nonce2 = csp2?.match(/'nonce-([^']+)'/)?.[1];
+    expect(nonce1).toBeTruthy();
+    expect(nonce2).toBeTruthy();
+    expect(nonce1).not.toBe(nonce2);
+
+    // Request header forwarded to Next.js renderer for script tag nonce attachment
+    expect(res1.headers.get("x-middleware-request-x-nonce")).toBe(nonce1);
+
+    // Standard hardening headers
+    expect(res1.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(res1.headers.get("X-Frame-Options")).toBe("DENY");
+    expect(res1.headers.get("Referrer-Policy")).toBe(
+      "strict-origin-when-cross-origin",
+    );
+  });
+});

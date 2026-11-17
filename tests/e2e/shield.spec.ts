@@ -13,7 +13,6 @@ test.describe("Nexus Shield (/shield)", () => {
     page,
   }) => {
     await expect(page.locator("h1")).toContainText("Nexus Shield");
-    await expect(page.locator("#main-content [data-live-demo]")).toBeVisible();
     await expect(page.getByTestId("posture-indicator")).toBeVisible();
   });
 

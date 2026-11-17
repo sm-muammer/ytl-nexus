@@ -7,7 +7,6 @@ import { HealthBadge } from "@/components/command/health-badge";
 import { OpsPanel } from "@/components/command/ops-panel";
 import { ServiceTable } from "@/components/command/service-list";
 import { pageMetadata } from "@/components/layout/module-page";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { overallHealth } from "@/lib/monitoring/snapshot";
 import { meetsRole } from "@/lib/roles";
 import { getAdapters } from "@/lib/server/adapters";
@@ -31,7 +30,6 @@ async function Services() {
             health={overallHealth(snapshot, snapshot.takenAt)}
             label={stale ? "No recent data" : undefined}
           />
-          <LiveDemoLabel source={snapshot.source} />
         </div>
         <p className="text-muted text-data mt-3 max-w-(--spacing-prose)">
           State comes from systemd through node_exporter. “Not installed” means

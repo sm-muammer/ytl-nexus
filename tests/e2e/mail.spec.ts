@@ -21,9 +21,6 @@ test.describe("/mail, member", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Nexus Mail" }),
     ).toBeVisible();
-    await expect(page.locator('[data-source="demo"]').first()).toContainText(
-      "Demo",
-    );
 
     // Status & webmail button
     await expect(page.locator("[data-mail-status]")).toContainText("Healthy");
@@ -87,7 +84,6 @@ test.describe("Control, mailboxes (demo)", () => {
     await page.goto("/control");
     const section = page.locator("[data-control-mail]");
     await expect(section).toContainText("Mailboxes");
-    await expect(section.locator('[data-source="demo"]')).toBeVisible();
     await expect(section.locator("[data-mail-row]")).toHaveCount(4);
     await expect(section).toContainText("svc-alerts@ytl-nexus.internal");
     await expect(section).toContainText("service account");

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { DeleteRecordForm, RecordForm } from "@/components/data/record-forms";
 import type { SchemaView } from "@/lib/data/schema-view";
 import { PAGE_SIZE, type ListQuery } from "@/lib/data/query";
@@ -395,7 +394,6 @@ export function DataView(props: DataViewProps) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-heading-2 font-semibold">Nexus Data</h1>
-          <LiveDemoLabel source={list.source} />
         </div>
         <p className="text-muted max-w-(--spacing-prose)">
           The supervisor asked for a MySQL database with some data. Nexus Core

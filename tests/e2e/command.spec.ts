@@ -19,9 +19,6 @@ test.describe("Nexus Command overview", () => {
     await page.goto("/command");
     const dashboard = page.locator("[data-command-dashboard]");
     await expect(dashboard).toBeVisible();
-    await expect(
-      dashboard.locator('[data-source="demo"]').first(),
-    ).toContainText("Demo data");
     for (const label of ["CPU", "Memory", "Disk (root)"]) {
       await expect(dashboard.locator(`[data-gauge="${label}"]`)).toBeVisible();
     }
@@ -145,7 +142,6 @@ test.describe("other Command pages", () => {
     await page.goto("/command/core-01");
     await expect(page.getByRole("heading", { name: "Identity" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Hardware" })).toBeVisible();
-    await expect(page.locator('[data-source="demo"]').first()).toBeVisible();
     // No real hostname or address in demo or live (CMD security rules).
     const body = await page.locator("main").innerText();
     expect(body).not.toMatch(/ytlcomms|sn1lyvx|10\.26\./);

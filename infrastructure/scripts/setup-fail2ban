@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# setup-fail2ban: Task 21 (Requirement 6, SHD-11). Runs on the server (use server-run).
+#
+#   infrastructure/scripts/server-run setup-fail2ban
+#
+# Installs fail2ban, fail2ban-firewalld, and fail2ban-systemd from EPEL.
+# Deploys /etc/fail2ban/jail.local with jails for sshd, sftpgo, and postfix.
+# Configures filter.d/sftpgo.conf.
+# Ensures the owner's IP (10.24.5.91) and office networks are on ignoreip.
+# Enables and starts the fail2ban service.
+set -Eeuo pipefail
+OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$OPS_DIR/verify-target" --local
+
+echo "==> Installing fail2ban packages..."
+dnf install -y fail2ban fail2ban-firewalld fail2ban-systemd
+
+echo "==> Configuring fail2ban jail and filters..."
+install -d -m 0755 /etc/fail2ban/filter.d
+
+# Deploy jail.local
+if [ -f "$OPS_DIR/fail2ban/jail.local" ]; then
+  install -m 0644 -o root -g root "$OPS_DIR/fail2ban/jail.local" /etc/fail2ban/jail.local
+else
+  cat <<'EOF' > /etc/fail2ban/jail.local
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1 10.0.0.0/8 10.24.5.91
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+backend = systemd
+banaction = firewallcmd-rich-rules
+
+[sshd]
+enabled = true
+port    = 22
+mode    = normal
+maxretry = 5
+
+[postfix]
+enabled = true
+port    = smtp,587,submission
+mode    = more
+maxretry = 5
+
+[sftpgo]
+enabled  = true
+port     = 2022
+filter   = sftpgo
+maxretry = 5
+EOF
+fi
+
+# Deploy filter.d/sftpgo.conf
+if [ -f "$OPS_DIR/fail2ban/filter.d/sftpgo.conf" ]; then
+  install -m 0644 -o root -g root "$OPS_DIR/fail2ban/filter.d/sftpgo.conf" /etc/fail2ban/filter.d/sftpgo.conf
+else
+  cat <<'EOF' > /etc/fail2ban/filter.d/sftpgo.conf
+[Definition]
+failregex = ^{"level":"(?:warn|error)","time":".*?","sender":"login","connection_id":".*?","client_ip":"<HOST>","username":".*?","error":"(?:login failed|invalid credentials|no such user)"
+            ^.*\[<HOST>\].*failed authentication.*$
+            ^.*failed login from <HOST>.*$
+
+ignoreregex =
+EOF
+fi
+
+echo "==> Enabling and starting fail2ban service..."
+systemctl enable --now fail2ban
+systemctl restart fail2ban
+
+echo "==> Verifying fail2ban status..."
+sleep 2
+fail2ban-client status
+fail2ban-client status sshd || true
+fail2ban-client status postfix || true
+fail2ban-client status sftpgo || true
+
+echo "setup-fail2ban: completed successfully."

@@ -1,6 +1,5 @@
 import { ModuleHero } from "@/components/layout/module-hero";
 import { PageTransition } from "@/components/motion/page-transition";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { pageInfo } from "@/lib/navigation/modules";
 import type { OwnAccountView } from "@/lib/server/transfer";
 import { formatBytes, usagePercent } from "@/lib/transfer/format";
@@ -172,15 +171,14 @@ export function TransferView({
       <div>
         <ModuleHero page={page} register="workspace" />
         <div className="flex flex-col gap-10 px-(--spacing-gutter) py-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <LiveDemoLabel source={view.source} />
-            {demoSession ? (
+          {demoSession ? (
+            <div className="flex flex-wrap items-center gap-3">
               <span className="text-muted text-data">
                 Demo session: this account is an example and nothing here
                 connects to a real server.
               </span>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {view.state === "unavailable" ? (
             <Notice
@@ -238,21 +236,45 @@ export function TransferView({
                 </dl>
               </section>
 
-              <section aria-labelledby="portal-title" data-transfer-portal>
-                <h2 id="portal-title" className="text-heading-3 font-semibold">
-                  Use it in the browser
-                </h2>
-                <p className="text-muted mt-2 max-w-(--spacing-prose)">
-                  The file portal lets you upload, download and organise files
-                  without installing anything. Sign in there with your SFTP name
-                  and password; it is a separate sign-in from Nexus.
-                </p>
-                <a
-                  href="/files/"
-                  className="bg-accent-ink text-canvas mt-4 inline-flex min-h-11 items-center rounded-full px-6 text-sm font-semibold hover:opacity-90"
-                >
-                  Open the file portal
-                </a>
+              {/* Embedded Transfer File Portal */}
+              <section
+                aria-labelledby="portal-title"
+                data-transfer-portal
+                className="space-y-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2
+                      id="portal-title"
+                      className="text-heading-3 font-semibold"
+                    >
+                      File Portal
+                    </h2>
+                    <p className="text-muted mt-1 max-w-(--spacing-prose)">
+                      Upload, download, and organize files directly inside
+                      Nexus. Connected with your Nexus account.
+                    </p>
+                  </div>
+                  <a
+                    href="/files/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="border-line text-muted hover:text-ink hover:bg-surface-raised inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-xs font-semibold transition-colors"
+                    title="Open in new window"
+                  >
+                    <span>Pop out window</span>
+                    <span className="sr-only">(opens in new window)</span>
+                  </a>
+                </div>
+
+                <div className="border-line bg-surface relative h-[780px] w-full overflow-hidden rounded-xl border shadow-sm">
+                  <iframe
+                    src="/files/"
+                    title="Nexus Transfer File Portal"
+                    className="h-full w-full border-0"
+                    allow="clipboard-read; clipboard-write"
+                  />
+                </div>
               </section>
 
               <Keys account={view.account} />

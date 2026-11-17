@@ -46,6 +46,33 @@ function isHiddenPath(pathname: string): boolean {
   return HIDDEN.some((p) => path === p || path.startsWith(`${p}/`));
 }
 
+function generateCsp(nonce: string, isDev: boolean): string {
+  const directives = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' blob: data: https://ytl-nexus.ytlcomms.my",
+    "font-src 'self'",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ];
+  return directives.join("; ");
+}
+
+function applySecurityHeaders(headers: Headers, csp: string) {
+  headers.set("Content-Security-Policy", csp);
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Frame-Options", "DENY");
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  );
+}
+
 /**
  * A rewrite to the unknown path, on the origin Next.js recognises as its own.
  *
@@ -58,10 +85,18 @@ function isHiddenPath(pathname: string): boolean {
  * rewrite is given that scheme. The smoke test and the local reproduction in
  * docs/security/auth.md catch a change.
  */
-function rewriteToUnknownPath(request: NextRequest): NextResponse {
+function rewriteToUnknownPath(
+  request: NextRequest,
+  requestHeaders: Headers,
+  csp: string,
+): NextResponse {
   const url = new URL(UNKNOWN_PATH, request.url);
   url.protocol = "http:";
-  return NextResponse.rewrite(url);
+  const response = NextResponse.rewrite(url, {
+    request: { headers: requestHeaders },
+  });
+  applySecurityHeaders(response.headers, csp);
+  return response;
 }
 
 export function proxy(request: NextRequest) {
@@ -72,8 +107,17 @@ export function proxy(request: NextRequest) {
     ? Boolean(getSessionCookie(request, { cookiePrefix: "nexus" }))
     : request.cookies.has(DEMO_ROLE_COOKIE);
 
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const isDev = process.env.NODE_ENV === "development";
+  const csp = generateCsp(nonce, isDev);
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+  requestHeaders.set("x-nexus-path", pathname);
+
   if (isHiddenPath(pathname) && !hasSession) {
-    return rewriteToUnknownPath(request);
+    return rewriteToUnknownPath(request, requestHeaders, csp);
   }
 
   if (live && isProtectedPath(pathname) && !hasSession) {
@@ -82,9 +126,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-nexus-path", pathname);
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  applySecurityHeaders(response.headers, csp);
+  return response;
 }
 
 export const config = {

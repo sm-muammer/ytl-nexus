@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import type { ContentItem } from "@/lib/content/types";
 import type { DataSource } from "@/lib/server/adapters/types";
 
@@ -12,15 +11,8 @@ export function ContentUnavailable() {
   );
 }
 
-export function SourceLabel({ source }: { source: DataSource }) {
-  return (
-    <p className="text-data mt-6 flex items-center gap-2">
-      <LiveDemoLabel source={source} />
-      <span className="text-muted">
-        {source === "demo" ? "Sample content" : "Written in Nexus Studio"}
-      </span>
-    </p>
-  );
+export function SourceLabel(_props: { source?: DataSource }) {
+  return null;
 }
 
 export function AudienceTag({

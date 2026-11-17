@@ -9,7 +9,6 @@ import { StepUpForm } from "@/components/auth/auth-forms";
 import { ControlShell } from "@/components/layout/control-shell";
 import { ModuleHero } from "@/components/layout/module-hero";
 import { PageTransition } from "@/components/motion/page-transition";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { demoControlUsers } from "@/lib/fixtures/control-users";
 import { pageInfo } from "@/lib/navigation/modules";
 import { getAuthRuntime } from "@/lib/server/auth/runtime";
@@ -77,7 +76,6 @@ export default async function ControlPage() {
                     >
                       Accounts
                     </h2>
-                    <LiveDemoLabel source={demo ? "demo" : "live"} />
                   </div>
                   {demo ? (
                     <p className="text-muted text-data max-w-(--spacing-prose)">
@@ -102,7 +100,6 @@ export default async function ControlPage() {
                       >
                         File Transfer Accounts (SFTPGo)
                       </h2>
-                      <LiveDemoLabel source={transfer.source} />
                     </div>
                     {demo ? (
                       <p className="text-muted text-data max-w-(--spacing-prose)">
@@ -143,7 +140,6 @@ export default async function ControlPage() {
                       >
                         Mailboxes & Virtual Accounts
                       </h2>
-                      <LiveDemoLabel source={mail.source} />
                     </div>
                     {demo ? (
                       <p className="text-muted text-data max-w-(--spacing-prose)">
@@ -183,7 +179,6 @@ export default async function ControlPage() {
                     >
                       Service Actions & Operations Agent
                     </h2>
-                    <LiveDemoLabel source={demo ? "demo" : "live"} />
                   </div>
                   <ControlServices demo={demo} />
                 </section>
@@ -201,7 +196,6 @@ export default async function ControlPage() {
                     >
                       Platform Configuration
                     </h2>
-                    <LiveDemoLabel source={demo ? "demo" : "live"} />
                   </div>
                   <ControlConfig mode={demo ? "demo" : "live"} />
                 </section>
@@ -219,7 +213,6 @@ export default async function ControlPage() {
                     >
                       Audit Trail & Authorization Events
                     </h2>
-                    <LiveDemoLabel source={demo ? "demo" : "live"} />
                   </div>
                   <ControlAudit events={auditEvents} demo={demo} />
                 </section>

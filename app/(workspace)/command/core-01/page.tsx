@@ -4,7 +4,6 @@ import {
   CommandLoading,
 } from "@/components/command/command-frame";
 import { pageMetadata } from "@/components/layout/module-page";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import {
   formatBytes,
   formatDuration,
@@ -48,14 +47,13 @@ async function Detail() {
   const m = snapshot.metrics;
   return (
     <div className="grid gap-x-16 gap-y-10 px-(--spacing-gutter) py-8 lg:grid-cols-2">
-      <div className="flex flex-wrap items-center gap-4 lg:col-span-2">
-        <LiveDemoLabel source={snapshot.source} />
-        {!snapshot.reachable ? (
+      {!snapshot.reachable ? (
+        <div className="flex flex-wrap items-center gap-4 lg:col-span-2">
           <span role="status" className="text-muted text-data">
             Prometheus does not answer, so no readings are shown.
           </span>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
       <Group
         title="Identity"
         rows={[

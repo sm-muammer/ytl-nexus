@@ -1,6 +1,5 @@
 import { ModuleHero } from "@/components/layout/module-hero";
 import { PageTransition } from "@/components/motion/page-transition";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { pageInfo } from "@/lib/navigation/modules";
 import { formatBytes } from "@/lib/transfer/format";
@@ -53,14 +52,13 @@ export function MailView({
       <div>
         <ModuleHero page={page} register="workspace" />
         <div className="flex flex-col gap-10 px-(--spacing-gutter) py-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <LiveDemoLabel source={status.source} />
-            {demoSession ? (
+          {demoSession ? (
+            <div className="flex flex-wrap items-center gap-3">
               <span className="text-muted text-data">
                 Demo session: mailboxes and service status are samples.
               </span>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {/* Service status */}
           <section aria-labelledby="status-title" data-mail-status>
@@ -73,22 +71,41 @@ export function MailView({
             </div>
           </section>
 
-          {/* Webmail portal link */}
-          <section aria-labelledby="webmail-title" data-mail-webmail>
-            <h2 id="webmail-title" className="text-heading-3 font-semibold">
-              Webmail
-            </h2>
-            <p className="text-muted mt-2 max-w-(--spacing-prose)">
-              Access your internal inbox in the browser with Roundcube. Sign in
-              with your full mailbox address and mailbox password.
-            </p>
-            <div className="mt-4">
+          {/* Embedded Webmail Portal */}
+          <section
+            aria-labelledby="webmail-title"
+            data-mail-webmail
+            className="space-y-4"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 id="webmail-title" className="text-heading-3 font-semibold">
+                  Webmail
+                </h2>
+                <p className="text-muted mt-1 max-w-(--spacing-prose)">
+                  Internal inbox integrated directly inside Nexus. Signed in
+                  automatically with your Nexus account.
+                </p>
+              </div>
               <a
                 href={WEBMAIL_PATH}
-                className="bg-accent-ink text-canvas inline-flex min-h-11 items-center rounded-full px-6 text-sm font-semibold hover:opacity-90"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border-line text-muted hover:text-ink hover:bg-surface-raised inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-xs font-semibold transition-colors"
+                title="Open in new window"
               >
-                Open Roundcube Webmail
+                <span>Pop out window</span>
+                <span className="sr-only">(opens in new window)</span>
               </a>
+            </div>
+
+            <div className="border-line bg-surface relative h-[780px] w-full overflow-hidden rounded-xl border shadow-sm">
+              <iframe
+                src={WEBMAIL_PATH}
+                title="Nexus Webmail Portal"
+                className="h-full w-full border-0"
+                allow="clipboard-read; clipboard-write"
+              />
             </div>
           </section>
 

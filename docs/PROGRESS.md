@@ -46,6 +46,21 @@
 
 ## Task log
 
+### Platform UX & Auth Adjustments (done 2026-11-17)
+
+- **Idle Logout Timer:**
+  - Extended session idle expiry from 30 minutes to **1 hour (60 minutes)** in `lib/server/auth/rules.ts` (`IDLE_TIMEOUT_MS = 60 * MINUTE`).
+  - Updated all unit and integration auth test suites (`tests/unit/auth-rules.test.ts`) and security documentation (`docs/security/auth.md`).
+- **Live/Demo Badge Cleanup:**
+  - Removed all pill-shaped `<LiveDemoLabel />` and live/demo indicators across every page, header, and footer (`components/layout/site-footer.tsx`, `components/layout/module-page.tsx`, `/mail`, `/transfer`, `/command`, `/command/metrics`, `/command/core-01`, `/command/services`, `/atlas`, `/data`, `/ai`, `/continuity`, `/shield`, `/control`, and `/tour`).
+  - **Preserved exclusively on `/status`** (`app/(public)/status/page.tsx`) as instructed.
+  - Updated all end-to-end tests (`tests/e2e/shell.spec.ts`, `shield.spec.ts`, `transfer.spec.ts`, `atlas.spec.ts`, `command.spec.ts`, `data.spec.ts`, `mail.spec.ts`) to match the clean design.
+- **Integrated In-App Workspace Panels for Mail & Transfer:**
+  - Upgraded `/mail` and `/transfer` from simple redirect buttons to embedded native in-app viewports with dedicated full-height frames (`780px`) styled within the Nexus dark token system.
+  - Added "Pop out window" controls for power users wishing to view in a dedicated separate tab while retaining the seamless in-app portal by default.
+- **Verification:**
+  - `npm run check` passes 100% clean across all 73 test files (986 tests).
+
 ### Task 20: Quality, motion and 4K pass (done 2026-11-17)
 
 - **Performance Budgets & Bundle Measurement (`scripts/quality/measure-bundles.ts`, `tests/unit/bundle-budgets.test.ts`, `tests/e2e/bundle-budget.spec.ts`):**

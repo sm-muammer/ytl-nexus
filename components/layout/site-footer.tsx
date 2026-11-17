@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { EnvironmentBadge } from "@/components/ui/environment-badge";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import type { NexusMode } from "@/lib/server/mode";
 import { meetsRole, type Actor } from "@/lib/roles";
 import { FOOTER_LINKS } from "@/lib/navigation/modules";
@@ -32,7 +31,6 @@ export function SiteFooter({ actor, mode }: { actor: Actor; mode: NexusMode }) {
           </p>
           <p className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <EnvironmentBadge mode={mode} />
-            <LiveDemoLabel source={mode === "demo" ? "demo" : "live"} />
           </p>
         </div>
         <nav aria-label="Footer">

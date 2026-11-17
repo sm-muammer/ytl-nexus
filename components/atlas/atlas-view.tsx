@@ -5,7 +5,6 @@ import { useId, useMemo, useRef, useState } from "react";
 import { AtlasActions } from "@/components/atlas/atlas-actions";
 import { HEALTH_STYLE, HealthBadge } from "@/components/command/health-badge";
 import { HistoryStrip } from "@/components/status/status-parts";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import {
   NODE_H,
   NODE_W,
@@ -104,7 +103,6 @@ export function AtlasView({
   return (
     <div className="px-(--spacing-gutter) py-8" data-atlas>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <LiveDemoLabel source={data.source} />
         <div role="group" aria-label="View" className="flex gap-2">
           {(["map", "list"] as const).map((v) => (
             <button

@@ -6,7 +6,6 @@ import {
 } from "@/components/command/command-frame";
 import { RangeChart, type ChartSeries } from "@/components/command/range-chart";
 import { pageMetadata } from "@/components/layout/module-page";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import {
   RANGES,
   RANGE_IDS,
@@ -104,11 +103,6 @@ async function Charts({ range }: { range: RangeId }) {
   );
 }
 
-async function Source() {
-  const status = await getAdapters().prometheus.status();
-  return <LiveDemoLabel source={status.source} />;
-}
-
 export default async function MetricsPage({
   searchParams,
 }: PageProps<"/command/metrics">) {
@@ -141,11 +135,6 @@ export default async function MetricsPage({
               {RANGES[id].label}
             </Link>
           ))}
-          <span className="ml-2">
-            <Suspense fallback={null}>
-              <Source />
-            </Suspense>
-          </span>
         </nav>
         <div className="mt-6">
           <Suspense fallback={<CommandLoading what="the charts" />}>

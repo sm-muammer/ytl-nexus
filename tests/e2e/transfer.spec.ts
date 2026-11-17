@@ -23,9 +23,6 @@ test.describe("/transfer, member", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Nexus Transfer" }),
     ).toBeVisible();
-    await expect(page.locator('[data-source="demo"]').first()).toContainText(
-      "Demo",
-    );
     const account = page.locator("[data-transfer-account]");
     await expect(account).toContainText("demo-member");
     await expect(account).toContainText("port 2022");
@@ -133,7 +130,6 @@ test.describe("Control, file transfer accounts (demo)", () => {
     await page.goto("/control");
     const section = page.locator("[data-control-transfer]");
     await expect(section).toContainText("File transfer accounts");
-    await expect(section.locator('[data-source="demo"]')).toBeVisible();
     await expect(section.locator("[data-transfer-row]")).toHaveCount(3);
     await expect(section).toContainText("demo-archive");
     await expect(section).toContainText("not linked to a Nexus account");

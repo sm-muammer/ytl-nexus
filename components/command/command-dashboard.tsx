@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import {
   formatDuration,
   formatPercent,
@@ -129,7 +128,6 @@ export function CommandDashboard({ initial }: { initial: Snapshot }) {
                     : "Watch"
             }
           />
-          <LiveDemoLabel source={snapshot.source} />
           <span className="text-muted text-data" role="status">
             {dim
               ? unreachable

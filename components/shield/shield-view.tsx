@@ -3,7 +3,6 @@
 import { ModuleHero } from "@/components/layout/module-hero";
 import { RelatedModules } from "@/components/layout/related-modules";
 import { PageTransition } from "@/components/motion/page-transition";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { pageInfo } from "@/lib/navigation/modules";
 import {
   SHIELD_CHECKS,
@@ -59,7 +58,7 @@ function checkMeta(id: ShieldCheckId) {
 
 export function ShieldView({
   shield,
-  mode,
+  mode: _mode,
 }: {
   shield: ShieldSummaryDto;
   mode: "live" | "demo";
@@ -80,9 +79,6 @@ export function ShieldView({
     <PageTransition>
       <div className="space-y-12">
         <ModuleHero page={page} register="workspace" />
-        <div className="flex items-center gap-3">
-          <LiveDemoLabel source={mode === "demo" ? "demo" : "live"} />
-        </div>
 
         {/* Security Posture Status Banner */}
         <section

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { isContentType } from "@/lib/content/types";
+import { sourceIpFromHeaders } from "@/lib/server/auth/ip";
 import { listContent } from "@/lib/server/content";
+import { checkRateLimit, rateLimitResponse } from "@/lib/server/rate-limit";
 import { getActor } from "@/lib/server/session";
 
 // Public path: the answer is filtered for the caller's role inside
@@ -10,6 +12,15 @@ const query = z.object({
 });
 
 export async function GET(request: Request) {
+  const ip = sourceIpFromHeaders(new Headers(request.headers));
+  const rate = checkRateLimit(`${ip}:api-library`, {
+    maxRequests: 60,
+    windowMs: 60 * 1000,
+  });
+  if (!rate.ok) {
+    return rateLimitResponse(rate.retryAfter);
+  }
+
   const parsed = query.safeParse({
     type: new URL(request.url).searchParams.get("type") ?? undefined,
   });

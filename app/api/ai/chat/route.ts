@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { sourceIpFromHeaders } from "@/lib/server/auth/ip";
 import { getActor } from "@/lib/server/session";
 import { meetsRole } from "@/lib/roles";
 import { getMode } from "@/lib/server/mode";
@@ -59,8 +60,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const clientIp =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+  const clientIp = sourceIpFromHeaders(req.headers);
 
   // Check rate limits & max prompt size (AI-07)
   const limitCheck = checkAiLimits({ prompt: body.prompt, ip: clientIp });

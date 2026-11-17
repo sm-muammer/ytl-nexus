@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 
 export type Message = {
   id: string;
@@ -19,7 +18,7 @@ export type ConversationItem = {
 
 export function AiChatView({
   initialExplainPrompt,
-  demo = false,
+  demo: _demo = false,
 }: {
   initialExplainPrompt?: string;
   demo?: boolean;
@@ -272,7 +271,6 @@ export function AiChatView({
         <div className="border-line flex items-center justify-between border-b px-6 py-3">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold">Nexus AI Assistant</span>
-            <LiveDemoLabel source={demo ? "demo" : "live"} />
           </div>
           <span className="text-muted text-xs">
             Grounded local runbooks & library

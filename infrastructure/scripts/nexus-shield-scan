@@ -332,7 +332,7 @@ if [ -f "$INGEST_ENV" ] && command -v node >/dev/null 2>&1; then
       const escEv = f.evidence.replace(/'\''/g, "''");
       const escRem = f.remediation.replace(/'\''/g, "''");
       const ts = f.seen_at.toISOString().slice(0, 19).replace("T", " ");
-      console.log(`INSERT INTO shield_findings (scan_id, check_id, severity, evidence, remediation, seen_at) VALUES (\x27${f.scan_id}\x27, \x27${f.check_id}\x27, \x27${f.severity}\x27, \x27${escEv}\x27, \x27${escRem}\x27, \x27${ts}\x27) ON DUPLICATE KEY UPDATE severity=\x27${f.severity}\x27, evidence=\x27${escEv}\x27, remediation=\x27${escRem}\x27, seen_at=\x27${ts}\x27;`);
+      console.log(`INSERT IGNORE INTO shield_findings (scan_id, check_id, severity, evidence, remediation, seen_at) VALUES (\x27${f.scan_id}\x27, \x27${f.check_id}\x27, \x27${f.severity}\x27, \x27${escEv}\x27, \x27${escRem}\x27, \x27${ts}\x27);`);
     }
   ' "$OUTPUT_FILE" 2>/dev/null || true)
 

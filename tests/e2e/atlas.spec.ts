@@ -23,9 +23,6 @@ test.describe("Nexus Atlas", () => {
     const map = page.locator("[data-atlas-map]");
     await expect(map).toBeVisible();
     await expect(map.locator("[data-node]")).toHaveCount(COUNT);
-    await expect(page.locator('[data-source="demo"]').first()).toContainText(
-      "Demo data",
-    );
     expect(await blockingViolations(page)).toEqual([]);
   });
 

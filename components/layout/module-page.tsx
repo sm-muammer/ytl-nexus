@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Backdrop } from "@/components/backdrop/backdrop";
 import { PageTransition } from "@/components/motion/page-transition";
-import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { accessLabel, meetsRole } from "@/lib/roles";
 import { findModule, pageInfo } from "@/lib/navigation/modules";
@@ -44,7 +43,6 @@ async function BackingStatus({ name }: { name: AdapterName }) {
         <span>{backingName[name]}</span>
         <span className="flex flex-wrap items-center gap-2">
           <StatusBadge status={status.state} label={status.label} />
-          <LiveDemoLabel source={status.source} />
         </span>
         <span className="text-muted">{status.detail}</span>
       </dd>

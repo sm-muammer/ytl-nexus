@@ -6,8 +6,8 @@ import type { Role } from "../../roles.ts";
 
 const MINUTE = 60_000;
 
-/** A session unused for this long is dead (requirement 6.16). */
-export const IDLE_TIMEOUT_MS = 30 * MINUTE;
+/** A session unused for this long is dead (requirement 6.16: 60 minutes). */
+export const IDLE_TIMEOUT_MS = 60 * MINUTE;
 /** A session older than this is dead however busy it was (requirement 6.16). */
 export const ABSOLUTE_TIMEOUT_MS = 12 * 60 * MINUTE;
 /** Password plus TOTP counts as recent for this long (requirement 6.10). */

@@ -1,0 +1,36 @@
+# YTL Nexus fail2ban configuration
+# Installed at /etc/fail2ban/jail.local on Nexus Core 01.
+# Requirements: Requirement 6, Task 21 (SHD-11).
+
+[DEFAULT]
+# Ignore loopback and internal office networks, plus owner Mac IP
+ignoreip = 127.0.0.1/8 ::1 10.0.0.0/8 10.24.5.91
+
+# Ban for 1 hour after 5 failures within 10 minutes
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+
+# Use systemd journal for reading logs
+backend = systemd
+
+# Firewalld rich-rules integration
+banaction = firewallcmd-rich-rules
+
+[sshd]
+enabled = true
+port    = 22
+mode    = normal
+maxretry = 5
+
+[postfix]
+enabled = true
+port    = smtp,587,submission
+mode    = more
+maxretry = 5
+
+[sftpgo]
+enabled  = true
+port     = 2022
+filter   = sftpgo
+maxretry = 5

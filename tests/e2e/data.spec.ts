@@ -22,9 +22,6 @@ test.describe("Nexus Data, viewer", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Nexus Data" }),
     ).toBeVisible();
-    await expect(page.locator('[data-source="demo"]').first()).toContainText(
-      "Demo",
-    );
     await expect(page.getByText("42 records, 25 per page")).toBeVisible();
     await expect(
       page.getByRole("region", { name: "Assets records" }).locator("tbody tr"),
