@@ -46,6 +46,19 @@
 
 ## Task log
 
+### Unified Account Management & Storage Controls in Nexus Control (done 2026-11-17)
+
+- **Unified Account Controls (Nexus Control):** Enhanced `/control` account management to reflect the 1-account unified architecture.
+  - Eliminated the need for administrators to manage separate siloed tables for File Transfer Accounts and Mailboxes.
+  - Added dedicated **Storage & Subsystem Access** panels directly onto each user's card in `Accounts`:
+    - **File Transfer & SFTP Storage:** Live used vs quota limit bar with inline numeric limit form (`setQuotaAction` in MB).
+    - **Mailbox Storage:** Live mailbox address and storage limit with inline numeric limit form (`setMailboxQuotaAction` in MB).
+    - **SSH Public Key Management:** Lists authorized SSH public keys for SFTP transfers with one-click key removal and public key addition form.
+  - Collapsed secondary raw tables into an expandable "Advanced Subsystems: Direct SFTPGo & Virtual Mailbox Tables" drawer, preserving 100% backwards compatibility with existing e2e test suites (`tests/e2e/control.spec.ts`, `tests/e2e/transfer.spec.ts`, `tests/e2e/mail.spec.ts`).
+- **Seamless Web SSO for File Portal (SFTPGo):**
+  - Updated `/usr/share/sftpgo/templates/common/baselogin.html` on Nexus Core 01 to automatically authenticate incoming sessions via `/api/transfer/sso-ticket` while preventing login form flicker.
+- **Verification:** 32 Next.js routes compiled cleanly with 0 TypeScript and ESLint errors; remote deployment `234e2cc` deployed and active on Nexus Core 01 (`10.26.64.164`).
+
 ### Platform UX, SSO & Auth Adjustments (done 2026-11-17)
 
 - **Single Sign-On (1 Login For All Things):**
