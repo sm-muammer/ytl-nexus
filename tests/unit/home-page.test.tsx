@@ -96,6 +96,12 @@ describe("Home page", () => {
     ).toHaveAttribute("href", "/platform");
   });
 
+  it("credits Muammer as the builder in the hero and about disclosure", () => {
+    render(<HomePage />);
+
+    expect(screen.getAllByText(/Muammer/i).length).toBeGreaterThanOrEqual(2);
+  });
+
   it("renders its own content only: the layout supplies the main landmark", () => {
     const { container } = render(<HomePage />);
     expect(container.querySelector("main")).toBeNull();

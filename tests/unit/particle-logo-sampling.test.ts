@@ -41,6 +41,7 @@ describe("particle logo sampling", () => {
     expect(MARK_HALF_DEPTH).toBeCloseTo(0.12, 6);
     expect(sampled.count).toBe(5000);
     expect(sampled.positions).toHaveLength(5000 * 3);
+    expect(sampled.normals).toHaveLength(5000 * 3);
     expect(sampled.colors).toHaveLength(5000 * 3);
     expect(sampled.scatter).toHaveLength(5000 * 3);
     expect(sampled.seeds).toHaveLength(5000);
@@ -55,6 +56,10 @@ describe("particle logo sampling", () => {
       const x = sampled.positions[i * 3]!;
       const y = sampled.positions[i * 3 + 1]!;
       const z = sampled.positions[i * 3 + 2]!;
+      const nx = sampled.normals[i * 3]!;
+      const ny = sampled.normals[i * 3 + 1]!;
+      const nz = sampled.normals[i * 3 + 2]!;
+      expect(Math.hypot(nx, ny, nz)).toBeCloseTo(1, 4);
       if (x < minX) minX = x;
       if (x > maxX) maxX = x;
       if (y < minY) minY = y;

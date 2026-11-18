@@ -14,21 +14,24 @@
 
 ## 2. Particle logomark (`components/home/particle-logo.tsx` + `lib/motion/particle-logo/*.ts`)
 
-**Sampling (pure, unit-tested):** rasterise the SVG to an offscreen canvas (about 768 px on its long side) and keep pixels with alpha above 0.5. Choose positions randomly from those pixels until the tier's count is reached. Each particle gets:
+**Sampling (pure, unit-tested):** rasterise the SVG to an offscreen canvas (about 768 px on its long side) and keep pixels with alpha above 0.5. Walk the edge-weighted pixel pool via stratified sampling so the mark has uniform density without clumping. Each particle gets:
 
-- `position`: x and y centred and normalised so the mark is about 2.2 world units tall. z gives the mark thickness: 70 % of particles sit on the front and back faces (z = ±0.12) and 30 % fill the volume (shaded ×0.6 for extrusion depth). Edge pixels (any transparent neighbour) count double, so the silhouette reads sharp when the mark turns side-on.
-- `color`: the sampled pixel's exact RGB (`COLOR_BRIGHTNESS_BOOST = 1`), tone-mapped in the fragment shader (`col = col / (1.0 + col * 0.35)`) so additive overlap preserves the official pink-to-indigo gradient without clipping.
+- `position`: x and y centred and normalised so the mark is about 2.2 world units tall. z gives the mark thickness: 70 % of particles sit on the front and back faces (z = ±0.12) and 30 % fill the volume (scaled 2.1× in the vertex shader for sculptural 3D slab depth). Edge pixels (any transparent neighbour) count double, so the silhouette reads sharp when the mark turns side-on.
+- `normal`: 3D unit vector derived from a 3×3 Sobel alpha gradient for front/back bevels and side walls, used in view space to dim rear faces (preventing double-ghosting) and add rim/key lighting.
+- `color`: the sampled pixel's exact RGB (`COLOR_BRIGHTNESS_BOOST = 1`), tone-mapped in the fragment shader (`col = col / (1.0 + col * 0.42)`) so additive overlap preserves the official pink-to-indigo gradient without clipping.
 - `scatter`: a random point in a wide ellipsoid (radius about 6, flattened in y) used for scroll dispersal and the intro.
 - `seed`: a random float in [0, 1) used for shimmer and size variation.
+
+Surrounding ambient layer: `sampleAmbientDust` places 65 % of motes along 3 tilted 3D orbital torus rings around the mark and 35 % in a deep parallax starfield (5 000 / 3 500 / 2 000 by tier).
 
 **Counts by quality tier:** high 140 000, medium 70 000, low 30 000 (use `useQualityTier`; frame times feed `reportFrame`). Device pixel ratio is capped at 2.
 
 **Shader (`ShaderMaterial`, `Points`, `AdditiveBlending`, `depthWrite: false`):**
 
-- Each point is drawn as a round sprite with a soft falloff (a bright core plus a faint halo). Size varies by `seed` and shrinks with distance.
-- Shimmer: alpha moves by ±15 % over time, with each particle's phase set by `seed`.
+- Each point is drawn as a crisp micro-LED core plus soft halo (`basePointSize = 5.8`, clamped `1.4..16.0` px). Size varies by `seed` and shrinks with distance.
+- Shimmer: alpha moves by ±15 % over time, with each particle's phase set by `seed`, plus a subtle continuous 3D surface wave.
 - `uMorph` (0 = logo, 1 = scattered) blends `position` toward `scatter` with a per-particle delay of `seed * 0.3` and an ease-in-out curve.
-- Pointer repulsion: `uPointer` is the pointer in object space, found by casting a ray onto the plane z = 0 of the mark. Particles within `uRadius` (about 0.45) are pushed outward along xy and slightly in +z, with a smoothstep falloff. `uPointerStrength` eases to 0 when the pointer leaves.
+- Pointer ripple: `uPointer` is the pointer in object space, found by casting a ray onto the plane z = 0 of the mark. Particles within `uRadius` (0.32) lift in +z with a subtle swirl and luminance shift while keeping the lettering crisp. `uPointerStrength` eases to 0 when the pointer leaves.
 
 **Motion:**
 
@@ -55,7 +58,7 @@
 
 Same honest copy as today. The visual language is **deep navy ink, luminous particles, glass surfaces, thin gradient hairlines and mono eyebrows**. Use only semantic tokens; add new ones to `app/globals.css` and `lib/design/tokens.ts` and keep the sync test green.
 
-1. **Hero (100 dvh):** on large screens, text on the left (mono eyebrow "Internship project · YTL Communications", the `h1` "YTL Nexus", the lead line, both CTAs) and the mark centred to the right. On mobile, the mark sits above the text. A small animated scroll cue sits at the bottom.
+1. **Hero (100 dvh):** full-viewport dynamic aurora and 3D perspective horizon grid backdrop (`.nx-hero-dynamic-bg`). On large screens, text on the left (mono eyebrow "Internship project · YTL Communications" + "Built by Muammer · IT Infrastructure" pill, the `h1` "YTL Nexus", the lead line, both CTAs, and a glass Hero Identity & Quick-Launch HUD panel crediting Muammer and linking to flagship modules) and the mark framed by concentric orbital HUD rings on the right, with a stage hint pill underneath. On mobile, the mark sits above the text. A small animated scroll cue sits at the bottom.
 2. **Facts strip:** three or four large numbers derived from code (`PUBLIC_MODULES.length` modules, 1 server, 1 sign-in, Live/Demo labelled), each with a mono caption. These are facts about the project, not live metrics, and are labelled that way.
 3. **Modules bento:** a responsive card grid replacing the plain list. Cards use a glass surface (translucent surface token plus `backdrop-blur`), a 1 px hairline border that turns into a pink-to-blue gradient on hover, and a pointer-following radial spotlight (CSS variables `--mx` and `--my` set on pointer move; pure CSS paint). Each card keeps its access-level pill and its correct `<a>` or `<Link>` choice. Two or three featured modules (Command, AI, Yes Experience) get larger tiles.
 4. **"How it fits together" teaser:** three tiers (Ingress → Nexus Core 01 → Services) joined by an animated gradient signal line (CSS or SVG, transform and opacity only), linking to `/platform`.

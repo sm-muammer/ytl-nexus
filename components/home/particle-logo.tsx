@@ -55,21 +55,22 @@ const CAMERA_FOV_DEG = 42;
 const TAN_HALF_FOV = Math.tan(((CAMERA_FOV_DEG / 2) * Math.PI) / 180);
 
 const TIER_INTENSITY: Record<QualityTier, number> = {
-  high: 0.27,
-  medium: 0.39,
-  low: 0.56,
+  high: 0.62,
+  medium: 0.82,
+  low: 1.08,
 };
 
 const TIER_SIZE_SCALE: Record<QualityTier, number> = {
   high: 1.0,
-  medium: 1.25,
-  low: 1.55,
+  medium: 1.28,
+  low: 1.65,
 };
 
 function buildGeometry(pixels: PixelBuffer, count: number): BufferGeometry {
   const sampled = sampleParticlesFromPixels(pixels, count);
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new BufferAttribute(sampled.positions, 3));
+  geometry.setAttribute("aNormal", new BufferAttribute(sampled.normals, 3));
   geometry.setAttribute("aColor", new BufferAttribute(sampled.colors, 3));
   geometry.setAttribute("aScatter", new BufferAttribute(sampled.scatter, 3));
   geometry.setAttribute("aSeed", new BufferAttribute(sampled.seeds, 1));
@@ -138,7 +139,7 @@ function measureStage(
   const ndcY = 1 - (heroCenterY / Math.max(1, vh)) * 2;
   const markPx = (2.2 / (2 * halfWorldH)) * vh;
   const basePointSize =
-    9.2 * (baseCameraZ / 4.4) * Math.max(0.6, Math.min(1.65, markPx / 420));
+    5.8 * (baseCameraZ / 4.4) * Math.max(0.65, Math.min(1.55, markPx / 420));
 
   return {
     baseCameraZ,
@@ -197,7 +198,7 @@ export function ParticleLogo() {
     baseCameraZ: 5.5,
     heroWorldX: 0,
     heroWorldY: 0,
-    basePointSize: 9.2,
+    basePointSize: 5.8,
   });
   const rafRef = useRef<number>(0);
   const framesRef = useRef<number>(0);
@@ -211,6 +212,7 @@ export function ParticleLogo() {
     const group = groupRef.current;
     const material = materialRef.current;
     const dustMaterial = dustMaterialRef.current;
+    const dustPoints = dustPointsRef.current;
     if (
       !canvas ||
       !renderer ||
@@ -231,8 +233,13 @@ export function ParticleLogo() {
     material.uniforms.uTime!.value = 0;
     material.uniforms.uOpacity!.value = 1;
     material.uniforms.uPointerStrength!.value = 0;
+    if (dustPoints) {
+      dustPoints.position.set(m.heroWorldX * 0.65, m.heroWorldY * 0.65, 0);
+    }
     if (dustMaterial) {
       dustMaterial.uniforms.uTime!.value = 0;
+      dustMaterial.uniforms.uScrollMorph!.value = 0;
+      (dustMaterial.uniforms.uPointer!.value as Vector3).set(0, 0, 0);
     }
     renderer.render(scene, camera);
     framesRef.current = 1;
@@ -292,7 +299,7 @@ export function ParticleLogo() {
         uMorph: { value: 1 },
         uOpacity: { value: 1 },
         uPixelRatio: { value: dpr },
-        uBaseSize: { value: 9.2 * TIER_SIZE_SCALE[currentTier] },
+        uBaseSize: { value: 5.8 * TIER_SIZE_SCALE[currentTier] },
         uIntensity: { value: TIER_INTENSITY[currentTier] },
         uPointer: { value: new Vector3(0, 0, 0) },
         uPointerStrength: { value: 0 },
@@ -310,6 +317,8 @@ export function ParticleLogo() {
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: dpr },
+        uPointer: { value: new Vector3(0, 0, 0) },
+        uScrollMorph: { value: 0 },
       },
     });
     dustMaterialRef.current = dustMaterial;
@@ -339,6 +348,11 @@ export function ParticleLogo() {
         metrics.basePointSize * TIER_SIZE_SCALE[tierRef.current];
       material.uniforms.uIntensity!.value = TIER_INTENSITY[tierRef.current];
       dustMaterial.uniforms.uPixelRatio!.value = nextDpr;
+      dustPoints.position.set(
+        metrics.heroWorldX * 0.65,
+        metrics.heroWorldY * 0.65,
+        0,
+      );
 
       if (reducedRef.current) {
         renderStaticFrame();
@@ -559,7 +573,18 @@ export function ParticleLogo() {
       );
       material.uniforms.uOpacity!.value = scroll.opacity;
       material.uniforms.uPointerStrength!.value = pointerStrength;
+      dustPoints.position.set(
+        m.heroWorldX * activeMask * 0.65,
+        m.heroWorldY * activeMask * 0.65,
+        0,
+      );
       dustMaterial.uniforms.uTime!.value = elapsed;
+      dustMaterial.uniforms.uScrollMorph!.value = scroll.morph;
+      (dustMaterial.uniforms.uPointer!.value as Vector3).set(
+        pointerNdc.x * pointerStrength,
+        pointerNdc.y * pointerStrength,
+        0,
+      );
 
       renderer.render(scene, camera);
       framesRef.current += 1;

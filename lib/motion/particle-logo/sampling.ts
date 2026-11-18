@@ -33,6 +33,7 @@ export type SampleOptions = {
 export type SampledParticles = {
   count: number;
   positions: Float32Array;
+  normals: Float32Array;
   colors: Float32Array;
   scatter: Float32Array;
   seeds: Float32Array;
@@ -49,12 +50,9 @@ function mulberry32(seed: number): () => number {
 }
 
 /**
- * Samples `count` 3D particles from an RGBA pixel buffer.
- * - Keeps pixels whose normalized alpha exceeds `alphaThreshold` (0.5).
- * - Counts edge pixels (any transparent orthogonal neighbour or image edge) double.
- * - Normalises xy so the opaque mark is centred and `targetHeight` (2.2) units tall.
- * - Places 70% of particles on front/back faces (±0.12) and 30% inside the volume.
- * - Boosts sampled RGB by 1.15 for additive blending.
+ * Samples `count` 3D particles from an RGBA pixel buffer using stratified pool
+ * sampling (eliminating Monte Carlo clumping) and computes 3D surface/bevel
+ * normals via a 3x3 Sobel alpha gradient.
  */
 export function sampleParticlesFromPixels(
   image: PixelBuffer,
@@ -69,6 +67,7 @@ export function sampleParticlesFromPixels(
     return {
       count: 0,
       positions: new Float32Array(0),
+      normals: new Float32Array(0),
       colors: new Float32Array(0),
       scatter: new Float32Array(0),
       seeds: new Float32Array(0),
@@ -88,6 +87,11 @@ export function sampleParticlesFromPixels(
   const isOpaque = (x: number, y: number): boolean => {
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
     return (data[(y * width + x) * 4 + 3] ?? 0) > alphaCutoff;
+  };
+
+  const alphaAt = (x: number, y: number): number => {
+    if (x < 0 || y < 0 || x >= width || y >= height) return 0;
+    return (data[(y * width + x) * 4 + 3] ?? 0) / 255;
   };
 
   let minX = width;
@@ -131,9 +135,10 @@ export function sampleParticlesFromPixels(
   const scale = targetHeight / spanY;
   const maxHalfW = (spanX * scale) / 2;
   const maxHalfH = targetHeight / 2;
-  const jitterStep = spanY > 1 ? 1 : 0;
+  const jitterStep = spanY > 1 ? 0.65 : 0;
 
   const positions = new Float32Array(count * 3);
+  const normals = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const scatter = new Float32Array(count * 3);
   const seeds = new Float32Array(count);
@@ -142,7 +147,9 @@ export function sampleParticlesFromPixels(
   const TAU = Math.PI * 2;
 
   for (let i = 0; i < count; i++) {
-    const flat = pool[Math.floor(rand() * poolLen)]!;
+    // Stratified walk across the weighted pool eliminates Monte Carlo clumping and holes.
+    const u = (i + rand()) / count;
+    const flat = pool[Math.min(poolLen - 1, Math.floor(u * poolLen))]!;
     const px = flat % width;
     const py = Math.floor(flat / width);
 
@@ -151,17 +158,51 @@ export function sampleParticlesFromPixels(
     const x = Math.max(-maxHalfW, Math.min(maxHalfW, rawX));
     const y = Math.max(-maxHalfH, Math.min(maxHalfH, rawY));
 
-    const z =
-      rand() < faceShare
-        ? rand() < 0.5
-          ? halfDepth
-          : -halfDepth
-        : (rand() * 2 - 1) * halfDepth;
+    const isFrontOrBack = rand() < faceShare;
+    const z = isFrontOrBack
+      ? rand() < 0.5
+        ? halfDepth
+        : -halfDepth
+      : (rand() * 2 - 1) * halfDepth;
+
+    // 3x3 Sobel gradient on alpha gives smooth outward edge normals (+worldX, +worldY).
+    const aTL = alphaAt(px - 1, py - 1);
+    const aT = alphaAt(px, py - 1);
+    const aTR = alphaAt(px + 1, py - 1);
+    const aL = alphaAt(px - 1, py);
+    const aR = alphaAt(px + 1, py);
+    const aBL = alphaAt(px - 1, py + 1);
+    const aB = alphaAt(px, py + 1);
+    const aBR = alphaAt(px + 1, py + 1);
+
+    const gx = aTL + 2 * aL + aBL - (aTR + 2 * aR + aBR);
+    const gy = aBL + 2 * aB + aBR - (aTL + 2 * aT + aTR);
+    const gLen = Math.hypot(gx, gy);
+    const egx = gLen > 0.01 ? gx / gLen : 0;
+    const egy = gLen > 0.01 ? gy / gLen : 0;
+
+    let nx = 0;
+    let ny = 0;
+    let nz = z >= 0 ? 1 : -1;
+    if (isFrontOrBack) {
+      nx = egx * 0.35;
+      ny = egy * 0.35;
+      nz = z >= 0 ? 1 : -1;
+    } else if (gLen > 0.01) {
+      nx = egx;
+      ny = egy;
+      nz = (z / Math.max(1e-4, halfDepth)) * 0.4;
+    }
+    const nLen = Math.hypot(nx, ny, nz) || 1;
 
     const p3 = i * 3;
     positions[p3] = x;
     positions[p3 + 1] = y;
     positions[p3 + 2] = z;
+
+    normals[p3] = nx / nLen;
+    normals[p3 + 1] = ny / nLen;
+    normals[p3 + 2] = nz / nLen;
 
     const rgbaIdx = flat * 4;
     colors[p3] = ((data[rgbaIdx] ?? 0) / 255) * colorBoost;
@@ -180,7 +221,7 @@ export function sampleParticlesFromPixels(
     seeds[i] = rand();
   }
 
-  return { count, positions, colors, scatter, seeds };
+  return { count, positions, normals, colors, scatter, seeds };
 }
 
 export type AmbientDust = {
@@ -202,9 +243,34 @@ const DUST_PALETTE: readonly [number, number, number][] = [
   [0.85, 0.88, 0.96],
 ];
 
+const RING_SPECS = [
+  {
+    tiltX: (24 * Math.PI) / 180,
+    tiltY: (-18 * Math.PI) / 180,
+    minR: 2.4,
+    spanR: 0.8,
+    tube: 0.14,
+  },
+  {
+    tiltX: (-32 * Math.PI) / 180,
+    tiltY: (22 * Math.PI) / 180,
+    minR: 3.4,
+    spanR: 1.0,
+    tube: 0.18,
+  },
+  {
+    tiltX: (10 * Math.PI) / 180,
+    tiltY: (8 * Math.PI) / 180,
+    minR: 4.8,
+    spanR: 2.0,
+    tube: 0.28,
+  },
+] as const;
+
 /**
- * Samples sparse dim dust motes distributed in a wide ellipsoid around the
- * hero mark so the scene reads as a continuous particle atmosphere.
+ * Samples 3D orbital torus ring motes (65%) and a wide deep-space parallax
+ * starfield (35%) around the hero mark so the scene reads as a layered 3D
+ * particle atmosphere.
  */
 export function sampleAmbientDust(
   count: number,
@@ -224,23 +290,48 @@ export function sampleAmbientDust(
   const colors = new Float32Array(count * 3);
   const seeds = new Float32Array(count);
   const TAU = Math.PI * 2;
+  const ringCutoff = Math.floor(count * 0.65);
 
   for (let i = 0; i < count; i++) {
-    const theta = rand() * TAU;
-    const cosPhi = rand() * 2 - 1;
-    const sinPhi = Math.sqrt(Math.max(0, 1 - cosPhi * cosPhi));
-    const r = 0.28 + Math.pow(rand(), 0.55) * 0.72;
-
     const p3 = i * 3;
-    positions[p3] = Math.cos(theta) * sinPhi * r * 7.8;
-    positions[p3 + 1] = cosPhi * r * 4.4;
-    positions[p3 + 2] = Math.sin(theta) * sinPhi * r * 3.8 - 0.6;
+    if (i < ringCutoff) {
+      const spec = RING_SPECS[i % RING_SPECS.length]!;
+      const angle = rand() * TAU;
+      const majorR = spec.minR + rand() * spec.spanR;
+      const tubeR = (rand() - 0.5) * 2 * spec.tube;
+      const tubeY = (rand() - 0.5) * 2 * spec.tube;
+
+      const lx = Math.cos(angle) * (majorR + tubeR);
+      const ly = tubeY;
+      const lz = Math.sin(angle) * (majorR + tubeR);
+
+      // Rotate around X then Y so each ring sits on its tilted 3D orbital plane.
+      const cx = Math.cos(spec.tiltX);
+      const sx = Math.sin(spec.tiltX);
+      const y1 = ly * cx - lz * sx;
+      const z1 = ly * sx + lz * cx;
+
+      const cy = Math.cos(spec.tiltY);
+      const sy = Math.sin(spec.tiltY);
+      positions[p3] = lx * cy + z1 * sy;
+      positions[p3 + 1] = y1;
+      positions[p3 + 2] = -lx * sy + z1 * cy - 0.35;
+    } else {
+      const theta = rand() * TAU;
+      const cosPhi = rand() * 2 - 1;
+      const sinPhi = Math.sqrt(Math.max(0, 1 - cosPhi * cosPhi));
+      const r = 0.28 + Math.pow(rand(), 0.55) * 0.72;
+
+      positions[p3] = Math.cos(theta) * sinPhi * r * 8.5;
+      positions[p3 + 1] = cosPhi * r * 5.0;
+      positions[p3 + 2] = Math.sin(theta) * sinPhi * r * 4.5 - 0.8;
+    }
 
     const tint = DUST_PALETTE[Math.floor(rand() * DUST_PALETTE.length)]!;
-    const dim = 0.45 + rand() * 0.4;
-    colors[p3] = tint[0] * dim;
-    colors[p3 + 1] = tint[1] * dim;
-    colors[p3 + 2] = tint[2] * dim;
+    const dim = 0.45 + rand() * 0.5;
+    colors[p3] = Math.min(1, tint[0] * dim);
+    colors[p3 + 1] = Math.min(1, tint[1] * dim);
+    colors[p3 + 2] = Math.min(1, tint[2] * dim);
 
     seeds[i] = rand();
   }

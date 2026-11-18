@@ -5,6 +5,7 @@ import { ParticleLogoLoader } from "@/components/home/particle-logo-loader";
 import { PageTransition } from "@/components/motion/page-transition";
 import { Fade, Rise } from "@/components/motion/reveal";
 import {
+  MODULES,
   NAV_GROUP_LABEL,
   PUBLIC_MODULES,
   type Accent,
@@ -51,6 +52,32 @@ const PROJECT_FACTS = [
     label: "Live / Demo labelled",
     note: "Live telemetry vs deterministic fixtures",
   },
+] as const;
+
+const HERO_IDENTITY = [
+  {
+    label: "Architect / Builder",
+    value: "Muammer",
+    detail: "YTL Comms IT Infrastructure",
+  },
+  {
+    label: "Runtime Host",
+    value: "Nexus Core 01",
+    detail: "Rocky Linux · Loopback isolated",
+  },
+  {
+    label: "Unified Platform",
+    value: `${MODULES.length} Modules · 1 SSO`,
+    detail: "Next.js 16 · WebGL2 · Live + Demo",
+  },
+] as const;
+
+const HERO_QUICK_LINKS = [
+  { label: "Command", href: "/command", dot: "bg-accent-ink" },
+  { label: "Atlas", href: "/command/atlas", dot: "bg-accent-ink" },
+  { label: "Nexus AI", href: "/ai", dot: "bg-violet-ink" },
+  { label: "Yes 5G", href: "/yes", dot: "bg-pink-ink" },
+  { label: "Shield", href: "/shield", dot: "bg-accent-ink" },
 ] as const;
 
 const TOPOLOGY_TIERS = [
@@ -165,20 +192,46 @@ export default function HomePage() {
           aria-labelledby="home-title"
           className="relative flex min-h-[calc(100dvh-4.25rem)] flex-col justify-between px-(--spacing-gutter) pt-6 pb-8 lg:pt-12 lg:pb-10"
         >
+          <div aria-hidden="true" className="nx-hero-dynamic-bg -z-[2]">
+            <div className="nx-hero-aurora-cone" />
+            <div className="nx-hero-perspective-grid">
+              <div className="nx-hero-perspective-grid-lines" />
+            </div>
+          </div>
+
           <ParticleLogoLoader />
 
           <div className="max-w-page mx-auto my-auto grid w-full items-center gap-8 lg:grid-cols-12 lg:gap-12">
             <div
-              data-particle-stage
               aria-hidden="true"
-              className="nx-hero-logo-glow pointer-events-none relative -z-[1] order-1 min-h-[38dvh] w-full rounded-full sm:min-h-[42dvh] lg:order-2 lg:col-span-6 lg:min-h-[64dvh]"
-            />
+              className="pointer-events-none relative -z-[1] order-1 flex flex-col items-center gap-3 lg:order-2 lg:col-span-6"
+            >
+              <div
+                data-particle-stage
+                className="relative flex min-h-[34dvh] w-full items-center justify-center sm:min-h-[38dvh] lg:min-h-[58dvh]"
+              >
+                <div className="nx-orbital-ring absolute size-[min(74vw,24rem)] rounded-full opacity-55 lg:size-[min(36vw,30rem)]" />
+                <div className="nx-orbital-ring-reverse absolute size-[min(86vw,29rem)] rounded-full opacity-40 lg:size-[min(43vw,36rem)]" />
+              </div>
+              <div className="border-glass-border/80 bg-glass/80 text-muted hidden rounded-full border px-3.5 py-1 font-mono text-[11px] tracking-[0.14em] whitespace-nowrap uppercase backdrop-blur-md sm:inline-flex">
+                Drag to spin · Move pointer to ripple · Scroll to disperse
+              </div>
+            </div>
 
             <div className="pointer-events-auto relative z-10 order-2 lg:order-1 lg:col-span-6">
               <Rise>
-                <p className="text-accent-ink font-mono text-xs font-medium tracking-[0.22em] uppercase">
-                  Internship project · YTL Communications
-                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-accent-ink font-mono text-xs font-medium tracking-[0.22em] uppercase">
+                    Internship project · YTL Communications
+                  </p>
+                  <span className="border-glass-border bg-glass text-ink/90 inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs backdrop-blur-md">
+                    <span
+                      aria-hidden="true"
+                      className="bg-accent-ink size-1.5 rounded-full"
+                    />
+                    Built by Muammer · IT Infrastructure
+                  </span>
+                </div>
                 <h1
                   id="home-title"
                   className="text-display font-display text-ink mt-4 font-semibold tracking-tight text-balance"
@@ -190,13 +243,55 @@ export default function HomePage() {
                   services. An internship project built with the YTL
                   Communications IT Infrastructure team.
                 </p>
-                <div className="mt-9 flex flex-wrap gap-3">
+                <div className="mt-8 flex flex-wrap gap-3">
                   <Link href="/tour" className={ctaPrimary}>
                     Take the tour
                   </Link>
                   <Link href="/platform" className={ctaSecondary}>
                     How it fits together
                   </Link>
+                </div>
+
+                <div className="border-glass-border bg-glass mt-8 rounded-2xl border p-4 backdrop-blur-md">
+                  <dl className="divide-glass-border grid grid-cols-1 gap-4 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                    {HERO_IDENTITY.map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex flex-col gap-0.5 pt-3 first:pt-0 sm:pt-0 sm:pl-4 sm:first:pl-0"
+                      >
+                        <dt className="text-muted font-mono text-[11px] tracking-[0.16em] uppercase">
+                          {item.label}
+                        </dt>
+                        <dd className="font-display text-ink text-base font-semibold tracking-tight">
+                          {item.value}
+                        </dd>
+                        <dd className="text-muted font-mono text-[11px]">
+                          {item.detail}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <nav
+                    aria-label="Quick module launch"
+                    className="border-glass-border/70 mt-4 flex flex-wrap items-center gap-2 border-t pt-3"
+                  >
+                    <span className="text-muted mr-1 font-mono text-[11px] tracking-[0.16em] uppercase">
+                      Quick launch
+                    </span>
+                    {HERO_QUICK_LINKS.map((q) => (
+                      <Link
+                        key={q.href}
+                        href={q.href}
+                        className="border-glass-border bg-surface/75 hover:bg-glass-raised hover:border-border-strong text-ink/90 hover:text-ink inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 font-mono text-xs transition-colors duration-(--duration-fast)"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`size-1.5 rounded-full ${q.dot}`}
+                        />
+                        {q.label}
+                      </Link>
+                    ))}
+                  </nav>
                 </div>
               </Rise>
             </div>
@@ -380,7 +475,9 @@ export default function HomePage() {
                   About this project
                 </h2>
                 <p className="text-muted mt-3 max-w-(--spacing-prose)">
-                  YTL Nexus is an internship project, not an official YTL
+                  YTL Nexus is an internship project designed and engineered by{" "}
+                  <strong className="text-ink">Muammer</strong> with the YTL
+                  Communications IT Infrastructure team, not an official YTL
                   commercial product. Every value shown is labelled{" "}
                   <strong className="text-ink">Live</strong> when it comes from
                   Nexus Core 01 and{" "}
