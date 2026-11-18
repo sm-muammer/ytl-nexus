@@ -5,13 +5,14 @@ import * as m from "motion/react-m";
 import { useReducedMotion } from "motion/react";
 import type { ContentItem } from "@/lib/content/types";
 import { ItemBody } from "@/components/content/content-parts";
+import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 
 interface TourViewProps {
   steps: ContentItem[];
   source: "live" | "demo";
 }
 
-export function TourView({ steps, source: _source }: TourViewProps) {
+export function TourView({ steps, source }: TourViewProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [presenterMode, setPresenterMode] = useState(false);
   const reduced = useReducedMotion();
@@ -130,6 +131,7 @@ export function TourView({ steps, source: _source }: TourViewProps) {
           <span className="text-caption text-muted bg-surface border-border-subtle rounded-md border px-2.5 py-1 font-mono font-semibold">
             Step {currentIdx + 1} of {totalSteps}
           </span>
+          <LiveDemoLabel source={source} />
         </div>
 
         <div className="flex items-center gap-3">

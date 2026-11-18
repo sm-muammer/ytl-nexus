@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                      |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Last completed              | **Platform Showcase & Production Deploy:** `/platform` implemented & deployed to Core 01 (done 2026-11-18) |
-| Current task                | None (Platform Deployed to Production)                                                                     |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                      |
-| Recommended model           | Any                                                                                                        |
-| Start the next session with | `Platform deployed and live: ready for final handover presentation`                                        |
+| Item                        | Value                                                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Last completed              | **Nexus Tour Full Seed & Live Verification:** `/tour` 16 steps seeded in WordPress, live/demo source labels, tests pass (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                               |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                     |
+| Recommended model           | Any                                                                                                                                       |
+| Start the next session with | `Platform and Tour fully live and verified: ready for final handover presentation`                                                        |
 
 ## Owner actions waiting
 
@@ -47,6 +47,22 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Nexus Tour Full Content Seed & Resilience (`/tour`) (done 2026-11-18)
+
+- **Seeded Complete 16-Step Tour and 6 Story Chapters in WordPress on Nexus Core 01:**
+  - Discovered that live WordPress at `/var/www/studio` only had a single initial test post from Task 7 (ID 14, `tour-welcome`).
+  - Executed WP-CLI seeding via `/root/nexus-ops/wordpress/seed.php /root/nexus-ops/wordpress/seed-content.json` on the server, successfully importing all 16 `tour_step` posts (`tour-01-welcome` through `tour-16-summary`) and all 6 `story_chapter` posts. Cleaned up obsolete test posts.
+  - Purged Next.js fetch-cache (`/var/cache/ytl-nexus/next/fetch-cache/*`) and restarted `nexus-web`, allowing the Next.js headless WordPress REST API adapter to retrieve and cache all 16 live tour steps.
+- **Enhanced Tour Page & Presenter UI (`app/(public)/tour/page.tsx`, `components/tour/tour-view.tsx`):**
+  - Added fallback resilience in `TourPage`: if the WordPress API is ever temporarily unreachable, the tour automatically falls back to deterministic fixtures with `source: "demo"`, preventing any blank or empty state for visitors.
+  - Integrated `LiveDemoLabel` into `TourView` header controls alongside the step counter (`Step X of 16`), visibly indicating whether content is loaded from Live WordPress or Demo fixtures in adherence to requirement 1.10 and DEMO-03.
+  - Verified Presenter Mode (`P` / `Esc`), keyboard navigation (`←`, `→`, `Space`), stepper dots with WCAG-compliant touch targets, and signal-ribbon transitions across all 16 modules.
+- **Verification & Test Coverage:**
+  - Added unit test suite `tests/unit/tour-view.test.tsx` (4 tests passing) covering step navigation, tab stepping, live/demo badges, and presenter mode toggles.
+  - Verified `npm run check` (999/999 tests passing across 75 test files; format, lint, typecheck green).
+  - Verified `./infrastructure/scripts/smoke-test` (86/86 passed against the live production server `10.26.64.164`).
+  - Verified `/tour` live output via curl on server: all 16 steps present and rendered in sequence with `source: "live"`.
 
 ### Platform Section Full Implementation (`/platform`) (done 2026-11-18)
 
