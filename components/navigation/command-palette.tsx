@@ -119,31 +119,32 @@ export function CommandPalette({ actor }: { actor: Actor }) {
       <button
         type="button"
         onClick={openPalette}
-        className="group relative flex h-9 items-center gap-2 rounded-full border border-slate-700/60 bg-slate-900/40 px-3 py-1.5 text-xs font-normal text-slate-300 shadow-sm backdrop-blur-md transition-all duration-200 hover:border-cyan-500/50 hover:bg-slate-800/60 hover:text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] sm:inline-flex"
+        className="group relative inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full border border-slate-700/60 bg-slate-900/40 p-2.5 text-xs font-normal text-slate-300 shadow-sm backdrop-blur-md transition-all duration-200 hover:border-cyan-500/50 hover:bg-slate-800/60 hover:text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] sm:px-3.5 sm:py-1.5"
         data-command-palette-trigger
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="13"
-          height="13"
+          width="15"
+          height="15"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-slate-400 transition-colors group-hover:text-cyan-400"
+          className="shrink-0 text-slate-400 transition-colors group-hover:text-cyan-400"
           aria-hidden="true"
         >
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.3-4.3" />
         </svg>
-        <span className="text-xs text-slate-400 transition-colors group-hover:text-slate-200">
+        <span className="sr-only sm:hidden">Search modules</span>
+        <span className="hidden text-xs whitespace-nowrap text-slate-400 transition-colors group-hover:text-slate-200 sm:inline">
           Search modules...
         </span>
         <kbd
           aria-hidden="true"
-          className="ml-1 rounded border border-slate-700/80 bg-slate-800/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400 group-hover:border-cyan-500/40 group-hover:text-cyan-300"
+          className="ml-1 hidden rounded border border-slate-700/80 bg-slate-800/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400 group-hover:border-cyan-500/40 group-hover:text-cyan-300 sm:inline-block"
         >
           ⌘K
         </kbd>

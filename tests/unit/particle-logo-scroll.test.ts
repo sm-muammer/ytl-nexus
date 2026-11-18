@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   IDLE_RESUME_DELAY_SEC,
   INTRO_DURATION_SEC,
+  POINTER_REPULSE_RADIUS,
   SCATTERED_OPACITY,
   blendIntroAndScrollMorph,
   easeInOutCubic,
   idleResumeWeight,
+  introElapsedSec,
   scrollProgress,
   scrollState,
 } from "@/lib/motion/particle-logo/scroll";
@@ -74,5 +76,13 @@ describe("particle logo scroll mapping", () => {
     expect(idleResumeWeight(2.0)).toBeGreaterThan(0);
     expect(idleResumeWeight(2.0)).toBeLessThan(1);
     expect(idleResumeWeight(3.0)).toBe(1);
+  });
+
+  it("computes intro elapsed from wall-clock milliseconds and uses gentler 0.32 pointer radius", () => {
+    expect(POINTER_REPULSE_RADIUS).toBeCloseTo(0.32, 6);
+    expect(introElapsedSec(1000, 1000)).toBe(0);
+    expect(introElapsedSec(2800, 1000)).toBeCloseTo(1.8, 6);
+    expect(introElapsedSec(900, 1000)).toBe(0);
+    expect(blendIntroAndScrollMorph(introElapsedSec(2800, 1000), 0)).toBe(0);
   });
 });

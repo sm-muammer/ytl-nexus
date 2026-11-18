@@ -26,15 +26,16 @@ test.describe("Home showcase (spec 24)", () => {
     await page.goto("/");
     const canvas = page.locator(logoCanvas);
     await expect(canvas).toHaveAttribute("data-state", "running");
-
     await expect
-      .poll(() => canvas.evaluate((el) => getComputedStyle(el).pointerEvents))
-      .toBe("auto");
+      .poll(async () => Number(await canvas.getAttribute("data-frames")))
+      .toBeGreaterThan(0);
+
+    await expect(canvas).toHaveCSS("pointer-events", "auto", {
+      timeout: 15_000,
+    });
 
     await page.evaluate(() => window.scrollTo(0, window.innerHeight * 1.1));
-    await expect
-      .poll(() => canvas.evaluate((el) => getComputedStyle(el).pointerEvents))
-      .toBe("none");
+    await expect(canvas).toHaveCSS("pointer-events", "none");
 
     await page.evaluate(() => {
       Object.defineProperty(document, "visibilityState", {

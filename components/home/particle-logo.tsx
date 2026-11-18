@@ -23,6 +23,7 @@ import { useQualityTier } from "@/components/motion/use-quality-tier";
 import type { QualityTier } from "@/lib/motion/quality";
 import { rasterizeSvgToPixels } from "@/lib/motion/particle-logo/rasterize";
 import {
+  sampleAmbientDust,
   sampleParticlesFromPixels,
   type PixelBuffer,
 } from "@/lib/motion/particle-logo/sampling";
@@ -34,13 +35,17 @@ import {
   POINTER_TILT_MAX,
   blendIntroAndScrollMorph,
   idleResumeWeight,
+  introElapsedSec,
   scrollState,
 } from "@/lib/motion/particle-logo/scroll";
 import {
+  DUST_FRAGMENT_SHADER,
+  DUST_VERTEX_SHADER,
   PARTICLE_FRAGMENT_SHADER,
   PARTICLE_VERTEX_SHADER,
 } from "@/lib/motion/particle-logo/shaders";
 import {
+  ambientDustCountForTier,
   clampParticleDpr,
   particleCountForTier,
 } from "@/lib/motion/particle-logo/tiers";
@@ -50,9 +55,9 @@ const CAMERA_FOV_DEG = 42;
 const TAN_HALF_FOV = Math.tan(((CAMERA_FOV_DEG / 2) * Math.PI) / 180);
 
 const TIER_INTENSITY: Record<QualityTier, number> = {
-  high: 0.3,
-  medium: 0.44,
-  low: 0.68,
+  high: 0.45,
+  medium: 0.62,
+  low: 0.86,
 };
 
 const TIER_SIZE_SCALE: Record<QualityTier, number> = {
@@ -68,6 +73,16 @@ function buildGeometry(pixels: PixelBuffer, count: number): BufferGeometry {
   geometry.setAttribute("aColor", new BufferAttribute(sampled.colors, 3));
   geometry.setAttribute("aScatter", new BufferAttribute(sampled.scatter, 3));
   geometry.setAttribute("aSeed", new BufferAttribute(sampled.seeds, 1));
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+function buildDustGeometry(count: number): BufferGeometry {
+  const dust = sampleAmbientDust(count);
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new BufferAttribute(dust.positions, 3));
+  geometry.setAttribute("aColor", new BufferAttribute(dust.colors, 3));
+  geometry.setAttribute("aSeed", new BufferAttribute(dust.seeds, 1));
   geometry.computeBoundingSphere();
   return geometry;
 }
@@ -108,10 +123,14 @@ function measureStage(
       ? vh * 0.48
       : vh * 0.3;
 
-  const targetPx = Math.max(160, Math.min(stageW * 0.8, stageH * 0.8));
+  const stageScale = desktop ? 0.94 : 0.8;
+  const targetPx = Math.max(
+    170,
+    Math.min(stageW * stageScale, stageH * stageScale),
+  );
   const baseCameraZ = Math.max(
-    3.6,
-    (2.55 * vh) / (2 * TAN_HALF_FOV * targetPx),
+    3.3,
+    (2.28 * vh) / (2 * TAN_HALF_FOV * targetPx),
   );
   const halfWorldH = baseCameraZ * TAN_HALF_FOV;
   const halfWorldW = halfWorldH * (vw / Math.max(1, vh));
@@ -119,7 +138,7 @@ function measureStage(
   const ndcY = 1 - (heroCenterY / Math.max(1, vh)) * 2;
   const markPx = (2.2 / (2 * halfWorldH)) * vh;
   const basePointSize =
-    7.2 * (baseCameraZ / 4.4) * Math.max(0.55, Math.min(1.55, markPx / 420));
+    9.2 * (baseCameraZ / 4.4) * Math.max(0.65, Math.min(1.65, markPx / 420));
 
   return {
     baseCameraZ,
@@ -170,11 +189,15 @@ export function ParticleLogo() {
   const groupRef = useRef<Group | null>(null);
   const pointsRef = useRef<Points<BufferGeometry, ShaderMaterial> | null>(null);
   const materialRef = useRef<ShaderMaterial | null>(null);
+  const dustPointsRef = useRef<Points<BufferGeometry, ShaderMaterial> | null>(
+    null,
+  );
+  const dustMaterialRef = useRef<ShaderMaterial | null>(null);
   const stageRef = useRef<StageMetrics>({
     baseCameraZ: 5.5,
     heroWorldX: 0,
     heroWorldY: 0,
-    basePointSize: 7.2,
+    basePointSize: 9.2,
   });
   const rafRef = useRef<number>(0);
   const framesRef = useRef<number>(0);
@@ -187,6 +210,7 @@ export function ParticleLogo() {
     const camera = cameraRef.current;
     const group = groupRef.current;
     const material = materialRef.current;
+    const dustMaterial = dustMaterialRef.current;
     if (
       !canvas ||
       !renderer ||
@@ -207,6 +231,9 @@ export function ParticleLogo() {
     material.uniforms.uTime!.value = 0;
     material.uniforms.uOpacity!.value = 1;
     material.uniforms.uPointerStrength!.value = 0;
+    if (dustMaterial) {
+      dustMaterial.uniforms.uTime!.value = 0;
+    }
     renderer.render(scene, camera);
     framesRef.current = 1;
     canvas.dataset.state = "static";
@@ -265,7 +292,7 @@ export function ParticleLogo() {
         uMorph: { value: 1 },
         uOpacity: { value: 1 },
         uPixelRatio: { value: dpr },
-        uBaseSize: { value: 7.2 * TIER_SIZE_SCALE[currentTier] },
+        uBaseSize: { value: 9.2 * TIER_SIZE_SCALE[currentTier] },
         uIntensity: { value: TIER_INTENSITY[currentTier] },
         uPointer: { value: new Vector3(0, 0, 0) },
         uPointerStrength: { value: 0 },
@@ -273,6 +300,27 @@ export function ParticleLogo() {
       },
     });
     materialRef.current = material;
+
+    const dustMaterial = new ShaderMaterial({
+      vertexShader: DUST_VERTEX_SHADER,
+      fragmentShader: DUST_FRAGMENT_SHADER,
+      transparent: true,
+      depthWrite: false,
+      blending: AdditiveBlending,
+      uniforms: {
+        uTime: { value: 0 },
+        uPixelRatio: { value: dpr },
+      },
+    });
+    dustMaterialRef.current = dustMaterial;
+
+    const dustPoints = new Points(
+      buildDustGeometry(ambientDustCountForTier(currentTier)),
+      dustMaterial,
+    );
+    dustPoints.frustumCulled = false;
+    scene.add(dustPoints);
+    dustPointsRef.current = dustPoints;
 
     const resize = () => {
       const vw = Math.max(1, window.innerWidth);
@@ -289,6 +337,7 @@ export function ParticleLogo() {
       material.uniforms.uPixelRatio!.value = nextDpr;
       material.uniforms.uBaseSize!.value =
         metrics.basePointSize * TIER_SIZE_SCALE[tierRef.current];
+      dustMaterial.uniforms.uPixelRatio!.value = nextDpr;
 
       if (reducedRef.current) {
         renderStaticFrame();
@@ -310,7 +359,8 @@ export function ParticleLogo() {
 
     // Simulation state
     let elapsed = 0;
-    let introElapsed = 0;
+    let introStartMs: number | null = null;
+    let pausedAtMs: number | null = null;
     let idleTimer = 0;
     let spinY = 0;
     let spinVelocityY = 0;
@@ -404,6 +454,20 @@ export function ParticleLogo() {
       }
     };
 
+    const syncPointerEvents = () => {
+      if (isReduceNow()) {
+        canvas.style.pointerEvents = "none";
+        return;
+      }
+      const scroll = scrollState(window.scrollY, window.innerHeight);
+      const next = scroll.inHero ? "auto" : "none";
+      if (canvas.style.pointerEvents !== next) {
+        canvas.style.pointerEvents = next;
+      }
+    };
+    syncPointerEvents();
+
+    window.addEventListener("scroll", syncPointerEvents, { passive: true });
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("blur", onPointerLeave);
     document.addEventListener("mouseleave", onPointerLeave);
@@ -421,8 +485,16 @@ export function ParticleLogo() {
       }
       if (!visibleRef.current) {
         canvas.dataset.state = "paused";
+        pausedAtMs = pausedAtMs ?? now;
         lastFrameMs = 0;
         return;
+      }
+
+      if (introStartMs === null) {
+        introStartMs = now;
+      } else if (pausedAtMs !== null) {
+        introStartMs += now - pausedAtMs;
+        pausedAtMs = null;
       }
 
       const deltaMs = lastFrameMs === 0 ? 0 : now - lastFrameMs;
@@ -431,14 +503,10 @@ export function ParticleLogo() {
 
       const dt = Math.min(deltaMs, 50) / 1000;
       elapsed += dt;
-      introElapsed += dt;
       idleTimer += dt;
 
       const scroll = scrollState(window.scrollY, window.innerHeight);
-      const nextPointerEvents = scroll.inHero ? "auto" : "none";
-      if (canvas.style.pointerEvents !== nextPointerEvents) {
-        canvas.style.pointerEvents = nextPointerEvents;
-      }
+      syncPointerEvents();
 
       const idleW = idleResumeWeight(idleTimer);
       if (!isDragging) {
@@ -481,13 +549,16 @@ export function ParticleLogo() {
         }
       }
 
+      // Intro progresses on wall-clock time so it completes in 1.8 s even at low FPS.
+      const introSec = introElapsedSec(now, introStartMs);
       material.uniforms.uTime!.value = elapsed;
       material.uniforms.uMorph!.value = blendIntroAndScrollMorph(
-        introElapsed,
+        introSec,
         scroll.morph,
       );
       material.uniforms.uOpacity!.value = scroll.opacity;
       material.uniforms.uPointerStrength!.value = pointerStrength;
+      dustMaterial.uniforms.uTime!.value = elapsed;
 
       renderer.render(scene, camera);
       framesRef.current += 1;
@@ -504,7 +575,13 @@ export function ParticleLogo() {
         renderStaticFrame();
       } else if (!visibleRef.current) {
         canvas.dataset.state = "paused";
+        pausedAtMs = pausedAtMs ?? performance.now();
       } else {
+        if (introStartMs === null) introStartMs = performance.now();
+        else if (pausedAtMs !== null) {
+          introStartMs += performance.now() - pausedAtMs;
+          pausedAtMs = null;
+        }
         canvas.dataset.state = "running";
         rafRef.current = requestAnimationFrame(tick);
       }
@@ -542,6 +619,7 @@ export function ParticleLogo() {
       cancelAnimationFrame(rafRef.current);
       stageObserver.disconnect();
       window.removeEventListener("resize", resize);
+      window.removeEventListener("scroll", syncPointerEvents);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("blur", onPointerLeave);
       document.removeEventListener("mouseleave", onPointerLeave);
@@ -556,8 +634,14 @@ export function ParticleLogo() {
         pointsRef.current.geometry.dispose();
         pointsRef.current = null;
       }
+      if (dustPointsRef.current) {
+        dustPointsRef.current.geometry.dispose();
+        dustPointsRef.current = null;
+      }
       material.dispose();
       materialRef.current = null;
+      dustMaterial.dispose();
+      dustMaterialRef.current = null;
       renderer.dispose();
       rendererRef.current = null;
       sceneRef.current = null;
@@ -579,6 +663,7 @@ export function ParticleLogo() {
     const canvas = canvasRef.current;
     const pixels = pixelsRef.current;
     const points = pointsRef.current;
+    const dustPoints = dustPointsRef.current;
     const material = materialRef.current;
     if (!canvas || !pixels || !points || !material || !readyRef.current) return;
 
@@ -586,6 +671,12 @@ export function ParticleLogo() {
     const oldGeometry = points.geometry;
     points.geometry = buildGeometry(pixels, count);
     oldGeometry.dispose();
+
+    if (dustPoints) {
+      const oldDust = dustPoints.geometry;
+      dustPoints.geometry = buildDustGeometry(ambientDustCountForTier(tier));
+      oldDust.dispose();
+    }
 
     material.uniforms.uBaseSize!.value =
       stageRef.current.basePointSize * TIER_SIZE_SCALE[tier];

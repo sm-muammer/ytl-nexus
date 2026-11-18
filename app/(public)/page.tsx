@@ -57,18 +57,21 @@ const TOPOLOGY_TIERS = [
   {
     step: "01",
     name: "Ingress",
+    nodeClass: "bg-pink-ink ring-pink-ink/25",
     detail:
       "Apache TLS gateway, security headers, and path routing on ports 80, 443, 2022, 587 and 993.",
   },
   {
     step: "02",
     name: "Nexus Core 01",
+    nodeClass: "bg-violet-ink ring-violet-ink/25",
     detail:
       "Next.js 16 application enforcing server-side RBAC, Zod validation, and allowlisted nexus-ops actions.",
   },
   {
     step: "03",
     name: "Services",
+    nodeClass: "bg-accent-ink ring-accent-ink/25",
     detail:
       "Loopback-isolated MariaDB, Prometheus, Ollama AI, SFTPGo, Postfix/Dovecot and headless WordPress.",
   },
@@ -118,11 +121,17 @@ function ModuleTile({ module }: { module: ModuleInfo }) {
 
             <span className="text-muted text-sm">{module.subtitle}</span>
 
-            {featured ? (
-              <span className="text-ink/80 max-w-prose text-sm leading-relaxed">
-                {module.summary}
-              </span>
-            ) : null}
+            <span
+              className={`max-w-prose text-sm leading-relaxed ${
+                featured
+                  ? wide
+                    ? "text-ink/80"
+                    : "text-ink/80 line-clamp-2"
+                  : "text-ink/75 line-clamp-2"
+              }`}
+            >
+              {module.summary}
+            </span>
           </span>
 
           <span
@@ -162,7 +171,7 @@ export default function HomePage() {
             <div
               data-particle-stage
               aria-hidden="true"
-              className="pointer-events-none order-1 min-h-[36dvh] w-full sm:min-h-[40dvh] lg:order-2 lg:col-span-6 lg:min-h-[60dvh]"
+              className="nx-hero-logo-glow pointer-events-none relative -z-[1] order-1 min-h-[38dvh] w-full rounded-full sm:min-h-[42dvh] lg:order-2 lg:col-span-6 lg:min-h-[64dvh]"
             />
 
             <div className="pointer-events-auto relative z-10 order-2 lg:order-1 lg:col-span-6">
@@ -308,30 +317,48 @@ export default function HomePage() {
                   </Link>
                 </div>
 
-                <div className="relative mt-10 grid gap-6 lg:grid-cols-3 lg:gap-8">
+                <div className="mt-10">
                   <div
                     aria-hidden="true"
-                    className="bg-glass-border pointer-events-none absolute top-1/2 right-12 left-12 hidden h-px -translate-y-1/2 overflow-hidden lg:block"
+                    className="relative mb-4 hidden h-5 items-center lg:grid lg:grid-cols-3 lg:gap-8"
                   >
-                    <div className="nx-topology-signal-pulse h-full w-2/5" />
+                    <div className="bg-glass-border pointer-events-none absolute top-1/2 right-[16.666%] left-[16.666%] h-0.5 -translate-y-1/2 overflow-hidden rounded-full">
+                      <div className="nx-topology-signal-pulse h-full w-1/3" />
+                    </div>
+                    {TOPOLOGY_TIERS.map((tier) => (
+                      <div
+                        key={`node-${tier.step}`}
+                        className="relative z-10 flex justify-center"
+                      >
+                        <span
+                          className={`border-canvas size-3 rounded-full border-2 ring-4 ${tier.nodeClass}`}
+                        />
+                      </div>
+                    ))}
                   </div>
 
-                  {TOPOLOGY_TIERS.map((tier) => (
-                    <div
-                      key={tier.step}
-                      className="border-glass-border bg-surface/85 relative z-10 flex flex-col gap-2 rounded-xl border p-6 backdrop-blur-md"
-                    >
-                      <span className="text-accent-ink font-mono text-xs tracking-[0.2em] uppercase">
-                        Tier {tier.step}
-                      </span>
-                      <h3 className="text-heading-3 font-display text-ink font-semibold">
-                        {tier.name}
-                      </h3>
-                      <p className="text-muted text-sm leading-relaxed">
-                        {tier.detail}
-                      </p>
-                    </div>
-                  ))}
+                  <div className="grid gap-6 lg:grid-cols-3 lg:gap-8">
+                    {TOPOLOGY_TIERS.map((tier) => (
+                      <div
+                        key={tier.step}
+                        className="border-glass-border bg-surface/85 relative z-10 flex flex-col gap-2 rounded-xl border p-6 backdrop-blur-md"
+                      >
+                        <span className="text-accent-ink inline-flex items-center gap-2 font-mono text-xs tracking-[0.2em] uppercase">
+                          <span
+                            aria-hidden="true"
+                            className={`size-2 rounded-full ring-2 lg:hidden ${tier.nodeClass}`}
+                          />
+                          Tier {tier.step}
+                        </span>
+                        <h3 className="text-heading-3 font-display text-ink font-semibold">
+                          {tier.name}
+                        </h3>
+                        <p className="text-muted text-sm leading-relaxed">
+                          {tier.detail}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </Rise>

@@ -31,6 +31,7 @@ export function Logo({ slug, height, className, priority }: LogoProps) {
       height={h}
       unoptimized
       priority={priority}
+      loading={priority ? "eager" : undefined}
       data-logo={slug}
       className={className}
       style={{ height: h, width: "auto" }}

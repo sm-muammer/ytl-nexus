@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  AMBIENT_DUST_COUNTS,
   MAX_PARTICLE_DPR,
   PARTICLE_LOGO_COUNTS,
+  ambientDustCountForTier,
   clampParticleDpr,
   particleCountForTier,
 } from "@/lib/motion/particle-logo/tiers";
@@ -27,5 +29,16 @@ describe("particle logo tier counts", () => {
     expect(clampParticleDpr(0)).toBe(1);
     expect(clampParticleDpr(-2)).toBe(1);
     expect(clampParticleDpr(Number.NaN)).toBe(1);
+  });
+
+  it("scales sparse ambient dust counts between 2k and 6k by tier", () => {
+    expect(AMBIENT_DUST_COUNTS).toEqual({
+      high: 5_000,
+      medium: 3_500,
+      low: 2_000,
+    });
+    expect(ambientDustCountForTier("high")).toBe(5_000);
+    expect(ambientDustCountForTier("medium")).toBe(3_500);
+    expect(ambientDustCountForTier("low")).toBe(2_000);
   });
 });

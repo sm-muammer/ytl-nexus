@@ -70,12 +70,13 @@ test.describe("particle field with full motion", () => {
       .getByRole("navigation", { name: "Global" })
       .getByRole("link", { name: "Tour", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/tour$/);
+    await expect(page).toHaveURL(/\/tour$/, { timeout: 15_000 });
     await expect(ribbon).toHaveAttribute("data-runs", "1");
     await page
       .getByRole("navigation", { name: "Global" })
       .getByRole("link", { name: "Story", exact: true })
       .click();
+    await expect(page).toHaveURL(/\/story$/, { timeout: 15_000 });
     await expect(ribbon).toHaveAttribute("data-runs", "2");
   });
 

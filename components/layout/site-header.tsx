@@ -65,7 +65,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
         <Link
           href="/"
           aria-label="YTL Nexus, home"
-          className="flex min-h-11 items-center gap-3"
+          className="flex min-h-11 shrink-0 items-center gap-2.5 sm:gap-3"
         >
           <Logo
             slug="ytl-communications-left-reverse-white-wordmark"
@@ -93,7 +93,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2.5 xl:ml-4">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5 xl:ml-4">
           <CommandPalette actor={actor} />
 
           {actor === null ? (

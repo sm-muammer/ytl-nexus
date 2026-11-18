@@ -165,7 +165,12 @@ export function ControlAudit({
       </div>
 
       {/* Audit Log Table */}
-      <div className="border-line overflow-x-auto rounded-xl border">
+      <div
+        tabIndex={0}
+        role="region"
+        aria-label="Audit Trail and Authorization Events"
+        className="border-line overflow-x-auto rounded-xl border"
+      >
         <table className="w-full text-left text-xs">
           <thead className="border-line bg-surface-elevated/70 border-b font-medium text-slate-300">
             <tr>

@@ -675,7 +675,12 @@ export function PlatformView({
         </Rise>
 
         <div className="border-line bg-surface/50 overflow-hidden rounded-xl border">
-          <div className="overflow-x-auto">
+          <div
+            tabIndex={0}
+            role="region"
+            aria-label="Runtime services table"
+            className="overflow-x-auto"
+          >
             <table className="w-full text-left text-sm">
               <thead className="border-line bg-surface text-muted border-b text-xs uppercase">
                 <tr>

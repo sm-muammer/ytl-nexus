@@ -145,7 +145,7 @@ export function NavSheet({
         onClick={open}
         aria-haspopup="dialog"
         aria-label="Open menu"
-        className="border-border-strong hover:bg-surface-raised inline-flex size-11 items-center justify-center gap-2 rounded-full border text-sm font-medium transition-colors duration-(--duration-fast) md:hidden"
+        className="border-border-strong hover:bg-surface-raised inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full border text-sm font-medium transition-colors duration-(--duration-fast) md:hidden"
       >
         <svg
           aria-hidden="true"

@@ -67,10 +67,10 @@ describe("Home page", () => {
     expect(items).toHaveLength(PUBLIC_MODULES.length);
 
     for (const entry of PUBLIC_MODULES) {
-      const link = within(list).getByRole("link", {
-        name: new RegExp(entry.name, "i"),
-      });
+      const link = within(list).getByText(entry.name).closest("a");
+      expect(link).not.toBeNull();
       expect(link).toHaveAttribute("href", entry.href);
+      expect(within(link!).getByText(entry.summary)).toBeInTheDocument();
     }
     expect(within(list).getAllByText("Public").length).toBeGreaterThan(0);
     // Nexus Control is hidden: the home page does not announce it.

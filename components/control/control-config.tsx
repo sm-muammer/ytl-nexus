@@ -168,7 +168,12 @@ export function ControlConfig({ mode }: { mode: "live" | "demo" }) {
           </span>
         </div>
 
-        <div className="border-line overflow-x-auto rounded-xl border">
+        <div
+          tabIndex={0}
+          role="region"
+          aria-label="Service Bindings and Ports"
+          className="border-line overflow-x-auto rounded-xl border"
+        >
           <table className="w-full text-left text-xs">
             <thead className="border-line bg-surface-elevated/70 border-b font-medium text-slate-300">
               <tr>

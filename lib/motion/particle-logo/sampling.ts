@@ -3,6 +3,8 @@
 // BufferGeometry, with edge double-weighting, 70/30 face-volume depth, and
 // ellipsoid scatter targets.
 
+import { brandColours } from "@/lib/design/tokens";
+
 export const MARK_WORLD_HEIGHT = 2.2;
 export const MARK_HALF_DEPTH = 0.12;
 export const FACE_PARTICLE_SHARE = 0.7;
@@ -179,4 +181,69 @@ export function sampleParticlesFromPixels(
   }
 
   return { count, positions, colors, scatter, seeds };
+}
+
+export type AmbientDust = {
+  count: number;
+  positions: Float32Array;
+  colors: Float32Array;
+  seeds: Float32Array;
+};
+
+function hexToRgbTuple(hex: string): [number, number, number] {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+
+const DUST_PALETTE: readonly [number, number, number][] = [
+  hexToRgbTuple(brandColours.yesPink),
+  hexToRgbTuple(brandColours.yesGradientEnd),
+  hexToRgbTuple(brandColours.ytlBlue),
+  [0.85, 0.88, 0.96],
+];
+
+/**
+ * Samples sparse dim dust motes distributed in a wide ellipsoid around the
+ * hero mark so the scene reads as a continuous particle atmosphere.
+ */
+export function sampleAmbientDust(
+  count: number,
+  seed = 0x44555354,
+): AmbientDust {
+  if (count <= 0) {
+    return {
+      count: 0,
+      positions: new Float32Array(0),
+      colors: new Float32Array(0),
+      seeds: new Float32Array(0),
+    };
+  }
+
+  const rand = mulberry32(seed);
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const seeds = new Float32Array(count);
+  const TAU = Math.PI * 2;
+
+  for (let i = 0; i < count; i++) {
+    const theta = rand() * TAU;
+    const cosPhi = rand() * 2 - 1;
+    const sinPhi = Math.sqrt(Math.max(0, 1 - cosPhi * cosPhi));
+    const r = 0.28 + Math.pow(rand(), 0.55) * 0.72;
+
+    const p3 = i * 3;
+    positions[p3] = Math.cos(theta) * sinPhi * r * 7.8;
+    positions[p3 + 1] = cosPhi * r * 4.4;
+    positions[p3 + 2] = Math.sin(theta) * sinPhi * r * 3.8 - 0.6;
+
+    const tint = DUST_PALETTE[Math.floor(rand() * DUST_PALETTE.length)]!;
+    const dim = 0.45 + rand() * 0.4;
+    colors[p3] = tint[0] * dim;
+    colors[p3 + 1] = tint[1] * dim;
+    colors[p3 + 2] = tint[2] * dim;
+
+    seeds[i] = rand();
+  }
+
+  return { count, positions, colors, seeds };
 }

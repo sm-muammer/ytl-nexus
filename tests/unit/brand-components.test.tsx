@@ -31,6 +31,14 @@ describe("Logo", () => {
       Number(img.getAttribute("width")) / Number(img.getAttribute("height"));
     expect(ratio).toBeCloseTo(3722 / 760, 1);
   });
+
+  it("sets loading eager when priority is true", () => {
+    render(
+      <Logo slug="ytl-communications-left-main-colour" height={40} priority />,
+    );
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("loading", "eager");
+  });
 });
 
 describe("StatusBadge", () => {

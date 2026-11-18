@@ -8,7 +8,7 @@ export const IDLE_SPIN_RAD_PER_SEC = 0.18;
 export const IDLE_WOBBLE_AMPLITUDE = 0.08;
 export const IDLE_WOBBLE_PERIOD_SEC = 9;
 export const POINTER_TILT_MAX = 0.3;
-export const POINTER_REPULSE_RADIUS = 0.45;
+export const POINTER_REPULSE_RADIUS = 0.32;
 export const SCATTERED_OPACITY = 0.4;
 export const SCROLL_DISTANCE_FACTOR = 0.9;
 export const MAX_GROUP_SCROLL_Z = -1.2;
@@ -71,6 +71,12 @@ export function scrollState(
     cameraDollyZ: MAX_CAMERA_DOLLY_Z * morph + 0,
     inHero: progress < 1,
   };
+}
+
+/** Computes wall-clock intro elapsed seconds safely from performance timestamps. */
+export function introElapsedSec(nowMs: number, startMs: number): number {
+  if (!Number.isFinite(nowMs) || !Number.isFinite(startMs)) return 0;
+  return Math.max(0, (nowMs - startMs) / 1000);
 }
 
 /**

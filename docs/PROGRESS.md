@@ -68,6 +68,9 @@
   - Added unit tests for `particle-logo` sampling, tiers, scroll mapping, updated `scenes.test.ts`, `design-tokens.test.ts`, and `home-page.test.tsx`.
   - Added E2E Playwright specs in `tests/e2e/home.spec.ts` and updated `tests/e2e/motion.spec.ts` for `AmbientField` on `/platform`.
   - Updated `docs/design-language.md`, `docs/design/motion.md`, and `docs/spec/implementation-plan.md`.
+- **Visual & Responsive Polish Pass (done 2026-11-18):**
+  - Switched intro convergence to wall-clock `performance.now()` (`introElapsedSec`), boosted high-tier particle intensity (`0.45`), softened sprite falloff (`exp(-d*d*8.8)`), shaded interior extrusion volume (`0.6x`), enlarged desktop/4K stage sizing + added CSS token `.nx-hero-logo-glow`, added sparse ambient dust `Points` (`sampleAmbientDust`), and softened pointer repulsion (`push 0.18`, `radius 0.32`).
+  - Showed 2-line clamped summaries on all bento tiles for uniform row density, added glowing node dots to the architecture teaser conduit, fixed 390 px header collision/touch targets (`shrink-0`, icon-only search trigger below `sm`, `min-h-11 min-w-11`), added `loading="eager"` when `Logo` has `priority`, and added `tabIndex={0}`/`role="region"`/`aria-label` to `overflow-x-auto` tables on `/platform` and `/control`.
 
 ### Nexus Tour Full Content Seed & Resilience (`/tour`) (done 2026-11-18)
 

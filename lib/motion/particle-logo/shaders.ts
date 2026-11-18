@@ -46,24 +46,28 @@ void main() {
   vec2 dir = dist > 0.0001
     ? delta / dist
     : vec2(cos(aSeed * 6.28318), sin(aSeed * 6.28318));
-  pos.xy += dir * push * 0.38;
-  pos.z += push * 0.24;
+  pos.xy += dir * push * 0.18;
+  pos.z += push * 0.12;
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPosition;
 
   float distanceScale = 4.4 / max(0.8, -mvPosition.z);
   float sizeJitter = 0.68 + aSeed * 0.68;
-  float scatterBoost = 1.0 + eased * 0.45;
+  float scatterBoost = 1.0 + eased * 0.15;
   gl_PointSize = clamp(
     uBaseSize * sizeJitter * scatterBoost * uPixelRatio * distanceScale,
     1.5,
-    64.0
+    36.0
   );
 
   // Shimmer ±15% over time with per-particle phase.
   vShimmer = 1.0 + 0.15 * sin(uTime * (1.6 + aSeed * 1.4) + aSeed * 62.83185);
-  vColor = aColor;
+  // Shade interior/extrusion volume particles darker (0.6x) than front/back faces (±0.12)
+  // so 3D depth reads sharply when the mark turns; relax back to 1.0 as it scatters.
+  float isFace = step(0.115, abs(position.z));
+  float depthShade = mix(mix(0.6, 1.0, isFace), 1.0, eased);
+  vColor = aColor * depthShade;
   vMorph = eased;
 }
 `;
@@ -81,9 +85,9 @@ void main() {
   float d = length(uv) * 2.0;
   if (d > 1.0) discard;
 
-  // Crisp bright pinpoint core + atmospheric halo, smooth outer fade.
-  float core = exp(-d * d * 13.5);
-  float halo = exp(-d * d * 3.4) * 0.18;
+  // Dense soft luminous core + atmospheric halo, smooth outer fade.
+  float core = exp(-d * d * 8.8);
+  float halo = exp(-d * d * 2.8) * 0.24;
   float edge = smoothstep(1.0, 0.78, d);
   float sprite = (core + halo) * edge;
 
@@ -91,6 +95,53 @@ void main() {
   float scatterLift = mix(1.0, 1.55, vMorph);
   float alpha = sprite * uOpacity * uIntensity * vShimmer * scatterLift;
 
+  gl_FragColor = vec4(vColor * alpha, alpha);
+}
+`;
+
+export const DUST_VERTEX_SHADER = /* glsl */ `
+attribute vec3 aColor;
+attribute float aSeed;
+
+uniform float uTime;
+uniform float uPixelRatio;
+
+varying vec3 vColor;
+varying float vAlpha;
+
+void main() {
+  vec3 pos = position;
+  float isMoving = step(0.0001, uTime);
+  pos.x += sin(uTime * 0.18 + aSeed * 43.9822) * 0.24 * isMoving;
+  pos.y += cos(uTime * 0.14 + aSeed * 29.8451) * 0.18 * isMoving;
+  pos.z += sin(uTime * 0.16 + aSeed * 17.5929) * 0.14 * isMoving;
+
+  vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
+
+  float distanceScale = 5.5 / max(1.0, -mvPosition.z);
+  gl_PointSize = clamp(
+    (2.4 + aSeed * 3.2) * uPixelRatio * distanceScale,
+    1.2,
+    14.0
+  );
+
+  vColor = aColor;
+  vAlpha = 0.18 + 0.12 * sin(uTime * (0.6 + aSeed * 0.7) + aSeed * 31.4159);
+}
+`;
+
+export const DUST_FRAGMENT_SHADER = /* glsl */ `
+varying vec3 vColor;
+varying float vAlpha;
+
+void main() {
+  vec2 uv = gl_PointCoord - vec2(0.5);
+  float d = length(uv) * 2.0;
+  if (d > 1.0) discard;
+
+  float falloff = exp(-d * d * 5.0) * smoothstep(1.0, 0.75, d);
+  float alpha = falloff * vAlpha;
   gl_FragColor = vec4(vColor * alpha, alpha);
 }
 `;

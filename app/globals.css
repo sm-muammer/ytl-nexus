@@ -487,6 +487,20 @@ dialog[data-nav-sheet][open] {
  * borders, CSS-variable radial pointer spotlight (--mx, --my), hero scroll cue,
  * and topology teaser signal pulse (transform and opacity only).
  */
+.nx-hero-logo-glow {
+  background:
+    radial-gradient(
+      60% 60% at 44% 54%,
+      color-mix(in oklab, var(--color-yes-pink) 16%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      56% 56% at 62% 44%,
+      color-mix(in oklab, var(--color-yes-gradient-end) 15%, transparent),
+      transparent 72%
+    );
+}
+
 .nx-bento-card {
   position: relative;
   background: var(--nx-glass);
@@ -594,6 +608,9 @@ dialog[data-nav-sheet][open] {
     var(--color-ytl-blue),
     transparent
   );
+  box-shadow:
+    0 0 12px color-mix(in oklab, var(--color-ytl-blue) 55%, transparent),
+    0 0 22px color-mix(in oklab, var(--color-yes-pink) 40%, transparent);
   animation: nx-signal-travel 2.8s var(--ease-in-out-cubic) infinite;
 }
 

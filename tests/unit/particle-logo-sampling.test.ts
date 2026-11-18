@@ -3,6 +3,7 @@ import {
   MARK_HALF_DEPTH,
   MARK_WORLD_HEIGHT,
   SCATTER_RADIUS,
+  sampleAmbientDust,
   sampleParticlesFromPixels,
   type PixelBuffer,
 } from "@/lib/motion/particle-logo/sampling";
@@ -164,5 +165,30 @@ describe("particle logo sampling", () => {
     expect(() =>
       sampleParticlesFromPixels({ width: 4, height: 4, data }, 100),
     ).toThrow(/opaque/i);
+  });
+
+  it("samples sparse ambient dust around the mark with dim brand-tinted colours", () => {
+    const dust = sampleAmbientDust(1500, 99);
+    expect(dust.count).toBe(1500);
+    expect(dust.positions).toHaveLength(1500 * 3);
+    expect(dust.colors).toHaveLength(1500 * 3);
+    expect(dust.seeds).toHaveLength(1500);
+
+    for (let i = 0; i < dust.count; i++) {
+      const r = dust.colors[i * 3]!;
+      const g = dust.colors[i * 3 + 1]!;
+      const b = dust.colors[i * 3 + 2]!;
+      expect(r).toBeGreaterThanOrEqual(0);
+      expect(r).toBeLessThanOrEqual(1);
+      expect(g).toBeGreaterThanOrEqual(0);
+      expect(g).toBeLessThanOrEqual(1);
+      expect(b).toBeGreaterThanOrEqual(0);
+      expect(b).toBeLessThanOrEqual(1);
+      expect(r + g + b).toBeGreaterThan(0);
+
+      const s = dust.seeds[i]!;
+      expect(s).toBeGreaterThanOrEqual(0);
+      expect(s).toBeLessThan(1);
+    }
   });
 });
