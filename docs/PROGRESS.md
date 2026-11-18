@@ -5,15 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                                                     |
-| --------------------------- | ------------------------------------------------------------------------- |
-| Last completed              | **Task 22:** Documentation, handover and v1.0.0 release (done 2026-11-17) |
-| Current task                | None (Platform v1.0.0 Completed)                                          |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                     |
-| Recommended model           | Any                                                                       |
-| Start the next session with | `Platform complete: ready for final handover presentation`                |
+| Item                        | Value                                                                       |
+| --------------------------- | --------------------------------------------------------------------------- |
+| Last completed              | **Platform Showcase:** Full implementation of `/platform` (done 2026-11-18) |
+| Current task                | None (Platform & Documentation Complete)                                    |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                       |
+| Recommended model           | Any                                                                         |
+| Start the next session with | `Platform complete: ready for final handover presentation`                  |
 
 ## Owner actions waiting
+
+- **Inspect Platform Section in a browser:** open `https://ytl-nexus.ytlcomms.my/platform` (or locally at `http://localhost:3000/platform` or from the home page CTA "How it fits together"). Verify the full interactive architecture overview: the 3-tier Network Topology & Ingress Flow, the 6 Core Trust Boundaries, live/demo subsystem health cards, runtime services table on Rocky Linux Nexus Core 01, and the categorized 16 Unified Modules matrix. Notice that the stub notice "Not available yet" has been completely replaced with a comprehensive systems engineering presentation.
 
 - **Task 20, verify responsiveness and quality in a browser:** open `https://ytl-nexus.ytlcomms.my` (or locally) across different screen sizes (mobile 390px, tablet 768px, desktop 1440px, and 4K/Retina if available). Verify that touch targets are comfortable to tap, headings scale smoothly, particle effects adjust gracefully to device capability, and toggling "Reduce Motion" in your OS eliminates non-essential animations. Inspect the detailed audit results in `docs/design/lighthouse-report.md`.
 - **Task 19, inspect Nexus Control and Command Palette in a browser:** sign in as an Administrator on `https://ytl-nexus.ytlcomms.my` (or locally). Open `/control` and verify all 6 administration sections (User Accounts, File Transfer, Mailboxes, Service Actions, Configuration, and Audit Trail). Test user creation (single-view generated password), role dropdown, account disabling/enabling, 2FA reset, password reset, and session revocation. Try the Operations Agent service actions, review non-secret configuration, and test the Audit Trail filtering and CSV export. Press <kbd>Cmd</kbd>+<kbd>K</kbd> (or <kbd>Ctrl</kbd>+<kbd>K</kbd>) or click the search button in the top navigation header to test the global Command Palette. Notice the "Connected subsystems" panel at the bottom linking directly to Atlas, Status, Library, AI, Continuity, and Shield.
@@ -45,6 +47,20 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Platform Section Full Implementation (`/platform`) (done 2026-11-18)
+
+- **Replaced Stub with Full Systems Architecture Experience (`app/(public)/platform/page.tsx`, `components/platform/platform-view.tsx`):**
+  - Eliminated the placeholder `Not available yet` stub notice and replaced it with a comprehensive architectural and engineering breakdown of YTL Nexus on Rocky Linux host Nexus Core 01.
+  - **3-Tier Topology Architecture Flow:** Illustrated the ingress path from external clients (Ports 80/443 HTTPS, 2022 SFTP, 587/993 Mail) to Apache reverse proxy gateway, path-based routing (`/*`, `/studio`, `/webmail`, `/files`), and loopback-only service isolation (127.0.0.1 and Unix sockets).
+  - **The 6 Core Trust Boundaries:** Structured visual breakdown of Network & Ingress, Reverse Proxy & Gateway, Application Authorization (`requireRole()` and Zod), System Operations (`nexus-ops` HMAC-signed socket with polkit allowlisting), Multi-Tenant Data Isolation (5 MariaDB databases), and Unidirectional Root Timers & Audit Scans.
+  - **Live Subsystems Health Telemetry:** Integrated server-side live status queries via `getAdapters()`, displaying status cards for MariaDB, Better Auth, WordPress API, Prometheus, Ollama, SFTPGo, Operations Agent, and Mail with `StatusBadge` and `LiveDemoLabel` indicators.
+  - **Runtime Services Inventory:** Documented all 11 daemons and scheduled units running on Nexus Core 01 with service accounts, listen bindings, categories, and responsibilities.
+  - **The 16 Unified Platform Modules Ecosystem:** Categorized card matrix covering Explore, Operate, Services, and Govern modules with route URLs, task references, and role requirement badges.
+  - **Connected Exploration:** Integrated `RelatedModules` connecting Tour, Story, Command, Atlas, and Status.
+- **Verification & Testing (`tests/unit/platform-page.test.tsx`):**
+  - Authored comprehensive test suite asserting heading hierarchy, absence of stub notices, topology description, all 6 trust boundaries, runtime inventory, live/demo health badges, and categorized module links.
+  - Verified `npm run check` passes cleanly (Prettier, ESLint, TypeScript typecheck, and all 74 Vitest test suites with 995 tests passing).
 
 ### Task 22: Documentation, handover and v1.0.0 release (done 2026-11-17)
 
