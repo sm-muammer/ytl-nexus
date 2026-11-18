@@ -65,7 +65,7 @@ void main() {
   gl_Position = projectionMatrix * mvPosition;
 
   float distanceScale = 4.4 / max(0.8, -mvPosition.z);
-  float sizeJitter = 0.72 + aSeed * 0.56;
+  float sizeJitter = 0.86 + aSeed * 0.28;
   float scatterBoost = 1.0 + eased * 0.25;
   gl_PointSize = clamp(
     uBaseSize * sizeJitter * scatterBoost * uPixelRatio * distanceScale,
@@ -73,8 +73,12 @@ void main() {
     16.0
   );
 
-  // Shimmer ±15% over time with per-particle phase.
-  vShimmer = 1.0 + 0.15 * sin(uTime * (1.6 + aSeed * 1.4) + aSeed * 62.83185);
+  // Coherent diagonal sheen + gentle per-particle shimmer without static noise.
+  float sheen = 0.08 * sin(position.x * 2.2 - position.y * 1.8 + uTime * 1.4);
+  vShimmer =
+    1.0 +
+    0.07 * sin(uTime * (1.4 + aSeed * 1.2) + aSeed * 62.83185) +
+    sheen * (1.0 - eased) * isMoving;
 
   // View-space normal lighting: dims back faces so they never ghost through cutouts,
   // while keeping front faces luminous and highlighting beveled side walls.
@@ -105,9 +109,9 @@ void main() {
   float d = length(uv) * 2.0;
   if (d > 1.0) discard;
 
-  // Balanced micro-LED core + halo so adjacent particles fuse into a smooth surface.
-  float core = exp(-d * d * 12.5);
-  float halo = exp(-d * d * 3.8) * 0.36;
+  // Silky micro-LED Gaussian sprite so adjacent particles fuse cleanly.
+  float core = exp(-d * d * 9.5);
+  float halo = exp(-d * d * 3.2) * 0.34;
   float edge = smoothstep(1.0, 0.72, d);
   float sprite = (core + halo) * edge;
 

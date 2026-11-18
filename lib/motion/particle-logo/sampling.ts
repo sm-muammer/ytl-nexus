@@ -135,7 +135,7 @@ export function sampleParticlesFromPixels(
   const scale = targetHeight / spanY;
   const maxHalfW = (spanX * scale) / 2;
   const maxHalfH = targetHeight / 2;
-  const jitterStep = spanY > 1 ? 0.65 : 0;
+  const jitterStep = spanY > 1 ? 0.28 : 0;
 
   const positions = new Float32Array(count * 3);
   const normals = new Float32Array(count * 3);
@@ -163,7 +163,7 @@ export function sampleParticlesFromPixels(
       ? rand() < 0.5
         ? halfDepth
         : -halfDepth
-      : (rand() * 2 - 1) * halfDepth;
+      : ((Math.floor(rand() * 5) - 2) / 2.5) * halfDepth;
 
     // 3x3 Sobel gradient on alpha gives smooth outward edge normals (+worldX, +worldY).
     const aTL = alphaAt(px - 1, py - 1);
@@ -239,8 +239,7 @@ function hexToRgbTuple(hex: string): [number, number, number] {
 const DUST_PALETTE: readonly [number, number, number][] = [
   hexToRgbTuple(brandColours.yesPink),
   hexToRgbTuple(brandColours.yesGradientEnd),
-  hexToRgbTuple(brandColours.ytlBlue),
-  [0.85, 0.88, 0.96],
+  [0.82, 0.84, 0.98],
 ];
 
 const RING_SPECS = [

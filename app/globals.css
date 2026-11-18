@@ -206,6 +206,34 @@ body {
       transparent 70%
     );
 }
+.nx-tint-aurora {
+  --l1: var(--color-yes-gradient-end);
+  --p1: 74% 42%;
+  --s1: 22%;
+  --l2: var(--color-yes-pink);
+  --p2: 64% 56%;
+  --s2: 14%;
+  --l3: var(--color-ytl-blue);
+  --p3: 10% 12%;
+  --s3: 9%;
+  background-color: color-mix(in oklab, var(--nx-canvas) 76%, black);
+  background-image:
+    radial-gradient(
+      58rem 48rem at var(--p1),
+      color-mix(in oklab, var(--l1) var(--s1), transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      46rem 40rem at var(--p2),
+      color-mix(in oklab, var(--l2) var(--s2), transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      52rem 42rem at var(--p3),
+      color-mix(in oklab, var(--l3) var(--s3), transparent),
+      transparent 72%
+    );
+}
 .nx-tint-network {
   --p1: 100% 0%;
   --s1: 32%;
@@ -487,126 +515,6 @@ dialog[data-nav-sheet][open] {
  * borders, CSS-variable radial pointer spotlight (--mx, --my), hero scroll cue,
  * and topology teaser signal pulse (transform and opacity only).
  */
-.nx-hero-logo-glow {
-  background:
-    radial-gradient(
-      60% 60% at 44% 54%,
-      color-mix(in oklab, var(--color-yes-pink) 18%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      56% 56% at 62% 44%,
-      color-mix(in oklab, var(--color-yes-gradient-end) 16%, transparent),
-      transparent 72%
-    );
-}
-
-@keyframes nx-aurora-breathe {
-  0% {
-    opacity: 0.72;
-    transform: scale(1) translate3d(0, 0, 0);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1.06) translate3d(-1.5%, -1.5%, 0);
-  }
-}
-
-@keyframes nx-grid-drift {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(56px);
-  }
-}
-
-@keyframes nx-orbit-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.nx-hero-dynamic-bg {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.nx-hero-aurora-cone {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(
-      55% 50% at 74% 34%,
-      color-mix(in oklab, var(--color-ytl-blue) 18%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      42% 45% at 70% 50%,
-      color-mix(in oklab, var(--color-yes-pink) 15%, transparent),
-      color-mix(in oklab, var(--color-yes-gradient-end) 12%, transparent) 45%,
-      transparent 72%
-    ),
-    radial-gradient(
-      50% 48% at 20% 78%,
-      color-mix(in oklab, var(--color-yes-pink) 14%, transparent),
-      transparent 70%
-    );
-  animation: nx-aurora-breathe 12s var(--ease-in-out-cubic) infinite alternate;
-}
-
-.nx-hero-perspective-grid {
-  position: absolute;
-  right: -10%;
-  bottom: 0;
-  left: -10%;
-  height: 48%;
-  transform: perspective(720px) rotateX(58deg);
-  transform-origin: center bottom;
-  -webkit-mask-image: radial-gradient(
-    ellipse 70% 75% at 55% 90%,
-    rgb(0 0 0 / 0.75) 0%,
-    rgb(0 0 0 / 0.22) 55%,
-    transparent 82%
-  );
-  mask-image: radial-gradient(
-    ellipse 70% 75% at 55% 90%,
-    rgb(0 0 0 / 0.75) 0%,
-    rgb(0 0 0 / 0.22) 55%,
-    transparent 82%
-  );
-}
-
-.nx-hero-perspective-grid-lines {
-  position: absolute;
-  inset: -56px 0 0;
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in oklab, var(--color-ytl-blue) 22%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in oklab, var(--color-yes-gradient-end) 20%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 56px 56px;
-  animation: nx-grid-drift 10s linear infinite;
-}
-
-.nx-orbital-ring {
-  border: 1px dashed color-mix(in oklab, var(--color-ytl-blue) 22%, transparent);
-  animation: nx-orbit-spin 34s linear infinite;
-}
-
-.nx-orbital-ring-reverse {
-  border: 1px solid color-mix(in oklab, var(--color-yes-pink) 18%, transparent);
-  animation: nx-orbit-spin 48s linear infinite reverse;
-}
-
 .nx-bento-card {
   position: relative;
   background: var(--nx-glass);
@@ -741,11 +649,7 @@ dialog[data-nav-sheet][open] {
     animation-name: nx-fade-in;
   }
   .nx-scroll-cue-dot,
-  .nx-topology-signal-pulse,
-  .nx-hero-aurora-cone,
-  .nx-hero-perspective-grid-lines,
-  .nx-orbital-ring,
-  .nx-orbital-ring-reverse {
+  .nx-topology-signal-pulse {
     animation: none !important;
     transform: none !important;
   }
