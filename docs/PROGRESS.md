@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                                                                                                                         |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Last completed              | **Tactile Signed-In Button Redesign:** removed indicator dots, added monogram avatar micro-badge, responsive press physics (`scale-[0.97]`), inner bevel highlight, and micro-interactions via `emil-design-eng` principles (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                                                                   |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                                                         |
-| Recommended model           | Any                                                                                                                                                                                                                                           |
-| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                                                                |
+| Item                        | Value                                                                                                                                                                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Last completed              | **Floating Particle Logo Theme Contrast & Glow:** preserved white mode format with soft lilac/rose motes, and added luminous electric YTL cyan, azure, diamond starlight, and gold celestial embers for dark modes (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                                                          |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                                                |
+| Recommended model           | Any                                                                                                                                                                                                                                  |
+| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                                                       |
 
 ## Recent deployments
 
@@ -56,6 +56,35 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Floating Particle Logo Theme Contrast & Glow (done 2026-11-18)
+
+- **Diagnosis:**
+  - Ambient floating particles around the 3D Yes/YTL logomark (`sampleAmbientDust` in `lib/motion/particle-logo/sampling.ts`) were rendered in WebGL using `AdditiveBlending` with low-alpha muted purple/pink shades (`dim = 0.45..0.95`, `vAlpha = 0.08..0.40`).
+  - In white mode (Daylight), this produced soft dark silhouettes against the light canvas. In dark mode (Obsidian / Blueprint), the low additive luminance was indistinguishable from the deep navy canvas (`#070c19`), making the floating particles invisible.
+- **Dual-Palette Sampling (`lib/motion/particle-logo/sampling.ts`):**
+  - Retained `DUST_PALETTE_LIGHT` (rose, indigo, and soft lilac) to preserve the exact white mode format.
+  - Added `DUST_PALETTE_DARK` featuring electric YTL cyan (`#00ebff`), YTL Blue (`#00b4f0`), vivid sky blue (`#40c2fa`), radiant starlight white (`#e6f5ff`), and celestial gold sparks (`#ffd161`) with higher base luminance (`0.85..1.15`).
+- **Luminous Shaders & Reactive Uniform (`lib/motion/particle-logo/shaders.ts`, `components/home/particle-logo.tsx`):**
+  - Added `uDark` uniform and `aColorDark` attribute to `DUST_VERTEX_SHADER` and `DUST_FRAGMENT_SHADER`.
+  - In dark mode, particles render with a luminous micro-core, starry halo, and increased point size (`2.75..7.0 px`) with un-premultiplied additive output so they glow brilliantly against dark navy.
+  - In light mode, the shader seamlessly outputs the exact muted soft shadow falloff previously loved by the user.
+  - Linked `uDark` dynamically via `useAtmosphereMode` and a DOM `MutationObserver` on `data-theme` and `data-atmosphere`, providing smooth 60fps interpolation between palettes on theme toggle.
+- **Tests & Verification:**
+  - Updated `tests/unit/particle-logo-sampling.test.ts` asserting that `colorsDark` is sampled alongside `colors` and that dark mode particles carry higher luminous energy than muted light motes.
+  - Captured comparative Playwright screenshots verifying both white mode format preservation and radiant dark mode visibility.
+  - `npm run check` (format check, lint, typecheck, 81 test files with 1050 passing tests) passed cleanly.
+
+### Theme Selection in All Modules & Tactile Session Button (done 2026-11-18)
+
+- **Theme Selection in All Modules (`components/layout/nav-sheet.tsx`, `components/layout/atmosphere-switcher.tsx`):**
+  - Re-integrated `AtmosphereModeGroup` (`[Obsidian] [Blueprint] [Daylight]`) directly inside the "All modules" navigation drawer dialog with tactile active-press scaling (`active:scale-[0.97]`) and subtle inner bevel shadow, while leaving the hero section and top header bar uncluttered.
+- **Signed-In Button Indicator Dot Removal & Tactile Polish:**
+  - Removed indicator colored dots from the signed-in button and drawer session card.
+  - Replaced with a monogram avatar micro-badge (`session.initial` or user icon) with `active:scale-[0.97]` press response and smooth hover micro-motion on the chevron.
+- **Tests & Verification:**
+  - Updated `tests/e2e/home.spec.ts` asserting theme selection is accessible inside "All modules" drawer and absent from hero/header.
+  - Updated `tests/unit/site-header.test.tsx` verifying session button renders cleanly without indicator dots.
 
 ### Tactile Signed-In Button Redesign (done 2026-11-18)
 
