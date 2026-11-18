@@ -53,6 +53,28 @@ export const themes: Record<ThemeName, Record<keyof typeof dark, string>> = {
   light,
 };
 
+/**
+ * Translucent glass surfaces and hairline borders derived from theme roles.
+ * Mirrored in app/globals.css so components use bg-glass / border-glass-border.
+ */
+export const glassSurfaces: Record<
+  ThemeName,
+  { glass: string; "glass-raised": string; "glass-border": string }
+> = {
+  dark: {
+    glass: "color-mix(in oklab, var(--nx-surface) 68%, transparent)",
+    "glass-raised":
+      "color-mix(in oklab, var(--nx-surface-raised) 78%, transparent)",
+    "glass-border": "color-mix(in oklab, var(--nx-ink) 12%, transparent)",
+  },
+  light: {
+    glass: "color-mix(in oklab, var(--nx-surface) 80%, transparent)",
+    "glass-raised":
+      "color-mix(in oklab, var(--nx-surface-raised) 88%, transparent)",
+    "glass-border": "color-mix(in oklab, var(--nx-ink) 12%, transparent)",
+  },
+};
+
 export type ThemeRole = keyof typeof dark;
 
 /** Browser chrome colour for the default (dark) workspace theme. */

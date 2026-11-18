@@ -49,6 +49,7 @@ Requirements live in [`../product.md`](../product.md) and the module specs. Tech
 | 20  | Quality, motion and 4K pass                                   | [design](../design-language.md)                                             | Sonnet 5.5, Medium                     |
 | 21  | Security hardening and final review                           | [10](10-identity-and-access.md), [technology](../tech.md)                   | Sonnet 5.5 High; GPT 5.6 Sol once      |
 | 22  | Documentation, handover and v1.0.0 release                    | [product](../product.md)                                                    | Haiku 5.5 draft; Sonnet 5.5 review     |
+| 24  | Home showcase: 3D particle Yes logomark                       | [24](24-home-showcase.md), [design](../design-language.md)                  | Sonnet 5.5, Medium                     |
 
 Checkpoints: Day 7 integrated demo; Day 10 all modules integrated; Days 11–14 hardening, polish, docs and handover.
 
@@ -350,6 +351,16 @@ Checkpoints: Day 7 integrated demo; Day 10 all modules integrated; Days 11–14 
 - **Tests:** a fresh session (or a teammate) follows only the docs to deploy, roll back and restore successfully.
 - **Demo:** a full walkthrough from Tour to Control, then a live deploy and rollback.
 - **You do:** run the handover meeting with Logesh, Azlin and Sonu; have them sign in and enrol 2FA.
+
+### Task 24: Home showcase: 3D particle Yes logomark
+
+- **Objective:** redesign `/` around a lazy-loaded Three.js WebGL particle rendering of the official Yes gradient logomark and glass bento showcase sections.
+- **Guidance:**
+  - Follow [`24-home-showcase.md`](24-home-showcase.md) (`D-240`..`D-243`): sample particle positions and un-recoloured RGB from `public/brand/yes-logomark-gradient.svg`, weight edge pixels double, place 70 % on front/back faces (`z = ±0.12`) and 30 % in volume, and scale across `140 000` / `70 000` / `30 000` quality tiers.
+  - Keep `three` core only via `next/dynamic` (`ssr: false`) on `/`; drop the 2D `aurora` canvas on `/` while retaining the `aurora` tint in `lib/navigation/scenes.ts`.
+  - Add semantic glass surface tokens to `app/globals.css` and `lib/design/tokens.ts`, then build the 100 dvh hero, code-derived facts strip, glass modules bento (pink-to-blue gradient hairlines, `--mx`/`--my` radial spotlight, featured tiles for Command, AI, Yes Experience), 3-tier architecture teaser, and About glass panel.
+- **Tests:** Vitest unit tests for sampling, tiers, scroll mapping, `scenes.ts`, token sync, and home page; Playwright E2E for running/static states, pointer gating, and zero serious axe violations at 390 and 1440 px; `three` absent from every route bundle except `/`.
+- **Demo:** open `/`: the Yes mark converges on load, rotates while idle, tilts/repels around the pointer, spins on drag and horizontal wheel, scatters on scroll down, and re-forms on scroll up.
 
 ## 3. If time runs short
 

@@ -1,130 +1,377 @@
 import Link from "next/link";
 import { Backdrop } from "@/components/backdrop/backdrop";
+import { BentoCard } from "@/components/home/bento-card";
+import { ParticleLogoLoader } from "@/components/home/particle-logo-loader";
 import { PageTransition } from "@/components/motion/page-transition";
-import { Rise } from "@/components/motion/reveal";
-import { PUBLIC_MODULES } from "@/lib/navigation/modules";
+import { Fade, Rise } from "@/components/motion/reveal";
+import {
+  NAV_GROUP_LABEL,
+  PUBLIC_MODULES,
+  type Accent,
+  type ModuleInfo,
+} from "@/lib/navigation/modules";
 import { accessLabel } from "@/lib/roles";
 
-// Editorial home page (public register). It names the project honestly: an
+// Editorial showcase home page (spec 24). It names the project honestly: an
 // internship project, not an official YTL product. It reads no session and no
-// adapter, so every figure on it is a fact about the project, not a metric.
+// adapter, so every figure on it is a static fact about the project, not a
+// live metric.
 
 const ctaPrimary =
-  "bg-accent-ink text-canvas inline-flex min-h-11 items-center rounded-full px-6 font-medium transition-opacity duration-(--duration-fast) hover:opacity-90";
+  "bg-accent-ink text-canvas inline-flex min-h-11 min-w-11 items-center rounded-full px-6 font-medium transition-opacity duration-(--duration-fast) hover:opacity-90";
 const ctaSecondary =
-  "border-border-strong hover:bg-surface-raised inline-flex min-h-11 items-center rounded-full border px-6 font-medium transition-colors duration-(--duration-fast)";
+  "border-glass-border bg-glass hover:bg-glass-raised text-ink inline-flex min-h-11 min-w-11 items-center rounded-full border px-6 font-medium backdrop-blur-md transition-colors duration-(--duration-fast)";
+
+const FEATURED_SLUGS = new Set(["command", "ai", "yes"]);
+
+const ACCENT_DOT_CLASS: Record<Accent, string> = {
+  blue: "bg-accent-ink",
+  pink: "bg-pink-ink",
+  violet: "bg-violet-ink",
+};
+
+const PROJECT_FACTS = [
+  {
+    value: String(PUBLIC_MODULES.length),
+    label: "Platform modules",
+    note: "From PUBLIC_MODULES · excludes hidden Control",
+  },
+  {
+    value: "1",
+    label: "Rocky Linux server",
+    note: "Nexus Core 01 · single-host architecture",
+  },
+  {
+    value: "1",
+    label: "Unified sign-in",
+    note: "Better Auth · Visitor to Administrator",
+  },
+  {
+    value: "2",
+    label: "Live / Demo labelled",
+    note: "Live telemetry vs deterministic fixtures",
+  },
+] as const;
+
+const TOPOLOGY_TIERS = [
+  {
+    step: "01",
+    name: "Ingress",
+    detail:
+      "Apache TLS gateway, security headers, and path routing on ports 80, 443, 2022, 587 and 993.",
+  },
+  {
+    step: "02",
+    name: "Nexus Core 01",
+    detail:
+      "Next.js 16 application enforcing server-side RBAC, Zod validation, and allowlisted nexus-ops actions.",
+  },
+  {
+    step: "03",
+    name: "Services",
+    detail:
+      "Loopback-isolated MariaDB, Prometheus, Ollama AI, SFTPGo, Postfix/Dovecot and headless WordPress.",
+  },
+] as const;
+
+function tileSpan(slug: string): string {
+  if (slug === "yes") return "md:col-span-3 lg:col-span-6";
+  if (slug === "command" || slug === "ai") return "md:col-span-2 lg:col-span-4";
+  return "md:col-span-1 lg:col-span-2";
+}
+
+function ModuleTile({ module }: { module: ModuleInfo }) {
+  const featured = FEATURED_SLUGS.has(module.slug);
+  const wide = module.slug === "yes";
+  const isPublic = module.minRole === null;
+  const pillClass = isPublic
+    ? "border-accent-ink/35 bg-accent-ink/10 text-accent-ink"
+    : "border-glass-border bg-surface-raised/80 text-muted";
+
+  return (
+    <li className={tileSpan(module.slug)}>
+      <BentoCard href={module.href} apacheServed={module.apacheServed}>
+        <span
+          className={`relative z-10 flex h-full flex-col justify-between gap-5 ${
+            wide ? "lg:flex-row lg:items-center lg:gap-10" : ""
+          }`}
+        >
+          <span className="flex flex-col gap-3">
+            <span className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-muted inline-flex items-center gap-2 font-mono text-xs tracking-[0.16em] uppercase">
+                <span
+                  aria-hidden="true"
+                  className={`size-1.5 rounded-full ${ACCENT_DOT_CLASS[module.accent]}`}
+                />
+                {NAV_GROUP_LABEL[module.group]}
+              </span>
+              <span
+                className={`rounded-full border px-2.5 py-0.5 font-mono text-xs ${pillClass}`}
+              >
+                {accessLabel(module.minRole)}
+              </span>
+            </span>
+
+            <span className="text-heading-3 font-display text-ink font-semibold tracking-tight">
+              {module.name}
+            </span>
+
+            <span className="text-muted text-sm">{module.subtitle}</span>
+
+            {featured ? (
+              <span className="text-ink/80 max-w-prose text-sm leading-relaxed">
+                {module.summary}
+              </span>
+            ) : null}
+          </span>
+
+          <span
+            className={`border-glass-border/70 text-muted flex items-center justify-between gap-4 border-t pt-3 font-mono text-xs ${
+              wide
+                ? "lg:shrink-0 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8"
+                : ""
+            }`}
+          >
+            <span className="truncate">{module.href}</span>
+            <span
+              aria-hidden="true"
+              className="text-accent-ink transition-opacity duration-(--duration-fast) group-hover:opacity-100"
+            >
+              →
+            </span>
+          </span>
+        </span>
+      </BentoCard>
+    </li>
+  );
+}
 
 export default function HomePage() {
   return (
     <PageTransition>
-      <div>
+      <div className="relative overflow-x-clip">
         <Backdrop path="/" />
+
         <section
           aria-labelledby="home-title"
-          className="flex min-h-[78dvh] flex-col justify-center"
+          className="relative flex min-h-[calc(100dvh-4.25rem)] flex-col justify-between px-(--spacing-gutter) pt-6 pb-8 lg:pt-12 lg:pb-10"
         >
-          <div className="px-(--spacing-gutter) py-(--spacing-section)">
-            <Rise>
-              <h1
-                id="home-title"
-                className="text-display font-display font-semibold tracking-tight text-balance"
+          <ParticleLogoLoader />
+
+          <div className="max-w-page mx-auto my-auto grid w-full items-center gap-8 lg:grid-cols-12 lg:gap-12">
+            <div
+              data-particle-stage
+              aria-hidden="true"
+              className="pointer-events-none order-1 min-h-[36dvh] w-full sm:min-h-[40dvh] lg:order-2 lg:col-span-6 lg:min-h-[60dvh]"
+            />
+
+            <div className="pointer-events-auto relative z-10 order-2 lg:order-1 lg:col-span-6">
+              <Rise>
+                <p className="text-accent-ink font-mono text-xs font-medium tracking-[0.22em] uppercase">
+                  Internship project · YTL Communications
+                </p>
+                <h1
+                  id="home-title"
+                  className="text-display font-display text-ink mt-4 font-semibold tracking-tight text-balance"
+                >
+                  YTL Nexus
+                </h1>
+                <p className="text-ink/85 text-lead mt-6 max-w-2xl text-pretty">
+                  One platform for infrastructure, intelligence and digital
+                  services. An internship project built with the YTL
+                  Communications IT Infrastructure team.
+                </p>
+                <div className="mt-9 flex flex-wrap gap-3">
+                  <Link href="/tour" className={ctaPrimary}>
+                    Take the tour
+                  </Link>
+                  <Link href="/platform" className={ctaSecondary}>
+                    How it fits together
+                  </Link>
+                </div>
+              </Rise>
+            </div>
+          </div>
+
+          <div className="pointer-events-auto relative z-10 mx-auto mt-6 flex justify-center">
+            <a
+              href="#facts-strip"
+              className="text-muted hover:text-ink inline-flex min-h-11 min-w-11 items-center gap-3 rounded-full px-4 py-2 font-mono text-xs tracking-[0.2em] uppercase transition-colors duration-(--duration-fast)"
+            >
+              <span
+                aria-hidden="true"
+                className="border-border-strong/70 flex h-7 w-4 justify-center rounded-full border pt-1.5"
               >
-                YTL Nexus
-              </h1>
-              <p className="text-ink/80 text-lead mt-6 max-w-2xl text-pretty">
-                One platform for infrastructure, intelligence and digital
-                services. An internship project built with the YTL
-                Communications IT Infrastructure team.
-              </p>
-              <div className="mt-10 flex flex-wrap gap-3">
-                <Link href="/tour" className={ctaPrimary}>
-                  Take the tour
-                </Link>
-                <Link href="/platform" className={ctaSecondary}>
-                  How it fits together
-                </Link>
+                <span className="bg-accent-ink nx-scroll-cue-dot size-1.5 rounded-full" />
+              </span>
+              <span>Scroll</span>
+            </a>
+          </div>
+        </section>
+
+        <div className="relative z-10">
+          <section
+            id="facts-strip"
+            aria-labelledby="facts-heading"
+            className="max-w-page mx-auto px-(--spacing-gutter) py-12 lg:py-16"
+          >
+            <Fade>
+              <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+                <h2
+                  id="facts-heading"
+                  className="text-accent-ink font-mono text-xs font-medium tracking-[0.22em] uppercase"
+                >
+                  Project facts · Static configuration
+                </h2>
+                <p className="text-muted font-mono text-xs">
+                  Derived from code — not live server telemetry
+                </p>
+              </div>
+              <dl className="border-glass-border bg-glass divide-glass-border grid divide-y overflow-hidden rounded-2xl border backdrop-blur-md sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+                {PROJECT_FACTS.map((fact) => (
+                  <div key={fact.label} className="flex flex-col gap-1.5 p-6">
+                    <dt className="text-muted font-mono text-xs tracking-[0.14em] uppercase">
+                      {fact.label}
+                    </dt>
+                    <dd className="text-heading-1 font-display text-ink order-first font-semibold tracking-tight tabular-nums">
+                      {fact.value}
+                    </dd>
+                    <dd className="text-muted mt-1 font-mono text-xs">
+                      {fact.note}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </Fade>
+          </section>
+
+          <section
+            aria-labelledby="modules-heading"
+            className="max-w-page mx-auto px-(--spacing-gutter) py-(--spacing-section)"
+          >
+            <Rise>
+              <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p className="text-pink-ink font-mono text-xs font-medium tracking-[0.22em] uppercase">
+                    Unified workspace
+                  </p>
+                  <h2
+                    id="modules-heading"
+                    className="text-heading-2 font-display text-ink mt-2 font-semibold tracking-tight"
+                  >
+                    Modules
+                  </h2>
+                </div>
+                <p className="text-muted max-w-md">
+                  {PUBLIC_MODULES.length} modules share one sign-in, one design
+                  and one server. Each shows its access level, so you know what
+                  a link needs before you follow it.
+                </p>
               </div>
             </Rise>
-          </div>
-        </section>
 
-        <section
-          aria-labelledby="modules-heading"
-          className="grid gap-12 px-(--spacing-gutter) py-(--spacing-section) lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
-        >
-          <div className="lg:sticky lg:top-8 lg:self-start">
-            <h2
-              id="modules-heading"
-              className="text-heading-2 font-display font-semibold"
+            <ul
+              aria-labelledby="modules-heading"
+              className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6"
             >
-              Modules
-            </h2>
-            <p className="text-muted mt-4 max-w-sm">
-              {PUBLIC_MODULES.length} modules share one sign-in, one design and
-              one server. Each shows its access level, so you know what a link
-              needs before you follow it.
-            </p>
-          </div>
+              {PUBLIC_MODULES.map((m) => (
+                <ModuleTile key={m.slug} module={m} />
+              ))}
+            </ul>
+          </section>
 
-          <ul
-            aria-labelledby="modules-heading"
-            className="divide-line border-line divide-y border-y"
+          <section
+            aria-labelledby="architecture-heading"
+            className="max-w-page mx-auto px-(--spacing-gutter) py-12 lg:py-16"
           >
-            {PUBLIC_MODULES.map((m) => {
-              const body = (
-                <>
-                  <span className="text-heading-3 font-display font-semibold">
-                    {m.name}
-                  </span>
-                  <span className="text-muted text-data sm:text-right">
-                    {accessLabel(m.minRole)}
-                  </span>
-                  <span className="text-muted text-data sm:col-span-2">
-                    {m.subtitle}
-                  </span>
-                </>
-              );
-              const cls =
-                "hover:bg-surface grid min-h-11 gap-x-6 gap-y-1 px-2 py-5 transition-colors duration-(--duration-fast) sm:grid-cols-[minmax(0,1fr)_auto] sm:items-baseline";
-              return (
-                <li key={m.slug}>
-                  {m.apacheServed ? (
-                    <a href={m.href} className={cls}>
-                      {body}
-                    </a>
-                  ) : (
-                    <Link href={m.href} className={cls}>
-                      {body}
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+            <Rise>
+              <div className="border-glass-border bg-glass relative overflow-hidden rounded-2xl border p-8 backdrop-blur-md lg:p-12">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <p className="text-accent-ink font-mono text-xs font-medium tracking-[0.22em] uppercase">
+                      Architecture
+                    </p>
+                    <h2
+                      id="architecture-heading"
+                      className="text-heading-2 font-display text-ink mt-2 font-semibold tracking-tight"
+                    >
+                      How it fits together
+                    </h2>
+                    <p className="text-muted mt-3 max-w-2xl">
+                      One hardened Rocky Linux host separates public ingress
+                      from loopback-isolated databases, AI and telemetry across
+                      explicit trust boundaries.
+                    </p>
+                  </div>
+                  <Link href="/platform" className={ctaSecondary}>
+                    Explore platform architecture
+                  </Link>
+                </div>
 
-        <section
-          aria-labelledby="honest-heading"
-          className="border-line border-t px-(--spacing-gutter) py-16"
-        >
-          <h2 id="honest-heading" className="text-heading-3 font-semibold">
-            About this project
-          </h2>
-          <p className="text-muted mt-3 max-w-(--spacing-prose)">
-            YTL Nexus is an internship project, not an official YTL commercial
-            product. Every value shown is labelled <strong>Live</strong> when it
-            comes from Nexus Core 01 and <strong>Demo data</strong> when it
-            comes from built-in samples.
-          </p>
-          <p className="mt-4">
-            <Link
-              href="/story"
-              className="text-accent-ink inline-flex min-h-11 items-center underline underline-offset-4"
-            >
-              Read the project story
-            </Link>
-          </p>
-        </section>
+                <div className="relative mt-10 grid gap-6 lg:grid-cols-3 lg:gap-8">
+                  <div
+                    aria-hidden="true"
+                    className="bg-glass-border pointer-events-none absolute top-1/2 right-12 left-12 hidden h-px -translate-y-1/2 overflow-hidden lg:block"
+                  >
+                    <div className="nx-topology-signal-pulse h-full w-2/5" />
+                  </div>
+
+                  {TOPOLOGY_TIERS.map((tier) => (
+                    <div
+                      key={tier.step}
+                      className="border-glass-border bg-surface/85 relative z-10 flex flex-col gap-2 rounded-xl border p-6 backdrop-blur-md"
+                    >
+                      <span className="text-accent-ink font-mono text-xs tracking-[0.2em] uppercase">
+                        Tier {tier.step}
+                      </span>
+                      <h3 className="text-heading-3 font-display text-ink font-semibold">
+                        {tier.name}
+                      </h3>
+                      <p className="text-muted text-sm leading-relaxed">
+                        {tier.detail}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Rise>
+          </section>
+
+          <section
+            aria-labelledby="honest-heading"
+            className="max-w-page mx-auto px-(--spacing-gutter) pt-4 pb-(--spacing-section)"
+          >
+            <Fade>
+              <div className="border-glass-border bg-glass rounded-2xl border p-8 backdrop-blur-md lg:p-10">
+                <p className="text-pink-ink font-mono text-xs font-medium tracking-[0.22em] uppercase">
+                  Internship disclosure
+                </p>
+                <h2
+                  id="honest-heading"
+                  className="text-heading-3 font-display text-ink mt-2 font-semibold"
+                >
+                  About this project
+                </h2>
+                <p className="text-muted mt-3 max-w-(--spacing-prose)">
+                  YTL Nexus is an internship project, not an official YTL
+                  commercial product. Every value shown is labelled{" "}
+                  <strong className="text-ink">Live</strong> when it comes from
+                  Nexus Core 01 and{" "}
+                  <strong className="text-ink">Demo data</strong> when it comes
+                  from built-in samples.
+                </p>
+                <p className="mt-5">
+                  <Link
+                    href="/story"
+                    className="text-accent-ink inline-flex min-h-11 items-center font-medium underline underline-offset-4"
+                  >
+                    Read the project story
+                  </Link>
+                </p>
+              </div>
+            </Fade>
+          </section>
+        </div>
       </div>
     </PageTransition>
   );

@@ -7,8 +7,7 @@ import {
   sceneFor,
 } from "@/lib/navigation/scenes";
 
-const publicPaths = new Set([
-  "/",
+const publicCanvasPaths = new Set([
   ...PAGES.filter(
     (p) =>
       p.group === "explore" &&
@@ -27,16 +26,20 @@ describe("page backdrops", () => {
     }
   });
 
+  it("keeps the aurora tint on / without a 2D canvas (replaced by the WebGL particle logo, D-243)", () => {
+    expect(sceneFor("/")).toEqual({ tint: "aurora" });
+  });
+
   it("never draws particles on forms, tables, Control, the inbox or workspace pages (Requirement 3.14)", () => {
     for (const path of ROUTE_PATHS) {
-      if (!publicPaths.has(path)) {
+      if (!publicCanvasPaths.has(path)) {
         expect(sceneFor(path).canvas, path).toBeUndefined();
       }
     }
   });
 
-  it("gives every public page its own particle scene", () => {
-    const kinds = [...publicPaths].map((p) => sceneFor(p).canvas);
+  it("gives every 2D-canvas public page its own particle scene", () => {
+    const kinds = [...publicCanvasPaths].map((p) => sceneFor(p).canvas);
     for (const kind of kinds) expect(kind).toBeDefined();
     expect(new Set(kinds).size).toBe(kinds.length);
   });

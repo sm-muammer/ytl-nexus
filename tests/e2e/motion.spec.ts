@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { settle, signInAs } from "./helpers";
 
 const field = "canvas[data-ambient-field]";
+const ambientRoute = "/platform";
 
 async function frames(page: Page) {
   return Number(await page.locator(field).getAttribute("data-frames"));
@@ -11,7 +12,7 @@ test.describe("particle field with full motion", () => {
   test("animates, scales its particle count by tier, and reports its state", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto(ambientRoute);
     const canvas = page.locator(field);
     await expect(canvas).toHaveAttribute("data-state", "running");
     await expect(canvas).toHaveAttribute("data-tier", /^(high|medium|low)$/);
@@ -26,7 +27,7 @@ test.describe("particle field with full motion", () => {
   test("pauses while the tab is hidden and resumes within 500 ms", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto(ambientRoute);
     const canvas = page.locator(field);
     await expect(canvas).toHaveAttribute("data-state", "running");
 
@@ -93,7 +94,7 @@ test.describe("prefers-reduced-motion: reduce", () => {
   test("renders a static particle frame and runs no animation loop", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto(ambientRoute);
     const canvas = page.locator(field);
     await expect(canvas).toHaveAttribute("data-state", "static");
     expect(await frames(page)).toBe(1);

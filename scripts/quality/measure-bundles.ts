@@ -53,6 +53,63 @@ export type RouteBundleSize = {
 
 export const BUDGET_GZIP_BYTES = 170 * 1024; // 170 KB gzip budget
 
+export type ThreeIsolationReport = {
+  threeChunks: string[];
+  leakingManifests: string[];
+  hasHomeThreeChunk: boolean;
+};
+
+/**
+ * Verifies Three.js is isolated to the home route ("/") and absent from every
+ * other route's client-reference and react-loadable manifests (spec 24 D-242).
+ */
+export function inspectThreeIsolation(): ThreeIsolationReport {
+  const chunksDir = path.join(dotNext, "static", "chunks");
+  const chunkFiles = globSync("*.js", { cwd: chunksDir }).map(String);
+
+  const threeChunks = chunkFiles.filter((file) => {
+    const content = readFileSync(path.join(chunksDir, file), "utf-8");
+    return (
+      content.includes("WebGLRenderer") && content.includes("ShaderMaterial")
+    );
+  });
+
+  const threeLoaders = chunkFiles.filter((file) => {
+    if (threeChunks.includes(file)) return false;
+    const content = readFileSync(path.join(chunksDir, file), "utf-8");
+    return threeChunks.some((chunk) => content.includes(chunk));
+  });
+
+  const tracked = [...threeChunks, ...threeLoaders];
+  const appServerDir = path.join(dotNext, "server", "app");
+  const manifests = [
+    ...globSync("**/*_client-reference-manifest.js", { cwd: appServerDir }),
+    ...globSync("**/react-loadable-manifest.json", { cwd: appServerDir }),
+  ].map((p) => String(p).split(path.sep).join("/"));
+
+  const allowedHomeManifests = new Set([
+    "(public)/page_client-reference-manifest.js",
+    "(public)/page/react-loadable-manifest.json",
+  ]);
+
+  const leakingManifests: string[] = [];
+  let hasHomeThreeChunk = false;
+
+  for (const rel of manifests) {
+    const content = readFileSync(path.join(appServerDir, rel), "utf-8");
+    const referencesThree = tracked.some((chunk) => content.includes(chunk));
+    if (!referencesThree) continue;
+
+    if (allowedHomeManifests.has(rel)) {
+      hasHomeThreeChunk = true;
+    } else {
+      leakingManifests.push(rel);
+    }
+  }
+
+  return { threeChunks, leakingManifests, hasHomeThreeChunk };
+}
+
 export function measureAllRoutes(): RouteBundleSize[] {
   const results: RouteBundleSize[] = [];
 
@@ -119,4 +176,13 @@ if (process.argv[1]?.endsWith("measure-bundles.ts")) {
   } else {
     console.log(`\nAll routes passed the bundle budget!`);
   }
+
+  const isolation = inspectThreeIsolation();
+  if (!isolation.hasHomeThreeChunk || isolation.leakingManifests.length > 0) {
+    console.error("Three.js isolation check failed:", isolation);
+    process.exit(1);
+  }
+  console.log(
+    `Three.js isolated to "/" (${isolation.threeChunks.join(", ")}); 0 non-home route leaks.`,
+  );
 }

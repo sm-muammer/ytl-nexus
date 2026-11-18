@@ -29,7 +29,7 @@ The dark theme is a deep navy ink, not flat black, and every route has its own b
 
 Components use semantic tokens, never raw hex values; ESLint rejects hex literals in `app/`, `components/` and `modules/`. Status is never conveyed by colour alone (`StatusBadge` pairs each state with an icon and a label).
 
-Tokens live in `app/globals.css` (Tailwind v4 `@theme`): theme roles `--nx-*` for dark (default) and light (`data-theme="light"`), brand colours, type scale, spacing, radii, shadows, motion durations and easings, and z-layers. Colour values are mirrored in `lib/design/tokens.ts`; a unit test keeps both in sync and checks WCAG contrast (text 4.5:1, strong borders 3:1) for both themes. The Yes gradient runs `#ff0084` to `#3333ff`. See `/design` for a live reference.
+Tokens live in `app/globals.css` (Tailwind v4 `@theme`): theme roles `--nx-*` for dark (default) and light (`data-theme="light"`), translucent glass surface tokens (`--nx-glass`, `--nx-glass-raised`, `--nx-glass-border`), brand colours, type scale, spacing, radii, shadows, motion durations and easings, and z-layers. Colour values are mirrored in `lib/design/tokens.ts`; a unit test keeps both in sync and checks WCAG contrast (text 4.5:1, strong borders 3:1) for both themes. The Yes gradient runs `#ff0084` to `#3333ff`. See `/design` for a live reference.
 
 ## 3. Typography
 
@@ -88,7 +88,11 @@ Gmail-inspired three-pane information architecture without Gmail branding or exa
 
 Keeps its own cherry-blossom art direction and the official Yes colours inside the Nexus shell. Details: [19 Yes Experience](spec/19-yes-experience.md).
 
-## 11. Acceptance criteria
+## 11. Home showcase
+
+The home page (`/`) pairs deep navy ink with translucent glass surfaces (`bg-glass`, `backdrop-blur`), 1 px pink-to-blue gradient hairline borders, mono eyebrows and a fixed WebGL particle rendering of the official Yes gradient logomark (`public/brand/yes-logomark-gradient.svg`). Particle colours are sampled from the SVG pixels without recolouring, Three.js is lazy-loaded only on `/`, and scrolling disperses the mark into a drifting particle layer behind the lower sections. Details: [24 Home showcase](spec/24-home-showcase.md).
+
+## 12. Acceptance criteria
 
 - Tokens, logos and type specimen are visible on `/design` and documented in `docs/design/`.
 - Every route passes axe with zero serious violations at 390, 1440 and 3840 px.

@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                     |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Last completed              | **Nexus Tour Full Seed & Live Verification:** `/tour` 16 steps seeded in WordPress, live/demo source labels, tests pass (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                               |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                     |
-| Recommended model           | Any                                                                                                                                       |
-| Start the next session with | `Platform and Tour fully live and verified: ready for final handover presentation`                                                        |
+| Item                        | Value                                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Last completed              | **Home showcase (spec 24):** WebGL 3D Yes particle logomark, glass bento grid, facts strip and architecture teaser on `/` (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                 |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                       |
+| Recommended model           | Any                                                                                                                                         |
+| Start the next session with | `Platform and Tour fully live and verified: ready for final handover presentation`                                                          |
 
 ## Owner actions waiting
 
@@ -47,6 +47,27 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Home showcase (spec 24) (done 2026-11-18)
+
+- **Decisions recorded (`D-240`..`D-243`):**
+  - `D-240`: Render the **Yes gradient logomark** (`public/brand/yes-logomark-gradient.svg`) as dense 3D particles in the `/` hero; keep the YTL Communications logo static in the header and footer.
+  - `D-241`: Sample particle RGB directly from the official SVG's opaque pixels (boosted `1.15x` for additive blending), preserving exact brand colours.
+  - `D-242`: Use core `three` only (no React Three Fiber or postprocessing), loaded via `next/dynamic(..., { ssr: false })` strictly on `/` (`components/home/particle-logo-loader.tsx`), keeping `three` absent from every other route bundle.
+  - `D-243`: Replace the 2D `aurora` canvas on `/` with one fixed full-viewport WebGL canvas (`lib/navigation/scenes.ts` keeps `tint: "aurora"`, drops `canvas`). Scrolling scatters the logomark into a drifting 40%-opacity particle field behind lower sections.
+- **Pure particle modules (`lib/motion/particle-logo/`):**
+  - `sampling.ts`: pixel-buffer sampler with `alpha > 0.5` filter, double-weighted edge pixels, `2.2` world-unit height normalisation, `70/30` front/back face (`z = ±0.12`) vs volume distribution, and ellipsoid scatter targets.
+  - `tiers.ts`: `140 000` (high), `70 000` (medium), `30 000` (low) counts via `useQualityTier` and DPR capped at `2`.
+  - `scroll.ts`: scroll progress `p = clamp(scrollY / (0.9 * vh), 0, 1)`, cubic ease-in-out morph, 40%-opacity backdrop state, `1.8 s` intro convergence, and `1.5 s` idle resume easing.
+  - `rasterize.ts` & `shaders.ts`: offscreen SVG rasterisation (~768 px long side) and custom GLSL `ShaderMaterial` with `seed * 0.3` morph delay, object-space pointer repulsion (`uRadius = 0.45`), ±15 % shimmer, and soft core + halo sprites.
+- **WebGL Component & Home Redesign (`components/home/particle-logo.tsx`, `components/home/bento-card.tsx`, `app/(public)/page.tsx`):**
+  - Full-viewport hero (`100 dvh`) with mono eyebrow, `YTL Nexus` display heading, CTAs, animated scroll cue, and stage-aligned 3D mark; pauses on tab hide (`usePageVisible`), recreates geometry on tier change, disposes on unmount, renders 1 static frame under reduced motion (`usePrefersReducedMotion`), and falls back to centred `<Logo slug="yes-logomark-gradient">` if WebGL fails or loses context.
+  - Added semantic glass surface tokens (`--nx-glass`, `--nx-glass-raised`, `--nx-glass-border`) in `app/globals.css` and `lib/design/tokens.ts` (synced via `tests/unit/design-tokens.test.ts`).
+  - Added code-derived **Project facts** strip, glass **Modules** bento grid (`Command`, `AI`, `Yes Experience` featured tiles; 1 px pink-to-blue gradient hairline borders and `--mx`/`--my` CSS radial spotlight), animated 3-tier **How it fits together** teaser linking to `/platform`, and glass **About this project** disclosure linking to `/story`.
+- **Tests & Docs:**
+  - Added unit tests for `particle-logo` sampling, tiers, scroll mapping, updated `scenes.test.ts`, `design-tokens.test.ts`, and `home-page.test.tsx`.
+  - Added E2E Playwright specs in `tests/e2e/home.spec.ts` and updated `tests/e2e/motion.spec.ts` for `AmbientField` on `/platform`.
+  - Updated `docs/design-language.md`, `docs/design/motion.md`, and `docs/spec/implementation-plan.md`.
 
 ### Nexus Tour Full Content Seed & Resilience (`/tour`) (done 2026-11-18)
 

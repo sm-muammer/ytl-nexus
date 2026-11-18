@@ -29,6 +29,13 @@
   --nx-ok-ink: #34d399;
   --nx-warn-ink: #fbbf24;
   --nx-bad-ink: #ff6b6b;
+  --nx-glass: color-mix(in oklab, var(--nx-surface) 68%, transparent);
+  --nx-glass-raised: color-mix(
+    in oklab,
+    var(--nx-surface-raised) 78%,
+    transparent
+  );
+  --nx-glass-border: color-mix(in oklab, var(--nx-ink) 12%, transparent);
 }
 
 [data-theme="light"] {
@@ -46,6 +53,13 @@
   --nx-ok-ink: #0f7a4a;
   --nx-warn-ink: #8a5a00;
   --nx-bad-ink: #b42318;
+  --nx-glass: color-mix(in oklab, var(--nx-surface) 80%, transparent);
+  --nx-glass-raised: color-mix(
+    in oklab,
+    var(--nx-surface-raised) 88%,
+    transparent
+  );
+  --nx-glass-border: color-mix(in oklab, var(--nx-ink) 12%, transparent);
 }
 
 /* A themed container resets text colour so nested light/dark panels read well. */
@@ -141,6 +155,9 @@
   --color-ok-ink: var(--nx-ok-ink);
   --color-warn-ink: var(--nx-warn-ink);
   --color-bad-ink: var(--nx-bad-ink);
+  --color-glass: var(--nx-glass);
+  --color-glass-raised: var(--nx-glass-raised);
+  --color-glass-border: var(--nx-glass-border);
 }
 
 body {
@@ -466,6 +483,121 @@ dialog[data-nav-sheet][open] {
 }
 
 /*
+ * Home showcase (spec 24): glass bento cards with pink-to-blue gradient hairline
+ * borders, CSS-variable radial pointer spotlight (--mx, --my), hero scroll cue,
+ * and topology teaser signal pulse (transform and opacity only).
+ */
+.nx-bento-card {
+  position: relative;
+  background: var(--nx-glass);
+  border: 1px solid var(--nx-glass-border);
+  transition:
+    background-color var(--duration-base) var(--ease-out-quint),
+    border-color var(--duration-base) var(--ease-out-quint);
+}
+.nx-bento-card:hover,
+.nx-bento-card:focus-visible {
+  background: var(--nx-glass-raised);
+  border-color: transparent;
+}
+.nx-bento-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--color-yes-pink),
+    var(--color-yes-gradient-end),
+    var(--color-ytl-blue)
+  );
+  -webkit-mask:
+    linear-gradient(rgb(0 0 0) 0 0) content-box,
+    linear-gradient(rgb(0 0 0) 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(rgb(0 0 0) 0 0) content-box,
+    linear-gradient(rgb(0 0 0) 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out-quint);
+  pointer-events: none;
+}
+.nx-bento-card:hover::before,
+.nx-bento-card:focus-visible::before {
+  opacity: 1;
+}
+.nx-bento-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    360px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--color-ytl-blue) 16%, transparent),
+    color-mix(in oklab, var(--color-yes-pink) 9%, transparent) 44%,
+    transparent 74%
+  );
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out-quint);
+  pointer-events: none;
+}
+.nx-bento-card:hover::after,
+.nx-bento-card:focus-visible::after {
+  opacity: 1;
+}
+
+@keyframes nx-scroll-cue {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.nx-scroll-cue-dot {
+  animation: nx-scroll-cue 2.2s var(--ease-in-out-cubic) infinite;
+}
+
+@keyframes nx-signal-travel {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(260%);
+  }
+}
+.nx-topology-signal-pulse {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-yes-pink),
+    var(--color-yes-gradient-end),
+    var(--color-ytl-blue),
+    transparent
+  );
+  animation: nx-signal-travel 2.8s var(--ease-in-out-cubic) infinite;
+}
+
+/*
  * Reduced motion (Requirement 3.11): no smooth scrolling, no looping CSS
  * animation, no transform transitions, and no rise: entrances and route
  * changes fade only. Opacity and colour transitions stay. Motion for React
@@ -484,6 +616,11 @@ dialog[data-nav-sheet][open] {
   }
   .nx-rise {
     animation-name: nx-fade-in;
+  }
+  .nx-scroll-cue-dot,
+  .nx-topology-signal-pulse {
+    animation: none !important;
+    transform: none !important;
   }
   ::view-transition-new(.nx-page-enter) {
     animation: nx-fade-in var(--duration-base) var(--ease-out-quint)

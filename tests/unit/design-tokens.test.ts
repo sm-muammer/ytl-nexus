@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   brandColours,
   contrastRatio,
+  glassSurfaces,
   themes,
   type ThemeName,
 } from "../../lib/design/tokens.ts";
@@ -31,6 +32,16 @@ describe("globals.css matches lib/design/tokens.ts", () => {
     const block = themeBlock(name);
     for (const [role, value] of Object.entries(themes[name])) {
       expect(block, `${name}.${role}`).toContain(`--nx-${role}: ${value};`);
+    }
+  });
+
+  it.each(["dark", "light"] as const)("%s glass surface roles", (name) => {
+    const block = themeBlock(name).replace(/\s+/g, "");
+    for (const [role, value] of Object.entries(glassSurfaces[name])) {
+      expect(block, `${name}.${role}`).toContain(
+        `--nx-${role}:${value.replace(/\s+/g, "")};`,
+      );
+      expect(css, role).toContain(`--color-${role}: var(--nx-${role});`);
     }
   });
 

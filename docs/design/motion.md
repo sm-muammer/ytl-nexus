@@ -11,7 +11,8 @@
 | Entrance primitives `Fade`, `Rise`, `Stagger`                 | `components/motion/reveal.tsx`, classes `.nx-fade` and `.nx-rise` in `app/globals.css` | One-time fade, or fade with a 12 px rise, set per element by `--nx-delay`. Plain CSS, so the server-rendered page is visible without JavaScript and nothing waits for hydration      |
 | `SignalRibbon`                                                | `components/motion/signal-ribbon.tsx`                                                  | A gradient line that sweeps across the top of the viewport on every route change (not on first load). Decorative, `aria-hidden`, transform and opacity only                          |
 | `PageTransition`                                              | `components/motion/page-transition.tsx`                                                | React `ViewTransition` around page content: fade with a 6 px rise on enter, faster fade on exit. Header and footer are not named, so they stay still                                 |
-| `AmbientField`                                                | `components/motion/ambient-field.tsx`                                                  | Canvas 2D drifting particles for public heroes. Not used on forms, tables, Nexus Control or the inbox                                                                                |
+| `AmbientField`                                                | `components/motion/ambient-field.tsx`                                                  | Canvas 2D drifting particles for public heroes (all public scenes except `/`). Not used on forms, tables, Nexus Control or the inbox                                                 |
+| `ParticleLogo`                                                | `components/home/particle-logo.tsx`, `lib/motion/particle-logo/*.ts`                   | Fixed full-viewport Three.js WebGL particle rendering of the Yes gradient logomark on `/`, lazy-loaded via `next/dynamic` (`ssr: false`). Disperses on scroll behind lower sections  |
 | `useQualityTier`, `usePageVisible`, `usePrefersReducedMotion` | `components/motion/use-*.ts`                                                           | React bindings for the rules below                                                                                                                                                   |
 | Quality and visibility rules                                  | `lib/motion/quality.ts`                                                                | Pure functions and classes, unit-tested in `tests/unit/quality-tier.test.ts`                                                                                                         |
 
@@ -34,7 +35,7 @@ React's `ViewTransition` ships in the React that Next.js bundles for the App Rou
 
 ## Quality tiers
 
-`AmbientField` draws `PARTICLE_COUNT[tier]` particles (120, 60 or 24).
+`AmbientField` draws `PARTICLE_COUNT[tier]` particles (120, 60 or 24). On `/`, `ParticleLogo` scales the WebGL Yes logomark across `PARTICLE_LOGO_COUNTS[tier]` particles (`140 000` high, `70 000` medium, `30 000` low) with device pixel ratio capped at 2, recreating its geometry in place when the tier drops.
 
 1. The starting tier comes from the device. Each limit that applies lowers it one step from `high`: device pixel ratio above 2, and `navigator.deviceMemory` below 4 GB. Browsers that do not report memory are not penalised.
 2. Every frame time goes to a 60-frame sliding window. When a full window averages above 20 ms the tier drops one more step and the window resets. The tier never rises again during a visit, so a weak device does not flicker.
@@ -48,19 +49,20 @@ React's `ViewTransition` ships in the React that Next.js bundles for the App Rou
 
 With `prefers-reduced-motion: reduce`:
 
-| Thing                       | Behaviour                                                                                                  |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `AmbientField`              | Draws one deterministic static frame and never starts a loop (`data-state="static"`, `data-frames="1"`)    |
-| Entrances and route changes | Fade only; no rise                                                                                         |
-| Signal ribbon               | `MotionConfig` removes the scale, leaving a brief opacity pulse                                            |
-| CSS transitions             | Only opacity and colour properties may transition; transform transitions are switched off in `globals.css` |
-| Smooth scrolling            | Off                                                                                                        |
+| Thing                       | Behaviour                                                                                                                           |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `AmbientField`              | Draws one deterministic static frame and never starts a loop (`data-state="static"`, `data-frames="1"`)                             |
+| `ParticleLogo`              | Draws one static frame of the formed Yes mark with no rotation, pointer, scroll or intro (`data-state="static"`, `data-frames="1"`) |
+| Entrances and route changes | Fade only; no rise                                                                                                                  |
+| Signal ribbon               | `MotionConfig` removes the scale, leaving a brief opacity pulse                                                                     |
+| CSS transitions             | Only opacity and colour properties may transition; transform transitions are switched off in `globals.css`                          |
+| Smooth scrolling            | Off                                                                                                                                 |
 
 ## Test hooks
 
-`AmbientField` publishes `data-state` (`running`, `paused`, `static`), `data-tier`, `data-particles` and `data-frames`. Reveal elements carry `data-reveal`, and the ribbon carries `data-signal-ribbon` with `data-runs`. `tests/e2e/motion.spec.ts` uses them. Axe measures contrast mid-fade, so end-to-end tests wait for every `[data-reveal]` to reach opacity 1 before scanning (`settle()` in `tests/e2e/helpers.ts`).
+`AmbientField` publishes `data-state` (`running`, `paused`, `static`), `data-tier`, `data-particles` and `data-frames`. On `/`, `ParticleLogo` publishes `data-particle-logo`, `data-state` (`running`, `paused`, `static`, `fallback`), `data-tier`, `data-particles` and `data-frames`. Reveal elements carry `data-reveal`, and the ribbon carries `data-signal-ribbon` with `data-runs`. `tests/e2e/motion.spec.ts` and `tests/e2e/home.spec.ts` use them. Axe measures contrast mid-fade, so end-to-end tests wait for every `[data-reveal]` to reach opacity 1 before scanning (`settle()` in `tests/e2e/helpers.ts`).
 
-Related: [Design language](../design-language.md) · [Structure](../structure.md)
+Related: [Design language](../design-language.md) · [Structure](../structure.md) · [24 Home showcase](../spec/24-home-showcase.md)
 
 ## Backdrops
 
@@ -70,8 +72,8 @@ Every route has its own backdrop, registered in `lib/navigation/scenes.ts` and r
 | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
 | Tint    | Three coloured lights from brand tokens (`.nx-tint-*`): aurora, network, atlas, ember, orbit, signal, library, blossom, violet, flow, mail, shield, quiet | `app/globals.css`                   |
 | Pattern | Line work that fades toward the content (`.nx-pat-*`): grid, dots, rings, hex, lines, graph                                                               | `app/globals.css`                   |
-| Canvas  | A particle scene: aurora with bokeh, constellation, embers, orbit, signal waves, dust, petals                                                             | `components/motion/scene-engine.ts` |
+| Canvas  | A particle scene: constellation, embers, orbit, signal waves, dust, petals (plus `aurora` kept in engine)                                                 | `components/motion/scene-engine.ts` |
 
-Public pages get all three, with a different canvas each: Home aurora, Platform constellation, Story embers, Tour orbit, Status waves, Library dust, Yes Experience petals. Sign in, every workspace page and Nexus Control get a tint and pattern only, so forms, tables, the inbox and Control never carry particles (Requirement 3.14). `tests/unit/scenes.test.ts` enforces this and that no two routes share a combination.
+Public pages get all three (or tint + canvas): Platform constellation, Story embers, Tour orbit, Status waves, Library dust, Yes Experience petals. The home route `/` keeps the `aurora` tint and replaces the 2D `aurora` canvas with the WebGL `ParticleLogo` layer (`docs/spec/24-home-showcase.md`, D-243), which converges over 1.8 s on load, rotates while idle, responds to pointer tilt/repulsion/drag/horizontal wheel in the hero (`pointer-events` enabled only while within the hero), and scatters on vertical scroll (`p = scrollY / (0.9 * vh)`) into a 40%-opacity drifting field behind lower sections. Sign in, every workspace page and Nexus Control get a tint and pattern only, so forms, tables, the inbox and Control never carry particles (Requirement 3.14). `tests/unit/scenes.test.ts` enforces this and that no two routes share a combination.
 
 Scenes are deterministic simulations built from a seed, drawn with pre-rendered glow sprites. Colours are read from tokens at start. Under reduced motion each draws one static frame.

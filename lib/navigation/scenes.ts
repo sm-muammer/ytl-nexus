@@ -50,8 +50,9 @@ export type SceneConfig = {
 };
 
 const SCENES: Record<string, SceneConfig> = {
-  // Public: tint plus a particle scene of its own.
-  "/": { tint: "aurora", canvas: "aurora" },
+  // Public: tint plus a particle scene of its own (except "/", which renders
+  // the 3D WebGL Yes particle logomark instead of a 2D canvas, D-243).
+  "/": { tint: "aurora" },
   "/platform": { tint: "network", pattern: "grid", canvas: "constellation" },
   "/story": { tint: "ember", canvas: "embers" },
   "/tour": { tint: "orbit", pattern: "rings", canvas: "orbit" },
