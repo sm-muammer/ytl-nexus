@@ -5,13 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                                              |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Last completed              | **User Management (`/control/users`):** dedicated user lifecycle page, unified SFTP/mailbox provisioning, stage approvals, filters, and deletion (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                        |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                              |
-| Recommended model           | Any                                                                                                                                                                |
-| Start the next session with | `Platform and Tour fully live and verified: ready for final handover presentation`                                                                                 |
+| Item                        | Value                                                                                                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Last completed              | **Deployment & Verification (`037e4eb`):** deployed User Management page (`/control/users`) to Nexus Core 01; 86/86 smoke tests passed (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                              |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                    |
+| Recommended model           | Any                                                                                                                                                      |
+| Start the next session with | `Platform, Tour and User Management fully live and verified: ready for final handover presentation`                                                      |
+
+## Recent deployments
+
+- **2026-11-18:** Deployed commit `037e4eb83c9962e7597e364f70b3da1df2f56d51` to Nexus Core 01 via `./infrastructure/scripts/deploy-remote HEAD`. Next.js standalone build compiled with 33 static/dynamic routes. Migrations verified. Database grants reapplied. Swapped symlink atomically. Post-deploy smoke test passed with 86 passed, 0 failed checks (TLS certificates, redirects, CSP headers, loopback listeners, `/control/users` 404 for unauthenticated visitors, background systemd services). Old release `00a255f3` safely pruned.
 
 ## Owner actions waiting
 
