@@ -162,7 +162,7 @@ export function AtmosphereModeGroup({ className }: { className?: string }) {
             aria-pressed={active}
             data-atmosphere-option={id}
             title={meta.description}
-            className="border-line bg-surface/60 text-muted hover:border-border-strong hover:bg-surface-raised hover:text-ink aria-pressed:border-accent-ink aria-pressed:bg-surface-raised aria-pressed:text-accent-ink inline-flex min-h-11 min-w-11 items-center gap-1.5 rounded-full border px-3.5 font-mono text-xs font-medium tracking-wide transition-colors duration-(--duration-fast)"
+            className="border-line bg-surface/60 text-muted hover:border-border-strong hover:bg-surface-raised hover:text-ink aria-pressed:border-accent-ink aria-pressed:bg-surface-raised aria-pressed:text-accent-ink focus-visible:ring-accent-ink/50 inline-flex min-h-11 min-w-11 items-center gap-1.5 rounded-full border px-3.5 font-mono text-xs font-medium tracking-wide shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.15)] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97]"
           >
             <ModeIcon mode={id} />
             <span>{meta.label}</span>

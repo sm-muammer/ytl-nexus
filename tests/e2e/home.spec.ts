@@ -92,7 +92,7 @@ test.describe("Home showcase (spec 24)", () => {
     });
   }
 
-  test("renders the home showcase without atmosphere pickers and with zero axe violations", async ({
+  test("renders the home showcase with theme selection in all modules and zero axe violations", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -101,9 +101,21 @@ test.describe("Home showcase (spec 24)", () => {
 
     await expect(page.locator("[data-home-blueprint]")).toBeAttached();
 
-    // Verify hero section, navigation and sheet are free of atmosphere pickers
-    await expect(page.locator("[data-atmosphere-group]")).toHaveCount(0);
-    await expect(page.locator("[data-atmosphere-toggle]")).toHaveCount(0);
+    // Verify hero section and top header bar are free of atmosphere pickers
+    await expect(
+      page.locator(
+        "section[aria-labelledby='home-title'] [data-atmosphere-group]",
+      ),
+    ).toHaveCount(0);
+    await expect(
+      page.locator("header > div > div > [data-atmosphere-toggle]"),
+    ).toHaveCount(0);
+
+    // Verify theme selection is preserved inside "All modules" navigation drawer
+    await page.getByRole("button", { name: "All modules" }).click();
+    const group = page.locator("dialog [data-atmosphere-group]");
+    await expect(group).toBeVisible();
+    await expect(group.getByRole("button")).toHaveCount(3);
     expect(await blockingViolations(page)).toEqual([]);
   });
 });

@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                                                                                                                |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Last completed              | **Floating Particle Logo Theme Contrast & Glow:** preserved white mode format with soft lilac/rose motes, and added luminous electric YTL cyan, azure, diamond starlight, and gold celestial embers for dark modes (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                                                          |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                                                |
-| Recommended model           | Any                                                                                                                                                                                                                                  |
-| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                                                       |
+| Item                        | Value                                                                                                                                                                                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Last completed              | **Theme Selection in All Modules & Tactile Session Button:** preserved theme switcher inside "All modules" navigation drawer, removed indicator dots, and added tactile physical feedback via `emil-design-eng` (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                                                       |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                                             |
+| Recommended model           | Any                                                                                                                                                                                                                               |
+| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                                                    |
 
 ## Recent deployments
 
@@ -56,6 +56,17 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Theme Selection in All Modules & Tactile Session Button (done 2026-11-18)
+
+- **Theme Selection in All Modules (`components/layout/nav-sheet.tsx`, `components/layout/atmosphere-switcher.tsx`):**
+  - Re-integrated `AtmosphereModeGroup` (`[Obsidian] [Blueprint] [Daylight]`) directly inside the "All modules" navigation drawer dialog with tactile active-press scaling (`active:scale-[0.97]`) and subtle inner bevel shadow, while leaving the hero section and top header bar uncluttered.
+- **Signed-In Button Indicator Dot Removal & Tactile Polish:**
+  - Removed indicator colored dots from the signed-in button and drawer session card.
+  - Replaced with a monogram avatar micro-badge (`session.initial` or user icon) with `active:scale-[0.97]` press response and smooth hover micro-motion on the chevron.
+- **Tests & Verification:**
+  - Updated `tests/e2e/home.spec.ts` asserting theme selection is accessible inside "All modules" drawer and absent from hero/header.
+  - Updated `tests/unit/site-header.test.tsx` verifying session button renders cleanly without indicator dots.
 
 ### Floating Particle Logo Theme Contrast & Glow (done 2026-11-18)
 
