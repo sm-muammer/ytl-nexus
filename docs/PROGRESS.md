@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                                                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Last completed              | **Self-Service Account & Requests (`/account`):** profile editor, request submission & tracking (promotions, SFTP, SSH keys, mail, quotas, general), password rotation, session management, and Control fulfillment queue (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                                                                 |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                                                       |
-| Recommended model           | Any                                                                                                                                                                                                                                         |
-| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                                                              |
+| Item                        | Value                                                                                                                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Last completed              | **Navigation Polish & Hero Atmosphere Picker Removal:** hero section colophon distilled, atmosphere switcher restored to header, global nav responsive at `lg:`, and unit tests added (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                             |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                   |
+| Recommended model           | Any                                                                                                                                                                                                     |
+| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                          |
 
 ## Recent deployments
 
@@ -56,6 +56,21 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Navigation Polish & Hero Atmosphere Picker Removal (done 2026-11-18)
+
+- **Hero Section Distillation (`app/(public)/page.tsx`):**
+  - Removed `<AtmosphereModeGroup />` from the `/` hero section colophon, keeping the hero headline, lead copy, CTAs, and builder attribution clean, focused, and uncluttered.
+- **Navigation Header Optimization (`components/layout/site-header.tsx`):**
+  - Re-integrated `<AtmosphereHeaderToggle />` directly into `SiteHeader` with responsive 1-click cycle toggling (Obsidian -> Blueprint -> Daylight -> Obsidian) matching WCAG AA contrast standards.
+  - Expanded primary navigation links (`Platform`, `Status`, `Library`, `Tour`, `Story`, `Yes`) to appear starting at `lg:` (1024px) instead of hiding them until `xl:` (1280px), eliminating the dead-space gap on laptop screens and tablet landscape orientations.
+  - Styled navigation links with refined tactile pills (`text-muted hover:text-ink hover:bg-surface-raised/40 aria-[current=page]:bg-surface-raised/80 aria-[current=page]:text-ink`).
+  - Aligned header container spacing with `justify-between` and balanced right controls (`AtmosphereHeaderToggle`, `CommandPalette`, `Sign in`, `NavSheet`).
+- **Tests & Quality Verification:**
+  - Added unit test suite `tests/unit/site-header.test.tsx` verifying brand landmark, global navigation links, atmosphere switcher, search, sign-in, and session badges.
+  - Updated `tests/unit/home-page.test.tsx` ensuring the hero section remains free of atmosphere pickers.
+  - Updated `tests/e2e/home.spec.ts` asserting atmosphere mode cycling via the navigation header toggle and zero axe accessibility violations.
+  - Verified `npm run format:check`, `npm run lint`, `npm run typecheck`, and all unit tests pass cleanly.
 
 ### Dedicated User Management (`/control/users`) & Platform Integration (done 2026-11-18)
 

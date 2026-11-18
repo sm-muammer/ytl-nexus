@@ -101,8 +101,17 @@ test.describe("Home showcase (spec 24)", () => {
 
     await expect(page.locator("[data-home-blueprint]")).toBeAttached();
 
-    const group = page.getByRole("group", { name: "Atmosphere mode" });
-    await group.getByRole("button", { name: "Blueprint" }).click();
+    // Verify hero section is free of atmosphere pickers
+    await expect(
+      page.locator(
+        "section[aria-labelledby='home-title'] [data-atmosphere-group]",
+      ),
+    ).toHaveCount(0);
+
+    const toggle = page.locator("[data-atmosphere-toggle]");
+    await expect(toggle).toBeVisible();
+
+    await toggle.click();
     await expect(page.locator("html")).toHaveAttribute(
       "data-atmosphere",
       "blueprint",
@@ -110,7 +119,7 @@ test.describe("Home showcase (spec 24)", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     expect(await blockingViolations(page)).toEqual([]);
 
-    await group.getByRole("button", { name: "Daylight" }).click();
+    await toggle.click();
     await expect(page.locator("html")).toHaveAttribute(
       "data-atmosphere",
       "daylight",

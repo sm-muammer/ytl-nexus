@@ -10,6 +10,7 @@ import {
 import type { NexusMode } from "@/lib/server/mode";
 import { ROLE_LABEL } from "@/lib/roles";
 import { CommandPalette } from "@/components/navigation/command-palette";
+import { AtmosphereHeaderToggle } from "./atmosphere-switcher";
 import { NavLink } from "./nav-link";
 import { NavSheet, type SessionSummary, type SheetGroup } from "./nav-sheet";
 
@@ -23,7 +24,7 @@ const SHORT: Record<string, string> = {
 };
 
 const linkClass =
-  "text-muted hover:text-ink aria-[current=page]:text-ink inline-flex whitespace-nowrap min-h-11 items-center rounded-md px-2.5 xl:px-3 text-sm font-medium transition-colors duration-(--duration-fast)";
+  "text-muted hover:text-ink hover:bg-surface-raised/40 aria-[current=page]:bg-surface-raised/80 aria-[current=page]:text-ink inline-flex whitespace-nowrap min-h-11 items-center rounded-full px-3 text-xs font-medium transition-colors duration-(--duration-fast)";
 
 /**
  * Banner landmark for both registers: brand, global navigation, the module
@@ -79,7 +80,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
       data-theme="dark"
       className="border-line bg-canvas/95 relative z-(--z-sticky) border-b backdrop-blur-md"
     >
-      <div className="max-w-page mx-auto flex w-full items-center gap-3 px-(--spacing-gutter) py-3">
+      <div className="max-w-page mx-auto flex w-full items-center justify-between gap-3 px-(--spacing-gutter) py-3">
         <Link
           href="/"
           aria-label="YTL Nexus, home"
@@ -102,7 +103,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
 
         <nav
           aria-label="Global"
-          className="mx-auto hidden items-center gap-0.5 xl:flex"
+          className="mx-auto hidden items-center gap-1 lg:flex"
         >
           {primary.map((item) => (
             <NavLink key={item.href} href={item.href} className={linkClass}>
@@ -111,13 +112,14 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
           ))}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2 xl:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5 lg:ml-0">
+          <AtmosphereHeaderToggle />
           <CommandPalette actor={actor} />
 
           {session === null ? (
             <NavLink
               href="/signin"
-              className="text-muted hover:text-ink hidden min-h-11 min-w-11 items-center rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors md:inline-flex"
+              className="text-muted hover:text-ink hover:bg-surface-raised/40 hidden min-h-11 min-w-11 items-center rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors md:inline-flex"
             >
               Sign in
             </NavLink>

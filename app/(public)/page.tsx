@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Backdrop } from "@/components/backdrop/backdrop";
 import { BentoCard } from "@/components/home/bento-card";
 import { ParticleLogoLoader } from "@/components/home/particle-logo-loader";
-import { AtmosphereModeGroup } from "@/components/layout/atmosphere-switcher";
 import { PageTransition } from "@/components/motion/page-transition";
 import { Fade, Rise } from "@/components/motion/reveal";
 import { PUBLIC_MODULES, type ModuleInfo } from "@/lib/navigation/modules";
@@ -145,12 +144,11 @@ export default function HomePage() {
                     How it fits together
                   </Link>
                 </div>
-                <div className="border-line/60 mt-10 flex max-w-2xl flex-wrap items-center justify-between gap-4 border-t pt-4">
+                <div className="border-line/60 mt-10 max-w-2xl border-t pt-4">
                   <p className="text-muted text-xs">
                     Engineered by Muammer · Rocky Linux (Nexus Core 01) · 16
                     unified modules
                   </p>
-                  <AtmosphereModeGroup />
                 </div>
               </Rise>
             </div>

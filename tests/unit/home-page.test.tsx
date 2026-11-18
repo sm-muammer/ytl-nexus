@@ -102,20 +102,13 @@ describe("Home page", () => {
     expect(screen.getAllByText(/Muammer/i).length).toBeGreaterThanOrEqual(2);
   });
 
-  it("renders the atmosphere mode switcher and masked blueprint backdrop", () => {
+  it("renders the masked blueprint backdrop and keeps the hero section free of atmosphere pickers", () => {
     const { container } = render(<HomePage />);
 
     expect(container.querySelector("[data-home-blueprint]")).not.toBeNull();
-    const group = screen.getByRole("group", { name: /atmosphere mode/i });
     expect(
-      within(group).getByRole("button", { name: "Obsidian" }),
-    ).toBeInTheDocument();
-    expect(
-      within(group).getByRole("button", { name: "Blueprint" }),
-    ).toBeInTheDocument();
-    expect(
-      within(group).getByRole("button", { name: "Daylight" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("group", { name: /atmosphere mode/i }),
+    ).toBeNull();
   });
 
   it("renders its own content only: the layout supplies the main landmark", () => {
