@@ -15,6 +15,7 @@
 
 ## Recent deployments
 
+- **2026-11-18:** Deployed commit `4948dfb22494f4d0856910bcaeee98f82f4c0711` to Nexus Core 01 via `./infrastructure/scripts/deploy-remote HEAD`. Next.js standalone build compiled with 34 static/dynamic routes. Database migrations verified up to date and grants reapplied. Swapped symlink atomically. Post-deploy smoke test passed with 86 passed, 0 failed checks (TLS certificates, redirects, security headers, firewalld allowlist, loopback listeners, WordPress REST, SFTPGo portal, Prometheus, systemd background units). Old release `2d69f947` pruned safely.
 - **2026-11-18:** Deployed commit `037e4eb83c9962e7597e364f70b3da1df2f56d51` to Nexus Core 01 via `./infrastructure/scripts/deploy-remote HEAD`. Next.js standalone build compiled with 33 static/dynamic routes. Migrations verified. Database grants reapplied. Swapped symlink atomically. Post-deploy smoke test passed with 86 passed, 0 failed checks (TLS certificates, redirects, CSP headers, loopback listeners, `/control/users` 404 for unauthenticated visitors, background systemd services). Old release `00a255f3` safely pruned.
 
 ## Owner actions waiting
