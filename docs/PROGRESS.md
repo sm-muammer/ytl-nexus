@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                                                       |
-| --------------------------- | --------------------------------------------------------------------------- |
-| Last completed              | **Platform Showcase:** Full implementation of `/platform` (done 2026-11-18) |
-| Current task                | None (Platform & Documentation Complete)                                    |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                       |
-| Recommended model           | Any                                                                         |
-| Start the next session with | `Platform complete: ready for final handover presentation`                  |
+| Item                        | Value                                                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Last completed              | **Platform Showcase & Production Deploy:** `/platform` implemented & deployed to Core 01 (done 2026-11-18) |
+| Current task                | None (Platform Deployed to Production)                                                                     |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                      |
+| Recommended model           | Any                                                                                                        |
+| Start the next session with | `Platform deployed and live: ready for final handover presentation`                                        |
 
 ## Owner actions waiting
 
@@ -61,6 +61,9 @@
 - **Verification & Testing (`tests/unit/platform-page.test.tsx`):**
   - Authored comprehensive test suite asserting heading hierarchy, absence of stub notices, topology description, all 6 trust boundaries, runtime inventory, live/demo health badges, and categorized module links.
   - Verified `npm run check` passes cleanly (Prettier, ESLint, TypeScript typecheck, and all 74 Vitest test suites with 995 tests passing).
+- **Remote Production Deployment & Validation (Nexus Core 01):**
+  - Executed `./infrastructure/scripts/deploy-remote HEAD`: verified target facts (Rocky Linux `sn1lyvx1d0002.ytlcomms.my` at `10.26.64.164`), deployed commit `d8b9727ff997`, built Next.js 16.3.5 standalone runtime natively on server, verified migrations and grants, swapped `current` symlink, and verified `/api/health/ready` (status ready, app/database/auth all ok).
+  - Executed `./infrastructure/scripts/smoke-test`: verified all 86 comprehensive end-to-end checks pass (TLS certificates across all 4 SAN names, HTTP 301 redirects, security headers, zero directory listing, Visitor access controls, firewalld allowlist, loopback-only listeners, WordPress API, Prometheus scraping, Nexus Ops socket, SFTPGo portal, and SSH). Verified `/platform` serving live over HTTPS.
 
 ### Task 22: Documentation, handover and v1.0.0 release (done 2026-11-17)
 
