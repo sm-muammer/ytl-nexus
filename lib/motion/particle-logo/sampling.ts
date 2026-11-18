@@ -135,7 +135,7 @@ export function sampleParticlesFromPixels(
   const scale = targetHeight / spanY;
   const maxHalfW = (spanX * scale) / 2;
   const maxHalfH = targetHeight / 2;
-  const jitterStep = spanY > 1 ? 0.28 : 0;
+  const jitterStep = spanY > 1 ? 0.88 : 0;
 
   const positions = new Float32Array(count * 3);
   const normals = new Float32Array(count * 3);
@@ -160,7 +160,7 @@ export function sampleParticlesFromPixels(
 
     const isFrontOrBack = rand() < faceShare;
     const z = isFrontOrBack
-      ? rand() < 0.5
+      ? rand() < 0.82
         ? halfDepth
         : -halfDepth
       : ((Math.floor(rand() * 5) - 2) / 2.5) * halfDepth;

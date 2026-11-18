@@ -56,15 +56,15 @@ const CAMERA_FOV_DEG = 42;
 const TAN_HALF_FOV = Math.tan(((CAMERA_FOV_DEG / 2) * Math.PI) / 180);
 
 const TIER_INTENSITY: Record<QualityTier, number> = {
-  high: 0.88,
-  medium: 0.94,
+  high: 0.95,
+  medium: 0.98,
   low: 1.0,
 };
 
 const TIER_SIZE_SCALE: Record<QualityTier, number> = {
   high: 1.0,
-  medium: 1.28,
-  low: 1.65,
+  medium: 1.12,
+  low: 1.28,
 };
 
 function buildGeometry(pixels: PixelBuffer, count: number): BufferGeometry {
@@ -137,7 +137,7 @@ function measureStage(
     3.3,
     (2.28 * vh) / (2 * TAN_HALF_FOV * targetPx),
   );
-  const basePointSize = 4.6 * (baseCameraZ / 4.4);
+  const basePointSize = (desktop ? 2.75 : 3.2) * (baseCameraZ / 4.4);
 
   return {
     vw,
@@ -200,7 +200,7 @@ export function ParticleLogo() {
     heroCenterX: 1065,
     heroCenterY: 432,
     baseCameraZ: 5.5,
-    basePointSize: 4.6,
+    basePointSize: 2.75,
   });
   const rafRef = useRef<number>(0);
   const framesRef = useRef<number>(0);
@@ -309,7 +309,7 @@ export function ParticleLogo() {
         uMorph: { value: 1 },
         uOpacity: { value: 1 },
         uPixelRatio: { value: dpr },
-        uBaseSize: { value: 4.6 * TIER_SIZE_SCALE[currentTier] },
+        uBaseSize: { value: 2.75 * TIER_SIZE_SCALE[currentTier] },
         uIntensity: { value: TIER_INTENSITY[currentTier] },
         uPointer: { value: new Vector3(0, 0, 0) },
         uPointerStrength: { value: 0 },
@@ -397,6 +397,7 @@ export function ParticleLogo() {
     let tiltY = 0;
     let targetTiltX = 0;
     let targetTiltY = 0;
+    let pointerActive = false;
     let pointerStrength = 0;
     let targetPointerStrength = 0;
     let isDragging = false;
@@ -423,9 +424,9 @@ export function ParticleLogo() {
       const vw = Math.max(1, window.innerWidth);
       const vh = Math.max(1, window.innerHeight);
       pointerNdc.set((e.clientX / vw) * 2 - 1, -(e.clientY / vh) * 2 + 1);
+      pointerActive = true;
       targetTiltY = pointerNdc.x * POINTER_TILT_MAX;
       targetTiltX = -pointerNdc.y * POINTER_TILT_MAX;
-      targetPointerStrength = 1;
       idleTimer = 0;
 
       if (isDragging && activePointerId === e.pointerId) {
@@ -468,6 +469,7 @@ export function ParticleLogo() {
     };
 
     const onPointerLeave = () => {
+      pointerActive = false;
       targetTiltX = 0;
       targetTiltY = 0;
       targetPointerStrength = 0;
@@ -528,7 +530,9 @@ export function ParticleLogo() {
 
       const deltaMs = lastFrameMs === 0 ? 0 : now - lastFrameMs;
       lastFrameMs = now;
-      if (deltaMs > 0) reportFrameRef.current(deltaMs);
+      if (elapsed > 2.5 && deltaMs > 0 && deltaMs < 120) {
+        reportFrameRef.current(deltaMs);
+      }
 
       const dt = Math.min(deltaMs, 50) / 1000;
       elapsed += dt;
@@ -553,8 +557,6 @@ export function ParticleLogo() {
       const activeMask = 1 - scroll.morph;
       tiltX += (targetTiltX * activeMask - tiltX) * smooth;
       tiltY += (targetTiltY * activeMask - tiltY) * smooth;
-      pointerStrength +=
-        (targetPointerStrength * activeMask - pointerStrength) * smooth;
 
       const m = stageRef.current;
       group.position.set(0, 0, scroll.groupZ);
@@ -570,17 +572,32 @@ export function ParticleLogo() {
       );
       group.updateMatrixWorld();
 
-      if (pointerStrength > 0.005) {
+      if (pointerActive && activeMask > 0.05) {
         planeNormal.set(0, 0, 1).applyQuaternion(group.quaternion);
         plane.setFromNormalAndCoplanarPoint(planeNormal, group.position);
         raycaster.setFromCamera(pointerNdc, camera);
         if (raycaster.ray.intersectPlane(plane, worldHit)) {
           group.worldToLocal(localHit.copy(worldHit));
-          if (localHit.lengthSq() < 16) {
-            (material.uniforms.uPointer!.value as Vector3).copy(localHit);
+          if (localHit.lengthSq() < 6.5) {
+            const uPtr = material.uniforms.uPointer!.value as Vector3;
+            if (pointerStrength < 0.01) {
+              uPtr.copy(localHit);
+            } else {
+              uPtr.lerp(localHit, 0.35);
+            }
+            targetPointerStrength = 1;
+          } else {
+            targetPointerStrength = 0;
           }
+        } else {
+          targetPointerStrength = 0;
         }
+      } else {
+        targetPointerStrength = 0;
       }
+
+      pointerStrength +=
+        (targetPointerStrength * activeMask - pointerStrength) * smooth;
 
       // Intro progresses on wall-clock time so it completes in 1.8 s even at low FPS.
       const introSec = introElapsedSec(now, introStartMs);

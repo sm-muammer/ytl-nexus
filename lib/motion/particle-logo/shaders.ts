@@ -35,8 +35,8 @@ void main() {
 
   vec3 pos = mix(position, aScatter, eased);
 
-  // Sculptural 3D slab extrusion depth when formed, relaxing to scatter field on scroll.
-  pos.z *= mix(2.1, 1.0, eased);
+  // Thin 3D depth slice when formed so the rear face never offsets into a dark shadow.
+  pos.z *= mix(0.65, 1.0, eased);
 
   // Subtle living harmonic surface wave across the formed 3D mark.
   float isMoving = step(0.0001, uTime);
@@ -49,28 +49,37 @@ void main() {
   pos.y += cos(uTime * 0.24 + aSeed * 25.1327) * 0.12 * driftMask;
   pos.z += sin(uTime * 0.28 + aSeed * 18.8495) * 0.10 * driftMask;
 
-  // Object-space pointer 3D vortex swirl + radial ripple + Z-lift onto z = 0 plane.
+  // Responsive object-space pointer scatter burst, radial push, swirl, and Z dispersal.
   vec2 delta = pos.xy - uPointer.xy;
   float dist = length(delta);
-  float falloff = 1.0 - smoothstep(0.0, uRadius, dist);
+  float hitRadius = uRadius * 1.75;
+  float falloff = pow(1.0 - smoothstep(0.0, hitRadius, dist), 1.25);
   float push = falloff * uPointerStrength * (1.0 - eased * 0.75);
   vec2 dir = dist > 0.0001
     ? delta / dist
     : vec2(cos(aSeed * 6.28318), sin(aSeed * 6.28318));
   vec2 swirl = vec2(-dir.y, dir.x);
-  pos.xy += dir * push * 0.022 + swirl * push * 0.028 * sin(dist * 10.0 - uTime * 5.0);
-  pos.z += push * 0.12;
+  vec3 scatterBurst = vec3(
+    cos(aSeed * 62.8318 + uTime * 2.4),
+    sin(aSeed * 62.8318 + uTime * 2.4),
+    sin(aSeed * 19.7392 + uTime * 3.1)
+  ) * (0.18 + 0.28 * aSeed);
+  pos.xy +=
+    dir * push * (0.34 + 0.24 * aSeed) +
+    swirl * push * (0.14 * (aSeed - 0.3)) +
+    scatterBurst.xy * push;
+  pos.z += push * (0.28 * (aSeed - 0.4)) + scatterBurst.z * push;
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPosition;
 
   float distanceScale = 4.4 / max(0.8, -mvPosition.z);
-  float sizeJitter = 0.86 + aSeed * 0.28;
+  float sizeJitter = 0.88 + aSeed * 0.24;
   float scatterBoost = 1.0 + eased * 0.25;
   gl_PointSize = clamp(
     uBaseSize * sizeJitter * scatterBoost * uPixelRatio * distanceScale,
     1.2,
-    9.5
+    5.2
   );
 
   // Coherent diagonal sheen + gentle per-particle shimmer without static noise.
@@ -80,17 +89,13 @@ void main() {
     0.07 * sin(uTime * (1.4 + aSeed * 1.2) + aSeed * 62.83185) +
     sheen * (1.0 - eased) * isMoving;
 
-  // Perceptually lift blue/indigo so the right half reads vividly on light & dark stages.
-  vec3 liftedColor = pow(clamp(aColor, 0.0, 1.0), vec3(0.78)) + vec3(0.05, 0.06, 0.12);
+  // Perceptually lift blue/indigo so the right half reads vividly without dark back-face shadows.
+  vec3 liftedColor = pow(clamp(aColor, 0.0, 1.0), vec3(0.76)) + vec3(0.05, 0.06, 0.14);
 
-  // View-space normal lighting: keeps 3D extruded walls clearly distinct against
-  // the pearlescent backlight while preventing rear-face ghosting.
   vec3 viewNormal = normalize(normalMatrix * aNormal);
-  float frontMask = smoothstep(-0.45, 0.25, viewNormal.z);
-  float faceVisibility = mix(0.32, 1.0, frontMask);
-  float rimLight = pow(1.0 - min(1.0, abs(viewNormal.z)), 1.6) * 0.38;
-  float keyLight = max(0.0, dot(viewNormal, normalize(vec3(-0.35, 0.45, 0.82)))) * 0.28;
-  float shade3D = mix(faceVisibility * (0.92 + keyLight) + rimLight, 1.0, eased);
+  float rimLight = pow(1.0 - min(1.0, abs(viewNormal.z)), 1.6) * 0.22;
+  float keyLight = max(0.0, dot(viewNormal, normalize(vec3(-0.35, 0.45, 0.82)))) * 0.16;
+  float shade3D = mix(0.96 + keyLight + rimLight, 1.0, eased);
 
   vColor = clamp(liftedColor * shade3D, 0.0, 1.25);
   vMorph = eased;
@@ -112,18 +117,17 @@ void main() {
   float d = length(uv) * 2.0;
   if (d > 1.0) discard;
 
-  // Dense, high-visibility core + soft halo for crisp NormalBlending over the studio backlight.
-  float core = exp(-d * d * 8.0);
-  float halo = exp(-d * d * 2.8) * 0.42;
-  float edge = smoothstep(1.0, 0.68, d);
-  float sprite = clamp((core + halo) * edge, 0.0, 1.0);
+  // Crisp high-definition micro-dot core so desktop particles never blur together.
+  float core = smoothstep(0.88, 0.22, d);
+  float peak = exp(-d * d * 12.0) * 0.22;
+  float sprite = clamp(core + peak, 0.0, 1.0);
 
   // When scattered, particles spread thin so boost per-particle presence smoothly.
   float scatterLift = mix(1.0, 1.35, vMorph);
-  float alpha = clamp(sprite * uOpacity * uIntensity * vShimmer * scatterLift, 0.0, 0.96);
+  float alpha = clamp(sprite * uOpacity * uIntensity * vShimmer * scatterLift, 0.0, 0.98);
   vec3 col =
-    mix(vColor, vColor * 1.25 + vec3(0.14, 0.22, 0.32), vEnergy * 0.45) +
-    vec3(core * 0.18);
+    mix(vColor, vColor * 1.22 + vec3(0.12, 0.18, 0.28), vEnergy * 0.45) +
+    vec3(peak * 0.35);
   col = clamp(col, 0.0, 1.0);
 
   gl_FragColor = vec4(col, alpha);
