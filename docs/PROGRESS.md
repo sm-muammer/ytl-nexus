@@ -85,6 +85,10 @@
   - Switched desktop logo positioning in `components/home/particle-logo.tsx` from off-axis world translation (`group.position.x`) to `camera.setViewOffset`, eliminating horizontal perspective stretch on 1440 px / 2560 px screens while keeping the mark centered cleanly on the camera's optical axis.
   - Capped desktop stage sizing (`maxTargetPx = 400` on desktop, `300` on mobile) and unified `basePointSize` (`4.2 * (baseCameraZ / 4.4)`, `gl_PointSize` clamped `1.2..9.5 px` in `shaders.ts`) with tighter pointer ripple displacement (`0.022` radial / `0.028` swirl / `0.12` +z) so desktop matches mobile's crisp, high-density grain.
   - Added `.nx-logo-backlight` (`app/globals.css`, `app/(public)/page.tsx`) behind `[data-particle-stage]` using semantic tokens (`--nx-ink` pearlescent white center fading through rose-violet) to separate the 3D silhouette and illuminate the `"yes"` cutout.
+- **High-Visibility Studio White Backlight & Opaque-Core Blending (done 2026-11-18):**
+  - Removed extra `76%` black canvas darkening from `.nx-tint-aurora` (`app/globals.css`) and enlarged `.nx-logo-backlight` (`size-[min(78vw,22rem)] lg:size-[min(38vw,28rem)]` in `app/(public)/page.tsx`) with a bright `78%` pearlescent white radial studio splash and `28px` blur behind the 3D mark.
+  - Switched the main particle `Points` material in `components/home/particle-logo.tsx` from `AdditiveBlending` to `THREE.NormalBlending` (`TIER_INTENSITY = { high: 0.88, medium: 0.94, low: 1.0 }`, `basePointSize = 4.6 * (baseCameraZ / 4.4)`), preventing the white studio backdrop from washing out the mark.
+  - Added perceptual blue/indigo luminance lift (`pow(aColor, 0.78) + vec3(0.05, 0.06, 0.12)`) and opaque-core Gaussian sprite output (`core = exp(-d * d * 8.0)`, `halo = exp(-d * d * 2.8) * 0.42`, `alpha` clamped to `0.96`; `gl_FragColor = vec4(col, alpha)`) in `lib/motion/particle-logo/shaders.ts`.
 
 ### Nexus Tour Full Content Seed & Resilience (`/tour`) (done 2026-11-18)
 

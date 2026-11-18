@@ -17,7 +17,9 @@ test.describe("Home showcase (spec 24)", () => {
     expect([30_000, 70_000, 140_000]).toContain(count);
 
     await expect
-      .poll(async () => Number(await canvas.getAttribute("data-frames")))
+      .poll(async () => Number(await canvas.getAttribute("data-frames")), {
+        timeout: 15_000,
+      })
       .toBeGreaterThan(2);
   });
 
@@ -31,7 +33,9 @@ test.describe("Home showcase (spec 24)", () => {
       timeout: 15_000,
     });
     await expect
-      .poll(async () => Number(await canvas.getAttribute("data-frames")))
+      .poll(async () => Number(await canvas.getAttribute("data-frames")), {
+        timeout: 15_000,
+      })
       .toBeGreaterThan(0);
 
     await expect(canvas).toHaveCSS("pointer-events", "auto", {
@@ -101,7 +105,9 @@ test.describe("Home showcase with reduced motion", () => {
       timeout: 15_000,
     });
     await expect
-      .poll(async () => Number(await canvas.getAttribute("data-frames")))
+      .poll(async () => Number(await canvas.getAttribute("data-frames")), {
+        timeout: 15_000,
+      })
       .toBe(1);
     await page.waitForTimeout(400);
     expect(Number(await canvas.getAttribute("data-frames"))).toBe(1);

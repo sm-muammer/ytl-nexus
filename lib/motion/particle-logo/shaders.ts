@@ -80,16 +80,19 @@ void main() {
     0.07 * sin(uTime * (1.4 + aSeed * 1.2) + aSeed * 62.83185) +
     sheen * (1.0 - eased) * isMoving;
 
-  // View-space normal lighting: dims back faces so they never ghost through cutouts,
-  // while keeping front faces luminous and highlighting beveled side walls.
+  // Perceptually lift blue/indigo so the right half reads vividly on light & dark stages.
+  vec3 liftedColor = pow(clamp(aColor, 0.0, 1.0), vec3(0.78)) + vec3(0.05, 0.06, 0.12);
+
+  // View-space normal lighting: keeps 3D extruded walls clearly distinct against
+  // the pearlescent backlight while preventing rear-face ghosting.
   vec3 viewNormal = normalize(normalMatrix * aNormal);
   float frontMask = smoothstep(-0.45, 0.25, viewNormal.z);
-  float faceVisibility = mix(0.24, 1.0, frontMask);
+  float faceVisibility = mix(0.32, 1.0, frontMask);
   float rimLight = pow(1.0 - min(1.0, abs(viewNormal.z)), 1.6) * 0.38;
   float keyLight = max(0.0, dot(viewNormal, normalize(vec3(-0.35, 0.45, 0.82)))) * 0.28;
-  float shade3D = mix(faceVisibility * (0.88 + keyLight) + rimLight, 1.0, eased);
+  float shade3D = mix(faceVisibility * (0.92 + keyLight) + rimLight, 1.0, eased);
 
-  vColor = aColor * shade3D;
+  vColor = clamp(liftedColor * shade3D, 0.0, 1.25);
   vMorph = eased;
   vEnergy = clamp(push * 0.85, 0.0, 1.0);
 }
@@ -109,21 +112,19 @@ void main() {
   float d = length(uv) * 2.0;
   if (d > 1.0) discard;
 
-  // Silky micro-LED Gaussian sprite so adjacent particles fuse cleanly.
-  float core = exp(-d * d * 9.5);
-  float halo = exp(-d * d * 3.2) * 0.34;
-  float edge = smoothstep(1.0, 0.72, d);
-  float sprite = (core + halo) * edge;
+  // Dense, high-visibility core + soft halo for crisp NormalBlending over the studio backlight.
+  float core = exp(-d * d * 8.0);
+  float halo = exp(-d * d * 2.8) * 0.42;
+  float edge = smoothstep(1.0, 0.68, d);
+  float sprite = clamp((core + halo) * edge, 0.0, 1.0);
 
   // When scattered, particles spread thin so boost per-particle presence smoothly.
-  float scatterLift = mix(1.0, 1.65, vMorph);
-  float alpha = sprite * uOpacity * uIntensity * vShimmer * scatterLift;
-  vec3 baseCol =
-    mix(vColor, vColor * 1.35 + vec3(0.10, 0.20, 0.30), vEnergy * 0.45) +
-    vec3(core * 0.12) * length(vColor);
-  vec3 col = baseCol * alpha;
-  // Smooth tone-map prevents channel clipping while keeping additive glow luminous.
-  col = col / (1.0 + col * 0.42);
+  float scatterLift = mix(1.0, 1.35, vMorph);
+  float alpha = clamp(sprite * uOpacity * uIntensity * vShimmer * scatterLift, 0.0, 0.96);
+  vec3 col =
+    mix(vColor, vColor * 1.25 + vec3(0.14, 0.22, 0.32), vEnergy * 0.45) +
+    vec3(core * 0.18);
+  col = clamp(col, 0.0, 1.0);
 
   gl_FragColor = vec4(col, alpha);
 }

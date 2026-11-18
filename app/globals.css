@@ -207,32 +207,15 @@ body {
     );
 }
 .nx-tint-aurora {
-  --l1: var(--color-yes-gradient-end);
-  --p1: 74% 42%;
-  --s1: 22%;
-  --l2: var(--color-yes-pink);
-  --p2: 64% 56%;
-  --s2: 14%;
-  --l3: var(--color-ytl-blue);
-  --p3: 10% 12%;
-  --s3: 9%;
-  background-color: color-mix(in oklab, var(--nx-canvas) 76%, black);
-  background-image:
-    radial-gradient(
-      58rem 48rem at var(--p1),
-      color-mix(in oklab, var(--l1) var(--s1), transparent),
-      transparent 72%
-    ),
-    radial-gradient(
-      46rem 40rem at var(--p2),
-      color-mix(in oklab, var(--l2) var(--s2), transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      52rem 42rem at var(--p3),
-      color-mix(in oklab, var(--l3) var(--s3), transparent),
-      transparent 72%
-    );
+  --l1: var(--nx-ink);
+  --p1: 72% 44%;
+  --s1: 16%;
+  --l2: var(--color-yes-gradient-end);
+  --p2: 68% 48%;
+  --s2: 28%;
+  --l3: var(--color-yes-pink);
+  --p3: 24% 80%;
+  --s3: 18%;
 }
 .nx-tint-network {
   --p1: 100% 0%;
@@ -518,13 +501,17 @@ dialog[data-nav-sheet][open] {
 .nx-logo-backlight {
   background: radial-gradient(
     circle at 50% 50%,
-    color-mix(in oklab, var(--nx-ink) 28%, transparent) 0%,
-    color-mix(in oklab, var(--nx-ink) 12%, transparent) 24%,
-    color-mix(in oklab, var(--color-yes-pink) 16%, transparent) 44%,
-    color-mix(in oklab, var(--color-yes-gradient-end) 12%, transparent) 60%,
+    color-mix(in oklab, var(--nx-ink) 78%, transparent) 0%,
+    color-mix(in oklab, var(--nx-ink) 52%, var(--color-ytl-blue) 18%) 26%,
+    color-mix(
+        in oklab,
+        var(--color-yes-pink) 30%,
+        var(--color-yes-gradient-end) 28%
+      )
+      50%,
     transparent 74%
   );
-  filter: blur(24px);
+  filter: blur(28px);
 }
 
 .nx-bento-card {

@@ -119,7 +119,7 @@ export default function HomePage() {
               aria-hidden="true"
               className="pointer-events-none relative -z-[1] order-1 flex min-h-[38dvh] w-full items-center justify-center sm:min-h-[42dvh] lg:order-2 lg:col-span-6 lg:min-h-[64dvh]"
             >
-              <div className="nx-logo-backlight size-[min(72vw,20rem)] rounded-full lg:size-[min(34vw,25rem)]" />
+              <div className="nx-logo-backlight size-[min(78vw,22rem)] rounded-full lg:size-[min(38vw,28rem)]" />
             </div>
 
             <div className="pointer-events-auto relative z-10 order-2 lg:order-1 lg:col-span-6">

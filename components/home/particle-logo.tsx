@@ -6,6 +6,7 @@ import {
   BufferAttribute,
   BufferGeometry,
   Group,
+  NormalBlending,
   PerspectiveCamera,
   Plane,
   Points,
@@ -55,9 +56,9 @@ const CAMERA_FOV_DEG = 42;
 const TAN_HALF_FOV = Math.tan(((CAMERA_FOV_DEG / 2) * Math.PI) / 180);
 
 const TIER_INTENSITY: Record<QualityTier, number> = {
-  high: 0.48,
-  medium: 0.66,
-  low: 0.9,
+  high: 0.88,
+  medium: 0.94,
+  low: 1.0,
 };
 
 const TIER_SIZE_SCALE: Record<QualityTier, number> = {
@@ -136,7 +137,7 @@ function measureStage(
     3.3,
     (2.28 * vh) / (2 * TAN_HALF_FOV * targetPx),
   );
-  const basePointSize = 4.2 * (baseCameraZ / 4.4);
+  const basePointSize = 4.6 * (baseCameraZ / 4.4);
 
   return {
     vw,
@@ -199,7 +200,7 @@ export function ParticleLogo() {
     heroCenterX: 1065,
     heroCenterY: 432,
     baseCameraZ: 5.5,
-    basePointSize: 4.2,
+    basePointSize: 4.6,
   });
   const rafRef = useRef<number>(0);
   const framesRef = useRef<number>(0);
@@ -302,13 +303,13 @@ export function ParticleLogo() {
       fragmentShader: PARTICLE_FRAGMENT_SHADER,
       transparent: true,
       depthWrite: false,
-      blending: AdditiveBlending,
+      blending: NormalBlending,
       uniforms: {
         uTime: { value: 0 },
         uMorph: { value: 1 },
         uOpacity: { value: 1 },
         uPixelRatio: { value: dpr },
-        uBaseSize: { value: 4.2 * TIER_SIZE_SCALE[currentTier] },
+        uBaseSize: { value: 4.6 * TIER_SIZE_SCALE[currentTier] },
         uIntensity: { value: TIER_INTENSITY[currentTier] },
         uPointer: { value: new Vector3(0, 0, 0) },
         uPointerStrength: { value: 0 },
