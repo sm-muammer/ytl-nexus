@@ -16,8 +16,8 @@
 
 **Sampling (pure, unit-tested):** rasterise the SVG to an offscreen canvas (about 768 px on its long side) and keep pixels with alpha above 0.5. Choose positions randomly from those pixels until the tier's count is reached. Each particle gets:
 
-- `position`: x and y centred and normalised so the mark is about 2.2 world units tall. z gives the mark thickness: 70 % of particles sit on the front and back faces (z = ±0.12) and 30 % fill the volume. Edge pixels (any transparent neighbour) count double, so the silhouette reads sharp when the mark turns side-on.
-- `color`: the sampled pixel's RGB, then slightly brighter (×1.15) for additive blending.
+- `position`: x and y centred and normalised so the mark is about 2.2 world units tall. z gives the mark thickness: 70 % of particles sit on the front and back faces (z = ±0.12) and 30 % fill the volume (shaded ×0.6 for extrusion depth). Edge pixels (any transparent neighbour) count double, so the silhouette reads sharp when the mark turns side-on.
+- `color`: the sampled pixel's exact RGB (`COLOR_BRIGHTNESS_BOOST = 1`), tone-mapped in the fragment shader (`col = col / (1.0 + col * 0.35)`) so additive overlap preserves the official pink-to-indigo gradient without clipping.
 - `scatter`: a random point in a wide ellipsoid (radius about 6, flattened in y) used for scroll dispersal and the intro.
 - `seed`: a random float in [0, 1) used for shimmer and size variation.
 

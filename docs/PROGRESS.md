@@ -15,6 +15,8 @@
 
 ## Owner actions waiting
 
+- **Inspect Home Showcase (Spec 24) in a browser:** open `http://localhost:3000/` (or `https://ytl-nexus.ytlcomms.my/` after deploying to Nexus Core 01). Verify the 3D particle Yes logomark in the hero: it converges on load, smoothly rotates when idle, tilts and gently repels particles around your mouse pointer (or touch/drag), responds to horizontal trackpad scrolling, scatters into an ambient backdrop field as you scroll down through the Project Facts strip, glass Modules bento grid (with cursor-following spotlight), and animated 3-tier Architecture teaser, and re-forms when you scroll back to the top.
+
 - **Inspect Platform Section in a browser:** open `https://ytl-nexus.ytlcomms.my/platform` (or locally at `http://localhost:3000/platform` or from the home page CTA "How it fits together"). Verify the full interactive architecture overview: the 3-tier Network Topology & Ingress Flow, the 6 Core Trust Boundaries, live/demo subsystem health cards, runtime services table on Rocky Linux Nexus Core 01, and the categorized 16 Unified Modules matrix. Notice that the stub notice "Not available yet" has been completely replaced with a comprehensive systems engineering presentation.
 
 - **Task 20, verify responsiveness and quality in a browser:** open `https://ytl-nexus.ytlcomms.my` (or locally) across different screen sizes (mobile 390px, tablet 768px, desktop 1440px, and 4K/Retina if available). Verify that touch targets are comfortable to tap, headings scale smoothly, particle effects adjust gracefully to device capability, and toggling "Reduce Motion" in your OS eliminates non-essential animations. Inspect the detailed audit results in `docs/design/lighthouse-report.md`.
@@ -52,14 +54,14 @@
 
 - **Decisions recorded (`D-240`..`D-243`):**
   - `D-240`: Render the **Yes gradient logomark** (`public/brand/yes-logomark-gradient.svg`) as dense 3D particles in the `/` hero; keep the YTL Communications logo static in the header and footer.
-  - `D-241`: Sample particle RGB directly from the official SVG's opaque pixels (boosted `1.15x` for additive blending), preserving exact brand colours.
+  - `D-241`: Sample particle RGB directly from the official SVG's opaque pixels (`COLOR_BRIGHTNESS_BOOST = 1`, with fragment tone-mapping `col = col / (1.0 + col * 0.35)`), preserving exact pink-to-indigo gradient fidelity without additive clipping.
   - `D-242`: Use core `three` only (no React Three Fiber or postprocessing), loaded via `next/dynamic(..., { ssr: false })` strictly on `/` (`components/home/particle-logo-loader.tsx`), keeping `three` absent from every other route bundle.
   - `D-243`: Replace the 2D `aurora` canvas on `/` with one fixed full-viewport WebGL canvas (`lib/navigation/scenes.ts` keeps `tint: "aurora"`, drops `canvas`). Scrolling scatters the logomark into a drifting 40%-opacity particle field behind lower sections.
 - **Pure particle modules (`lib/motion/particle-logo/`):**
-  - `sampling.ts`: pixel-buffer sampler with `alpha > 0.5` filter, double-weighted edge pixels, `2.2` world-unit height normalisation, `70/30` front/back face (`z = ±0.12`) vs volume distribution, and ellipsoid scatter targets.
+  - `sampling.ts`: pixel-buffer sampler with `alpha > 0.5` filter, double-weighted edge pixels, `2.2` world-unit height normalisation, `70/30` front/back face (`z = ±0.12`) vs volume distribution (`0.6x` depth shading), and ellipsoid scatter targets.
   - `tiers.ts`: `140 000` (high), `70 000` (medium), `30 000` (low) counts via `useQualityTier` and DPR capped at `2`.
   - `scroll.ts`: scroll progress `p = clamp(scrollY / (0.9 * vh), 0, 1)`, cubic ease-in-out morph, 40%-opacity backdrop state, `1.8 s` intro convergence, and `1.5 s` idle resume easing.
-  - `rasterize.ts` & `shaders.ts`: offscreen SVG rasterisation (~768 px long side) and custom GLSL `ShaderMaterial` with `seed * 0.3` morph delay, object-space pointer repulsion (`uRadius = 0.45`), ±15 % shimmer, and soft core + halo sprites.
+  - `rasterize.ts` & `shaders.ts`: offscreen SVG rasterisation (~768 px long side) and custom GLSL `ShaderMaterial` with `seed * 0.3` morph delay, object-space pointer repulsion (`uRadius = 0.32`, `push = 0.18`), ±15 % shimmer, soft core + halo sprites (`exp(-d*d*8.8)`), and Reinhard-style highlight tone-mapping.
 - **WebGL Component & Home Redesign (`components/home/particle-logo.tsx`, `components/home/bento-card.tsx`, `app/(public)/page.tsx`):**
   - Full-viewport hero (`100 dvh`) with mono eyebrow, `YTL Nexus` display heading, CTAs, animated scroll cue, and stage-aligned 3D mark; pauses on tab hide (`usePageVisible`), recreates geometry on tier change, disposes on unmount, renders 1 static frame under reduced motion (`usePrefersReducedMotion`), and falls back to centred `<Logo slug="yes-logomark-gradient">` if WebGL fails or loses context.
   - Added semantic glass surface tokens (`--nx-glass`, `--nx-glass-raised`, `--nx-glass-border`) in `app/globals.css` and `lib/design/tokens.ts` (synced via `tests/unit/design-tokens.test.ts`).
@@ -69,7 +71,7 @@
   - Added E2E Playwright specs in `tests/e2e/home.spec.ts` and updated `tests/e2e/motion.spec.ts` for `AmbientField` on `/platform`.
   - Updated `docs/design-language.md`, `docs/design/motion.md`, and `docs/spec/implementation-plan.md`.
 - **Visual & Responsive Polish Pass (done 2026-11-18):**
-  - Switched intro convergence to wall-clock `performance.now()` (`introElapsedSec`), boosted high-tier particle intensity (`0.45`), softened sprite falloff (`exp(-d*d*8.8)`), shaded interior extrusion volume (`0.6x`), enlarged desktop/4K stage sizing + added CSS token `.nx-hero-logo-glow`, added sparse ambient dust `Points` (`sampleAmbientDust`), and softened pointer repulsion (`push 0.18`, `radius 0.32`).
+  - Switched intro convergence to wall-clock `performance.now()` (`introElapsedSec`), calibrated tier intensities (`0.27` high / `0.39` medium / `0.56` low) with fragment shader tone-mapping to preserve the official pink-to-indigo gradient without magenta clipping, softened sprite falloff (`exp(-d*d*8.8)`), shaded interior extrusion volume (`0.6x`), enlarged desktop/4K stage sizing + added CSS token `.nx-hero-logo-glow`, added sparse ambient dust `Points` (`sampleAmbientDust`), and softened pointer repulsion (`push 0.18`, `radius 0.32`).
   - Showed 2-line clamped summaries on all bento tiles for uniform row density, added glowing node dots to the architecture teaser conduit, fixed 390 px header collision/touch targets (`shrink-0`, icon-only search trigger below `sm`, `min-h-11 min-w-11`), added `loading="eager"` when `Logo` has `priority`, and added `tabIndex={0}`/`role="region"`/`aria-label` to `overflow-x-auto` tables on `/platform` and `/control`.
 
 ### Nexus Tour Full Content Seed & Resilience (`/tour`) (done 2026-11-18)
