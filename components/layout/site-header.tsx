@@ -117,7 +117,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
           {actor === null ? (
             <NavLink
               href="/signin"
-              className="border-line bg-surface/60 text-muted hover:border-border-strong hover:bg-surface-raised hover:text-ink inline-flex min-h-11 min-w-11 items-center rounded-full border px-4 text-xs font-medium whitespace-nowrap transition-colors duration-(--duration-fast)"
+              className="border-line bg-surface/60 text-muted hover:border-border-strong hover:bg-surface-raised hover:text-ink focus-visible:ring-accent-ink/50 inline-flex min-h-11 min-w-11 items-center rounded-full border px-4 text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.15)] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97]"
             >
               Sign in
             </NavLink>

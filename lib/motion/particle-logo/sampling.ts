@@ -228,6 +228,7 @@ export type AmbientDust = {
   count: number;
   positions: Float32Array;
   colors: Float32Array;
+  colorsDark: Float32Array;
   seeds: Float32Array;
 };
 
@@ -236,11 +237,21 @@ function hexToRgbTuple(hex: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-const DUST_PALETTE: readonly [number, number, number][] = [
+export const DUST_PALETTE_LIGHT: readonly [number, number, number][] = [
   hexToRgbTuple(brandColours.yesPink),
   hexToRgbTuple(brandColours.yesGradientEnd),
   [0.82, 0.84, 0.98],
 ];
+
+export const DUST_PALETTE_DARK: readonly [number, number, number][] = [
+  hexToRgbTuple(brandColours.ytlBlue),
+  [0.0, 0.92, 1.0],
+  [0.25, 0.76, 0.98],
+  [0.9, 0.96, 1.0],
+  [1.0, 0.82, 0.38],
+];
+
+export const DUST_PALETTE = DUST_PALETTE_LIGHT;
 
 const RING_SPECS = [
   {
@@ -280,6 +291,7 @@ export function sampleAmbientDust(
       count: 0,
       positions: new Float32Array(0),
       colors: new Float32Array(0),
+      colorsDark: new Float32Array(0),
       seeds: new Float32Array(0),
     };
   }
@@ -287,6 +299,7 @@ export function sampleAmbientDust(
   const rand = mulberry32(seed);
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
+  const colorsDark = new Float32Array(count * 3);
   const seeds = new Float32Array(count);
   const TAU = Math.PI * 2;
   const ringCutoff = Math.floor(count * 0.65);
@@ -326,14 +339,22 @@ export function sampleAmbientDust(
       positions[p3 + 2] = Math.sin(theta) * sinPhi * r * 4.5 - 0.8;
     }
 
-    const tint = DUST_PALETTE[Math.floor(rand() * DUST_PALETTE.length)]!;
+    const tint =
+      DUST_PALETTE_LIGHT[Math.floor(rand() * DUST_PALETTE_LIGHT.length)]!;
     const dim = 0.45 + rand() * 0.5;
     colors[p3] = Math.min(1, tint[0] * dim);
     colors[p3 + 1] = Math.min(1, tint[1] * dim);
     colors[p3 + 2] = Math.min(1, tint[2] * dim);
 
+    const tintDark =
+      DUST_PALETTE_DARK[Math.floor(rand() * DUST_PALETTE_DARK.length)]!;
+    const boostDark = 0.85 + rand() * 0.3;
+    colorsDark[p3] = Math.min(1, tintDark[0] * boostDark);
+    colorsDark[p3 + 1] = Math.min(1, tintDark[1] * boostDark);
+    colorsDark[p3 + 2] = Math.min(1, tintDark[2] * boostDark);
+
     seeds[i] = rand();
   }
 
-  return { count, positions, colors, seeds };
+  return { count, positions, colors, colorsDark, seeds };
 }

@@ -54,7 +54,7 @@ function writeAtmosphereMode(mode: AtmosphereMode): void {
   window.dispatchEvent(new Event(ATMOSPHERE_EVENT));
 }
 
-function useAtmosphereMode(): {
+export function useAtmosphereMode(): {
   mode: AtmosphereMode;
   setMode: (next: AtmosphereMode) => void;
 } {

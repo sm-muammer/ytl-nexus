@@ -18,9 +18,11 @@ import {
   WebGLRenderer,
 } from "three";
 import { Logo } from "@/components/brand/logo";
+import { useAtmosphereMode } from "@/components/layout/atmosphere-switcher";
 import { usePageVisible } from "@/components/motion/use-page-visible";
 import { usePrefersReducedMotion } from "@/components/motion/use-prefers-reduced-motion";
 import { useQualityTier } from "@/components/motion/use-quality-tier";
+import { atmosphereAttributes } from "@/lib/design/atmosphere";
 import type { QualityTier } from "@/lib/motion/quality";
 import { rasterizeSvgToPixels } from "@/lib/motion/particle-logo/rasterize";
 import {
@@ -84,6 +86,7 @@ function buildDustGeometry(count: number): BufferGeometry {
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new BufferAttribute(dust.positions, 3));
   geometry.setAttribute("aColor", new BufferAttribute(dust.colors, 3));
+  geometry.setAttribute("aColorDark", new BufferAttribute(dust.colorsDark, 3));
   geometry.setAttribute("aSeed", new BufferAttribute(dust.seeds, 1));
   geometry.computeBoundingSphere();
   return geometry;
@@ -156,10 +159,35 @@ function measureStage(
  */
 export function ParticleLogo() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { mode } = useAtmosphereMode();
+  const [domTheme, setDomTheme] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const update = () => setDomTheme(root.dataset.theme || null);
+    update();
+    const observer = new MutationObserver(() => update());
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["data-theme", "data-atmosphere"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const isDark = domTheme
+    ? domTheme === "dark"
+    : atmosphereAttributes(mode).theme === "dark";
+  const darkTarget = isDark ? 1 : 0;
+  const darkTargetRef = useRef<number>(darkTarget);
   const { tier, reportFrame } = useQualityTier();
   const visible = usePageVisible();
   const reduced = usePrefersReducedMotion();
   const [fallback, setFallback] = useState(false);
+
+  useEffect(() => {
+    darkTargetRef.current = darkTarget;
+  }, [darkTarget]);
 
   // Refs shared cleanly across lifecycle, visibility, and tier-change effects.
   const tierRef = useRef<QualityTier>(tier);
@@ -249,6 +277,7 @@ export function ParticleLogo() {
     if (dustMaterial) {
       dustMaterial.uniforms.uTime!.value = 0;
       dustMaterial.uniforms.uScrollMorph!.value = 0;
+      dustMaterial.uniforms.uDark!.value = darkTargetRef.current;
       (dustMaterial.uniforms.uPointer!.value as Vector3).set(0, 0, 0);
     }
     renderer.render(scene, camera);
@@ -329,6 +358,7 @@ export function ParticleLogo() {
         uPixelRatio: { value: dpr },
         uPointer: { value: new Vector3(0, 0, 0) },
         uScrollMorph: { value: 0 },
+        uDark: { value: darkTargetRef.current },
       },
     });
     dustMaterialRef.current = dustMaterial;
@@ -404,6 +434,7 @@ export function ParticleLogo() {
     let activePointerId: number | null = null;
     let lastDragX = 0;
     let lastFrameMs = 0;
+    let currentDark = darkTargetRef.current;
 
     const pointerNdc = new Vector2(0, 0);
     const raycaster = new Raycaster();
@@ -611,6 +642,9 @@ export function ParticleLogo() {
       dustPoints.position.set(0, 0, 0);
       dustMaterial.uniforms.uTime!.value = elapsed;
       dustMaterial.uniforms.uScrollMorph!.value = scroll.morph;
+      const targetDark = darkTargetRef.current;
+      currentDark += (targetDark - currentDark) * Math.min(1, dt * 6);
+      dustMaterial.uniforms.uDark!.value = currentDark;
       (dustMaterial.uniforms.uPointer!.value as Vector3).set(
         pointerNdc.x * pointerStrength,
         pointerNdc.y * pointerStrength,
@@ -714,6 +748,16 @@ export function ParticleLogo() {
     if (fallback || !readyRef.current) return;
     loopStarterRef.current?.();
   }, [visible, reduced, fallback]);
+
+  // Keep dust material in sync when atmosphere/theme changes while static.
+  useEffect(() => {
+    if (dustMaterialRef.current) {
+      dustMaterialRef.current.uniforms.uDark!.value = darkTarget;
+      if (reducedRef.current) {
+        renderStaticFrame();
+      }
+    }
+  }, [darkTarget, renderStaticFrame]);
 
   // Recreate geometry in place when quality tier drops without resetting renderer.
   useEffect(() => {

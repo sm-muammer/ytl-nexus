@@ -177,6 +177,7 @@ describe("particle logo sampling", () => {
     expect(dust.count).toBe(1500);
     expect(dust.positions).toHaveLength(1500 * 3);
     expect(dust.colors).toHaveLength(1500 * 3);
+    expect(dust.colorsDark).toHaveLength(1500 * 3);
     expect(dust.seeds).toHaveLength(1500);
 
     for (let i = 0; i < dust.count; i++) {
@@ -191,9 +192,32 @@ describe("particle logo sampling", () => {
       expect(b).toBeLessThanOrEqual(1);
       expect(r + g + b).toBeGreaterThan(0);
 
+      const rd = dust.colorsDark[i * 3]!;
+      const gd = dust.colorsDark[i * 3 + 1]!;
+      const bd = dust.colorsDark[i * 3 + 2]!;
+      expect(rd).toBeGreaterThanOrEqual(0);
+      expect(rd).toBeLessThanOrEqual(1);
+      expect(gd).toBeGreaterThanOrEqual(0);
+      expect(gd).toBeLessThanOrEqual(1);
+      expect(bd).toBeGreaterThanOrEqual(0);
+      expect(bd).toBeLessThanOrEqual(1);
+      expect(rd + gd + bd).toBeGreaterThan(0);
+
       const s = dust.seeds[i]!;
       expect(s).toBeGreaterThanOrEqual(0);
       expect(s).toBeLessThan(1);
     }
+  });
+
+  it("provides distinct light and dark palettes for ambient floating particles", () => {
+    const dust = sampleAmbientDust(300, 42);
+    // Dark mode particles should have higher average brightness than muted light particles
+    let lightSum = 0;
+    let darkSum = 0;
+    for (let i = 0; i < dust.count * 3; i++) {
+      lightSum += dust.colors[i]!;
+      darkSum += dust.colorsDark[i]!;
+    }
+    expect(darkSum).toBeGreaterThan(lightSum);
   });
 });

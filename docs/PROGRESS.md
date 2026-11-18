@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                                                                      |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Last completed              | **Signed-In Button & Atmosphere Removal:** styled signed-in pill button with role dot and chevron, upgraded drawer session card, and removed atmosphere controls from UI (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                      |
-| Recommended model           | Any                                                                                                                                                                                        |
-| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                             |
+| Item                        | Value                                                                                                                                                                                                                                         |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Last completed              | **Tactile Signed-In Button Redesign:** removed indicator dots, added monogram avatar micro-badge, responsive press physics (`scale-[0.97]`), inner bevel highlight, and micro-interactions via `emil-design-eng` principles (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                                                                   |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                                                         |
+| Recommended model           | Any                                                                                                                                                                                                                                           |
+| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                                                                |
 
 ## Recent deployments
 
@@ -56,6 +56,20 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Tactile Signed-In Button Redesign (done 2026-11-18)
+
+- **Indicator Dot Removal (`components/layout/nav-sheet.tsx`):**
+  - Removed status indicator colored dots from both the signed-in header button and the drawer session card.
+  - Introduced a clean monogram avatar badge (`size-5 rounded-full border border-line bg-surface-raised/80 font-mono text-[10px]`) displaying the role initial or a subtle outline icon.
+- **Micro-interactions & Tactile Craft (`emil-design-eng` skill):**
+  - Added responsive active press scaling (`active:scale-[0.97]`) so buttons provide immediate tactile feedback.
+  - Added dual-layer surface bevel styling with inner highlight shadow (`shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.15)]`).
+  - Tuned CSS transitions to specific properties (`transform, background-color, border-color, box-shadow, color`) with custom 150ms `ease-out` timing to eliminate sluggish transitions.
+  - Added directional hover cues (`group-hover:translate-y-0.5` on the chevron) for clear open/close affordance.
+- **Tests & Verification:**
+  - Updated `tests/unit/site-header.test.tsx` ensuring absence of indicator dots in demo and live session buttons.
+  - Ran prettier, linter, TypeScript compiler, and unit test suite.
 
 ### Signed-In Button & Atmosphere Picker Removal Polish (done 2026-11-18)
 

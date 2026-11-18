@@ -79,16 +79,20 @@ describe("SiteHeader navigation", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders demo session strip for demo visitors", () => {
+  it("renders demo session strip for demo visitors without indicator dots", () => {
     const { container } = render(<SiteHeader mode="demo" actor={null} />);
 
     const sessionBtn = container.querySelector("[data-session-label]");
     expect(sessionBtn).not.toBeNull();
     expect(sessionBtn).toHaveTextContent("Demo session");
     expect(sessionBtn).toHaveTextContent("Not signed in");
+    // Indicator dot must not be present
+    expect(
+      sessionBtn?.querySelector(".bg-accent-ink, .bg-pink-ink"),
+    ).toBeNull();
   });
 
-  it("renders session indicator for signed-in actors", () => {
+  it("renders session button for signed-in actors without indicator dots", () => {
     const actor: Actor = { userId: "u-admin", role: "admin" };
     const { container } = render(<SiteHeader mode="live" actor={actor} />);
 
@@ -96,5 +100,9 @@ describe("SiteHeader navigation", () => {
     expect(sessionBtn).not.toBeNull();
     expect(sessionBtn).toHaveTextContent("Signed in");
     expect(sessionBtn).toHaveTextContent("Administrator");
+    // Indicator dot must not be present
+    expect(
+      sessionBtn?.querySelector(".bg-accent-ink, .bg-pink-ink"),
+    ).toBeNull();
   });
 });

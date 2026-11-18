@@ -136,15 +136,18 @@ void main() {
 
 export const DUST_VERTEX_SHADER = /* glsl */ `
 attribute vec3 aColor;
+attribute vec3 aColorDark;
 attribute float aSeed;
 
 uniform float uTime;
 uniform float uPixelRatio;
 uniform vec3 uPointer;
 uniform float uScrollMorph;
+uniform float uDark;
 
 varying vec3 vColor;
 varying float vAlpha;
+varying float vDark;
 
 void main() {
   vec3 pos = position;
@@ -166,28 +169,45 @@ void main() {
   gl_Position = projectionMatrix * mvPosition;
 
   float distanceScale = 5.5 / max(1.0, -mvPosition.z);
+  float basePoint = mix(2.0 + aSeed * 3.4, 2.75 + aSeed * 4.2, uDark);
   gl_PointSize = clamp(
-    (2.0 + aSeed * 3.4) * uPixelRatio * distanceScale,
+    basePoint * uPixelRatio * distanceScale,
     1.2,
-    12.0
+    14.0
   );
 
-  vColor = aColor;
-  vAlpha = 0.24 + 0.16 * sin(uTime * (0.7 + aSeed * 0.8) + aSeed * 31.4159);
+  vColor = mix(aColor, aColorDark, uDark);
+  vDark = uDark;
+
+  float alphaLight = 0.24 + 0.16 * sin(uTime * (0.7 + aSeed * 0.8) + aSeed * 31.4159);
+  float alphaDark = 0.65 + 0.30 * sin(uTime * (0.85 + aSeed * 1.15) + aSeed * 31.4159);
+  vAlpha = mix(alphaLight, alphaDark, uDark);
 }
 `;
 
 export const DUST_FRAGMENT_SHADER = /* glsl */ `
 varying vec3 vColor;
 varying float vAlpha;
+varying float vDark;
 
 void main() {
   vec2 uv = gl_PointCoord - vec2(0.5);
   float d = length(uv) * 2.0;
   if (d > 1.0) discard;
 
-  float falloff = exp(-d * d * 7.5) * smoothstep(1.0, 0.72, d);
-  float alpha = falloff * vAlpha;
-  gl_FragColor = vec4(vColor * alpha, alpha);
+  // White mode format: exact original falloff and premultiplied alpha
+  float falloffLight = exp(-d * d * 7.5) * smoothstep(1.0, 0.72, d);
+  float alphaLight = falloffLight * vAlpha;
+  vec4 colorLight = vec4(vColor * alphaLight, alphaLight);
+
+  // Dark mode format: bright luminous glowing core with soft starry halo
+  float core = smoothstep(0.85, 0.2, d);
+  float halo = exp(-d * d * 3.8) * 0.6;
+  float spriteDark = clamp(core * 0.7 + halo * 0.45, 0.0, 1.0);
+  float alphaDark = spriteDark * vAlpha;
+  vec3 rgbDark = vColor * (0.95 + core * 0.55);
+  vec4 colorDark = vec4(rgbDark, alphaDark);
+
+  gl_FragColor = mix(colorLight, colorDark, vDark);
 }
 `;

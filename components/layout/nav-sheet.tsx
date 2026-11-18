@@ -101,23 +101,38 @@ export function NavSheet({
           onClick={open}
           aria-haspopup="dialog"
           data-session-label
-          className="border-line bg-surface/60 text-ink hover:border-border-strong hover:bg-surface-raised inline-flex min-h-11 min-w-11 items-center gap-2 rounded-full border px-3.5 text-xs font-medium whitespace-nowrap transition-colors duration-(--duration-fast)"
+          className="group border-line bg-surface/70 text-ink hover:border-border-strong hover:bg-surface-raised focus-visible:ring-accent-ink/50 inline-flex min-h-11 min-w-11 items-center gap-2 rounded-full border px-3 text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.15)] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97]"
         >
+          <span className="border-line bg-surface-raised/80 text-ink group-hover:border-border-strong flex size-5 shrink-0 items-center justify-center rounded-full border font-mono text-[10px] font-semibold transition-colors">
+            {session.initial ?? (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 16 16"
+                className="text-muted stroke-1.5 size-3 fill-none stroke-current"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M13 13.5v-1a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v1" />
+                <circle cx="8" cy="5" r="2.5" />
+              </svg>
+            )}
+          </span>
+          <span className="text-muted font-mono text-[11px] tracking-tight">
+            {session.kicker}
+          </span>
           <span
             aria-hidden="true"
-            className={`size-2 shrink-0 rounded-full ${
-              session.demo ? "bg-pink-ink" : "bg-accent-ink"
-            }`}
-          />
-          <span className="text-muted">{session.kicker}</span>
-          <span aria-hidden="true" className="text-muted/60">
+            className="text-muted/40 font-mono text-[11px]"
+          >
             ·
           </span>
-          <span className="text-ink font-semibold">{session.name}</span>
+          <span className="text-ink font-semibold tracking-tight">
+            {session.name}
+          </span>
           <svg
             aria-hidden="true"
             viewBox="0 0 16 16"
-            className="text-muted ml-0.5 size-3 fill-none stroke-current stroke-2"
+            className="text-muted ml-0.5 size-3 fill-none stroke-current stroke-2 transition-transform duration-150 ease-out group-hover:translate-y-0.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -130,7 +145,7 @@ export function NavSheet({
         onClick={open}
         aria-haspopup="dialog"
         aria-label="Open menu"
-        className="border-border-strong hover:bg-surface-raised inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full border text-sm font-medium transition-colors duration-(--duration-fast) md:hidden"
+        className="border-line bg-surface/60 text-ink hover:border-border-strong hover:bg-surface-raised focus-visible:ring-accent-ink/50 inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full border text-sm font-medium shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.15)] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97] md:hidden"
       >
         <svg
           aria-hidden="true"
@@ -145,13 +160,13 @@ export function NavSheet({
         type="button"
         onClick={open}
         aria-haspopup="dialog"
-        className="border-line bg-surface/60 text-ink hover:border-border-strong hover:bg-surface-raised hidden min-h-11 min-w-11 items-center gap-2 rounded-full border px-4 text-xs font-medium whitespace-nowrap transition-colors duration-(--duration-fast) md:inline-flex"
+        className="group border-line bg-surface/60 text-ink hover:border-border-strong hover:bg-surface-raised focus-visible:ring-accent-ink/50 hidden min-h-11 min-w-11 items-center gap-2 rounded-full border px-4 text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.15)] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97] md:inline-flex"
       >
         <span>All modules</span>
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
-          className="text-muted size-3.5 fill-none stroke-current stroke-2"
+          className="text-muted size-3.5 fill-none stroke-current stroke-2 transition-transform duration-150 ease-out group-hover:translate-y-0.5"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
@@ -198,12 +213,20 @@ export function NavSheet({
           {session || !canSignOut ? (
             <div className="border-line bg-surface/40 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4">
               <div className="flex items-center gap-3">
-                <span
-                  aria-hidden="true"
-                  className={`size-2.5 shrink-0 rounded-full ${
-                    session?.demo ? "bg-pink-ink" : "bg-accent-ink"
-                  }`}
-                />
+                <div className="border-line bg-surface-raised text-ink flex size-9 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-semibold">
+                  {session?.initial ?? (
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 16 16"
+                      className="text-muted stroke-1.5 size-4 fill-none stroke-current"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M13 13.5v-1a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v1" />
+                      <circle cx="8" cy="5" r="2.5" />
+                    </svg>
+                  )}
+                </div>
                 <div className="flex flex-col">
                   <span className="text-muted font-mono text-[11px] tracking-wide uppercase">
                     {session?.kicker ?? "Visitor"}
