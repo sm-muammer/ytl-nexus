@@ -94,8 +94,11 @@ void main() {
   // When scattered, particles spread thin so boost per-particle presence smoothly.
   float scatterLift = mix(1.0, 1.55, vMorph);
   float alpha = sprite * uOpacity * uIntensity * vShimmer * scatterLift;
+  vec3 col = vColor * alpha;
+  // Mild tone-map prevents channel clipping while keeping additive glow luminous.
+  col = col / (1.0 + col * 0.35);
 
-  gl_FragColor = vec4(vColor * alpha, alpha);
+  gl_FragColor = vec4(col, alpha);
 }
 `;
 

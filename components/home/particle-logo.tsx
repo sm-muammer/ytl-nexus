@@ -55,9 +55,9 @@ const CAMERA_FOV_DEG = 42;
 const TAN_HALF_FOV = Math.tan(((CAMERA_FOV_DEG / 2) * Math.PI) / 180);
 
 const TIER_INTENSITY: Record<QualityTier, number> = {
-  high: 0.45,
-  medium: 0.62,
-  low: 0.86,
+  high: 0.27,
+  medium: 0.39,
+  low: 0.56,
 };
 
 const TIER_SIZE_SCALE: Record<QualityTier, number> = {
@@ -138,7 +138,7 @@ function measureStage(
   const ndcY = 1 - (heroCenterY / Math.max(1, vh)) * 2;
   const markPx = (2.2 / (2 * halfWorldH)) * vh;
   const basePointSize =
-    9.2 * (baseCameraZ / 4.4) * Math.max(0.65, Math.min(1.65, markPx / 420));
+    9.2 * (baseCameraZ / 4.4) * Math.max(0.6, Math.min(1.65, markPx / 420));
 
   return {
     baseCameraZ,
@@ -337,6 +337,7 @@ export function ParticleLogo() {
       material.uniforms.uPixelRatio!.value = nextDpr;
       material.uniforms.uBaseSize!.value =
         metrics.basePointSize * TIER_SIZE_SCALE[tierRef.current];
+      material.uniforms.uIntensity!.value = TIER_INTENSITY[tierRef.current];
       dustMaterial.uniforms.uPixelRatio!.value = nextDpr;
 
       if (reducedRef.current) {

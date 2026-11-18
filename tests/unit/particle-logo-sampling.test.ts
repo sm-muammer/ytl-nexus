@@ -90,7 +90,7 @@ describe("particle logo sampling", () => {
     expect(faceShare).toBeLessThan(0.75);
   });
 
-  it("samples colours only from pixels with alpha > 0.5 and boosts by 1.15", () => {
+  it("samples exact un-recoloured RGB only from pixels with alpha > 0.5", () => {
     // Transparent pixels have vivid green (0, 255, 0, 100 -> alpha < 0.5).
     // Opaque pixels have Yes pink (200, 0, 100, 255).
     const width = 6;
@@ -117,8 +117,8 @@ describe("particle logo sampling", () => {
     const sampled = sampleParticlesFromPixels({ width, height, data }, 500, {
       seed: 7,
     });
-    const expectedR = (200 / 255) * 1.15;
-    const expectedB = (100 / 255) * 1.15;
+    const expectedR = 200 / 255;
+    const expectedB = 100 / 255;
 
     for (let i = 0; i < sampled.count; i++) {
       expect(sampled.colors[i * 3]).toBeCloseTo(expectedR, 4);

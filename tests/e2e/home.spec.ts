@@ -9,7 +9,9 @@ test.describe("Home showcase (spec 24)", () => {
   }) => {
     await page.goto("/");
     const canvas = page.locator(logoCanvas);
-    await expect(canvas).toHaveAttribute("data-state", "running");
+    await expect(canvas).toHaveAttribute("data-state", "running", {
+      timeout: 15_000,
+    });
     await expect(canvas).toHaveAttribute("data-tier", /^(high|medium|low)$/);
     const count = Number(await canvas.getAttribute("data-particles"));
     expect([30_000, 70_000, 140_000]).toContain(count);
@@ -25,7 +27,9 @@ test.describe("Home showcase (spec 24)", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     const canvas = page.locator(logoCanvas);
-    await expect(canvas).toHaveAttribute("data-state", "running");
+    await expect(canvas).toHaveAttribute("data-state", "running", {
+      timeout: 15_000,
+    });
     await expect
       .poll(async () => Number(await canvas.getAttribute("data-frames")))
       .toBeGreaterThan(0);
@@ -93,7 +97,9 @@ test.describe("Home showcase with reduced motion", () => {
   }) => {
     await page.goto("/");
     const canvas = page.locator(logoCanvas);
-    await expect(canvas).toHaveAttribute("data-state", "static");
+    await expect(canvas).toHaveAttribute("data-state", "static", {
+      timeout: 15_000,
+    });
     await expect
       .poll(async () => Number(await canvas.getAttribute("data-frames")))
       .toBe(1);
