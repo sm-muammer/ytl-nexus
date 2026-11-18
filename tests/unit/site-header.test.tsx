@@ -55,11 +55,11 @@ describe("SiteHeader navigation", () => {
       "/yes",
     );
 
-    // Atmosphere switcher header toggle
+    // Atmosphere switcher header toggle is removed per user request
     const atmosphereToggle = container.querySelector(
       "[data-atmosphere-toggle]",
     );
-    expect(atmosphereToggle).not.toBeNull();
+    expect(atmosphereToggle).toBeNull();
 
     // Command palette trigger
     const commandTrigger = container.querySelector(

@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                                                                                   |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Last completed              | **Navigation Polish & Hero Atmosphere Picker Removal:** hero section colophon distilled, atmosphere switcher restored to header, global nav responsive at `lg:`, and unit tests added (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                             |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                   |
-| Recommended model           | Any                                                                                                                                                                                                     |
-| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                          |
+| Item                        | Value                                                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Last completed              | **Signed-In Button & Atmosphere Removal:** styled signed-in pill button with role dot and chevron, upgraded drawer session card, and removed atmosphere controls from UI (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                      |
+| Recommended model           | Any                                                                                                                                                                                        |
+| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                             |
 
 ## Recent deployments
 
@@ -57,20 +57,19 @@
 
 ## Task log
 
-### Navigation Polish & Hero Atmosphere Picker Removal (done 2026-11-18)
+### Signed-In Button & Atmosphere Picker Removal Polish (done 2026-11-18)
 
-- **Hero Section Distillation (`app/(public)/page.tsx`):**
-  - Removed `<AtmosphereModeGroup />` from the `/` hero section colophon, keeping the hero headline, lead copy, CTAs, and builder attribution clean, focused, and uncluttered.
-- **Navigation Header Optimization (`components/layout/site-header.tsx`):**
-  - Re-integrated `<AtmosphereHeaderToggle />` directly into `SiteHeader` with responsive 1-click cycle toggling (Obsidian -> Blueprint -> Daylight -> Obsidian) matching WCAG AA contrast standards.
-  - Expanded primary navigation links (`Platform`, `Status`, `Library`, `Tour`, `Story`, `Yes`) to appear starting at `lg:` (1024px) instead of hiding them until `xl:` (1280px), eliminating the dead-space gap on laptop screens and tablet landscape orientations.
-  - Styled navigation links with refined tactile pills (`text-muted hover:text-ink hover:bg-surface-raised/40 aria-[current=page]:bg-surface-raised/80 aria-[current=page]:text-ink`).
-  - Aligned header container spacing with `justify-between` and balanced right controls (`AtmosphereHeaderToggle`, `CommandPalette`, `Sign in`, `NavSheet`).
-- **Tests & Quality Verification:**
-  - Added unit test suite `tests/unit/site-header.test.tsx` verifying brand landmark, global navigation links, atmosphere switcher, search, sign-in, and session badges.
-  - Updated `tests/unit/home-page.test.tsx` ensuring the hero section remains free of atmosphere pickers.
-  - Updated `tests/e2e/home.spec.ts` asserting atmosphere mode cycling via the navigation header toggle and zero axe accessibility violations.
-  - Verified `npm run format:check`, `npm run lint`, `npm run typecheck`, and all unit tests pass cleanly.
+- **Atmosphere Switcher Full Removal (`components/layout/nav-sheet.tsx`, `components/layout/site-header.tsx`, `app/(public)/page.tsx`):**
+  - Completely removed the 3-button atmosphere switcher (`[Obsidian] [Blueprint] [Daylight]`) from `NavSheet` (the drawer menu) and removed the toggle from `SiteHeader`, eliminating the atmosphere picker controls from the UI as requested.
+- **Signed-In & Sign-In Button Fixes (`components/layout/nav-sheet.tsx`, `components/layout/site-header.tsx`):**
+  - Styled `data-session-label` with consistent glass pill styling (`border-line bg-surface/60 text-ink hover:border-border-strong hover:bg-surface-raised`), role status dot, bold role name, and chevron indicator.
+  - Enabled the signed-in button on all viewports (`inline-flex min-h-11 min-w-11`), removing the `hidden md:inline-flex` restriction so mobile users can clearly see and interact with their session.
+  - Upgraded the account status area inside `NavSheet` into a structured card showing user role and quick links to "Account & Requests" and "Sign out".
+  - Ensured the "Sign in" button appears with proper pill borders for visitors (`actor === null`), making sign-in readily accessible regardless of mode.
+- **Tests & Verification:**
+  - Updated `tests/unit/site-header.test.tsx` verifying absence of atmosphere switcher and presence of fixed session label and sign-in buttons.
+  - Updated `tests/e2e/home.spec.ts` asserting complete removal of atmosphere elements and zero accessibility violations.
+  - Verified format, lint, typecheck, and unit test suites pass cleanly.
 
 ### Dedicated User Management (`/control/users`) & Platform Integration (done 2026-11-18)
 

@@ -10,7 +10,6 @@ import {
 import type { NexusMode } from "@/lib/server/mode";
 import { ROLE_LABEL } from "@/lib/roles";
 import { CommandPalette } from "@/components/navigation/command-palette";
-import { AtmosphereHeaderToggle } from "./atmosphere-switcher";
 import { NavLink } from "./nav-link";
 import { NavSheet, type SessionSummary, type SheetGroup } from "./nav-sheet";
 
@@ -113,13 +112,12 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5 lg:ml-0">
-          <AtmosphereHeaderToggle />
           <CommandPalette actor={actor} />
 
-          {session === null ? (
+          {actor === null ? (
             <NavLink
               href="/signin"
-              className="text-muted hover:text-ink hover:bg-surface-raised/40 hidden min-h-11 min-w-11 items-center rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors md:inline-flex"
+              className="border-line bg-surface/60 text-muted hover:border-border-strong hover:bg-surface-raised hover:text-ink inline-flex min-h-11 min-w-11 items-center rounded-full border px-4 text-xs font-medium whitespace-nowrap transition-colors duration-(--duration-fast)"
             >
               Sign in
             </NavLink>

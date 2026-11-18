@@ -6,7 +6,6 @@ import { signOutAction } from "@/lib/server/auth/actions";
 import { setDemoSession } from "@/lib/server/demo-session-actions";
 import { ROLES, ROLE_LABEL, type Role } from "@/lib/roles";
 import type { NexusMode } from "@/lib/server/mode";
-import { AtmosphereModeGroup } from "./atmosphere-switcher";
 import { NavLink } from "./nav-link";
 
 export type SheetItem = {
@@ -102,7 +101,7 @@ export function NavSheet({
           onClick={open}
           aria-haspopup="dialog"
           data-session-label
-          className="text-muted hover:text-ink hover:bg-surface-raised/60 hidden min-h-11 min-w-11 items-center gap-2 rounded-full px-3 text-xs transition-colors duration-(--duration-fast) md:inline-flex"
+          className="border-line bg-surface/60 text-ink hover:border-border-strong hover:bg-surface-raised inline-flex min-h-11 min-w-11 items-center gap-2 rounded-full border px-3.5 text-xs font-medium whitespace-nowrap transition-colors duration-(--duration-fast)"
         >
           <span
             aria-hidden="true"
@@ -110,11 +109,20 @@ export function NavSheet({
               session.demo ? "bg-pink-ink" : "bg-accent-ink"
             }`}
           />
-          <span className="whitespace-nowrap">{session.kicker}</span>
-          <span aria-hidden="true">·</span>
-          <span className="text-ink font-medium whitespace-nowrap">
-            {session.name}
+          <span className="text-muted">{session.kicker}</span>
+          <span aria-hidden="true" className="text-muted/60">
+            ·
           </span>
+          <span className="text-ink font-semibold">{session.name}</span>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 16 16"
+            className="text-muted ml-0.5 size-3 fill-none stroke-current stroke-2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m4 6 4 4 4-4" />
+          </svg>
         </button>
       ) : null}
       <button
@@ -188,17 +196,28 @@ export function NavSheet({
           </div>
 
           {session || !canSignOut ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-muted text-sm">
-                {session
-                  ? `${session.kicker ? `${session.kicker}: ` : ""}${session.name}`
-                  : "Not signed in"}
-              </span>
+            <div className="border-line bg-surface/40 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4">
+              <div className="flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className={`size-2.5 shrink-0 rounded-full ${
+                    session?.demo ? "bg-pink-ink" : "bg-accent-ink"
+                  }`}
+                />
+                <div className="flex flex-col">
+                  <span className="text-muted font-mono text-[11px] tracking-wide uppercase">
+                    {session?.kicker ?? "Visitor"}
+                  </span>
+                  <span className="text-ink text-sm font-semibold">
+                    {session?.name ?? "Not signed in"}
+                  </span>
+                </div>
+              </div>
               {session && session.initial !== null ? (
                 <NavLink
                   href="/account"
                   onNavigate={close}
-                  className="border-border-strong hover:bg-surface-raised inline-flex min-h-11 min-w-11 items-center rounded-full border px-4 text-xs font-medium"
+                  className="border-line bg-surface hover:border-border-strong hover:bg-surface-raised inline-flex min-h-10 items-center rounded-full border px-4 text-xs font-medium transition-colors"
                 >
                   Account &amp; Requests
                 </NavLink>
@@ -206,20 +225,13 @@ export function NavSheet({
                 <NavLink
                   href="/signin"
                   onNavigate={close}
-                  className="border-border-strong hover:bg-surface-raised text-ink inline-flex min-h-11 min-w-11 items-center rounded-full border px-4 text-xs font-medium transition-colors"
+                  className="border-line bg-surface hover:border-border-strong hover:bg-surface-raised text-ink inline-flex min-h-10 items-center rounded-full border px-4 text-xs font-medium transition-colors"
                 >
                   Sign in
                 </NavLink>
               ) : null}
             </div>
           ) : null}
-
-          <div className="border-line flex flex-wrap items-center justify-between gap-3 border-y py-3">
-            <span className="text-muted font-mono text-xs tracking-[0.18em] uppercase">
-              Atmosphere
-            </span>
-            <AtmosphereModeGroup />
-          </div>
 
           <nav aria-label="All modules" className="grid gap-8 sm:grid-cols-2">
             {groups.map((group) => (

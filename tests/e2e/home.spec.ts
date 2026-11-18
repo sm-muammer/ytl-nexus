@@ -92,7 +92,7 @@ test.describe("Home showcase (spec 24)", () => {
     });
   }
 
-  test("switches atmosphere modes between obsidian, blueprint and daylight with zero axe violations", async ({
+  test("renders the home showcase without atmosphere pickers and with zero axe violations", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -101,30 +101,9 @@ test.describe("Home showcase (spec 24)", () => {
 
     await expect(page.locator("[data-home-blueprint]")).toBeAttached();
 
-    // Verify hero section is free of atmosphere pickers
-    await expect(
-      page.locator(
-        "section[aria-labelledby='home-title'] [data-atmosphere-group]",
-      ),
-    ).toHaveCount(0);
-
-    const toggle = page.locator("[data-atmosphere-toggle]");
-    await expect(toggle).toBeVisible();
-
-    await toggle.click();
-    await expect(page.locator("html")).toHaveAttribute(
-      "data-atmosphere",
-      "blueprint",
-    );
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    expect(await blockingViolations(page)).toEqual([]);
-
-    await toggle.click();
-    await expect(page.locator("html")).toHaveAttribute(
-      "data-atmosphere",
-      "daylight",
-    );
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    // Verify hero section, navigation and sheet are free of atmosphere pickers
+    await expect(page.locator("[data-atmosphere-group]")).toHaveCount(0);
+    await expect(page.locator("[data-atmosphere-toggle]")).toHaveCount(0);
     expect(await blockingViolations(page)).toEqual([]);
   });
 });
