@@ -104,6 +104,7 @@ test.describe("Nexus Control Completion (Task 19)", () => {
 
     // KPI summary cards, filter toolbar, and all 4 demo accounts
     await expect(page.locator("[data-user-metrics]")).toBeVisible();
+    await expect(page.locator("[data-service-requests-queue]")).toBeVisible();
     await expect(page.locator("[data-user-filters]")).toBeVisible();
     const userRows = page.locator("[data-user-row]");
     await expect(userRows).toHaveCount(4);
@@ -135,4 +136,47 @@ test.describe("Nexus Control Completion (Task 19)", () => {
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
     expect(await blockingViolations(page)).toEqual([]);
   });
+
+  for (const role of ["member", "operator"] as const) {
+    test(`${role} accesses Account & Requests (/account), views profile, request form, sessions and passes a11y`, async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await signInAs(context, baseURL, role);
+      const res = await page.goto("/account");
+      expect(res?.status()).toBe(200);
+
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Account & Requests" }),
+      ).toBeVisible();
+      await expect(page.locator("[data-account-overview]")).toBeVisible();
+      await expect(page.locator("[data-account-profile]")).toBeVisible();
+      await expect(page.locator("[data-account-requests]")).toBeVisible();
+      await expect(page.locator("[data-account-request-list]")).toBeVisible();
+      await expect(page.locator("[data-account-security]")).toBeVisible();
+      await expect(page.locator("[data-account-sessions]")).toBeVisible();
+      await expect(page.locator("[data-account-audit]")).toBeVisible();
+
+      // Dynamic request category selector shows conditional fields
+      await page.getByLabel("Request category").selectOption("sftp-quota");
+      await expect(page.getByLabel("Requested quota (MiB)")).toBeVisible();
+      await page.getByLabel("Request category").selectOption("sftp-key");
+      await expect(page.getByLabel("OpenSSH public key (.pub)")).toBeVisible();
+
+      // Desktop (1440px) and mobile (390px) accessibility and layout checks
+      await page.setViewportSize({ width: 1440, height: 900 });
+      expect(await blockingViolations(page)).toEqual([]);
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      const scrollWidth = await page.evaluate(
+        () => document.documentElement.scrollWidth,
+      );
+      const clientWidth = await page.evaluate(
+        () => document.documentElement.clientWidth,
+      );
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+      expect(await blockingViolations(page)).toEqual([]);
+    });
+  }
 });

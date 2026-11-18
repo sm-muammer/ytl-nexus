@@ -10,7 +10,6 @@ import {
 import type { NexusMode } from "@/lib/server/mode";
 import { ROLE_LABEL } from "@/lib/roles";
 import { CommandPalette } from "@/components/navigation/command-palette";
-import { AtmosphereHeaderToggle } from "./atmosphere-switcher";
 import { NavLink } from "./nav-link";
 import { NavSheet, type SessionSummary, type SheetGroup } from "./nav-sheet";
 
@@ -24,7 +23,7 @@ const SHORT: Record<string, string> = {
 };
 
 const linkClass =
-  "text-muted hover:text-ink aria-[current=page]:text-ink inline-flex whitespace-nowrap min-h-11 items-center rounded-md px-3 text-sm font-medium transition-colors duration-(--duration-fast)";
+  "text-muted hover:text-ink aria-[current=page]:text-ink inline-flex whitespace-nowrap min-h-11 items-center rounded-md px-2.5 xl:px-3 text-sm font-medium transition-colors duration-(--duration-fast)";
 
 /**
  * Banner landmark for both registers: brand, global navigation, the module
@@ -103,7 +102,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
 
         <nav
           aria-label="Global"
-          className="ml-auto hidden items-center gap-1 xl:flex"
+          className="mx-auto hidden items-center gap-0.5 xl:flex"
         >
           {primary.map((item) => (
             <NavLink key={item.href} href={item.href} className={linkClass}>
@@ -112,25 +111,16 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
           ))}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5 xl:ml-4">
-          <AtmosphereHeaderToggle />
+        <div className="ml-auto flex shrink-0 items-center gap-2 xl:ml-0">
           <CommandPalette actor={actor} />
 
-          {actor === null ? (
-            <div className="flex items-center gap-1.5 pl-1">
-              <NavLink
-                href="/signin"
-                className="text-muted hover:text-ink hidden min-h-9 items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors md:inline-flex"
-              >
-                Sign in
-              </NavLink>
-              <NavLink
-                href="/signin?tab=signup"
-                className="hidden min-h-9 items-center rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)] transition-all hover:border-cyan-400 hover:bg-cyan-500/20 md:inline-flex"
-              >
-                Sign up
-              </NavLink>
-            </div>
+          {session === null ? (
+            <NavLink
+              href="/signin"
+              className="text-muted hover:text-ink hidden min-h-11 min-w-11 items-center rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors md:inline-flex"
+            >
+              Sign in
+            </NavLink>
           ) : null}
 
           <NavSheet

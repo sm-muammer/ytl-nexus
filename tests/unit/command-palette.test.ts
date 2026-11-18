@@ -27,6 +27,14 @@ function getSearchItems(actor: Actor) {
       }
     }
   }
+  if (meetsRole(actor, "viewer")) {
+    items.push({
+      id: "account",
+      title: "Account & Requests",
+      href: "/account",
+      group: "manage",
+    });
+  }
   return items;
 }
 
@@ -43,6 +51,8 @@ describe("Command Palette Indexer & Concealment", () => {
     const operatorItems = getSearchItems({ userId: "u2", role: "operator" });
     expect(operatorItems.some((i) => i.id === "control")).toBe(false);
     expect(operatorItems.some((i) => i.href === "/control/users")).toBe(false);
+    expect(operatorItems.some((i) => i.href === "/account")).toBe(true);
+    expect(visitorItems.some((i) => i.href === "/account")).toBe(false);
   });
 
   it("exposes Nexus Control and User Management to Administrators only", () => {

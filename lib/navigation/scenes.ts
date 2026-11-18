@@ -78,6 +78,7 @@ const SCENES: Record<string, SceneConfig> = {
   "/continuity": { tint: "shield", pattern: "hex" },
   "/shield": { tint: "shield", pattern: "grid" },
   "/studio": { tint: "library", pattern: "dots" },
+  "/account": { tint: "flow", pattern: "dots" },
   "/control": { tint: "quiet", pattern: "hex" },
   "/control/users": { tint: "quiet", pattern: "lines" },
   "/design": { tint: "aurora", pattern: "grid" },

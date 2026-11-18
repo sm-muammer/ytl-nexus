@@ -10,8 +10,13 @@ import {
   revokeSessionsAction,
   updateUserNameAction,
   dismissStageRequestAction,
+  resolveUserRequestAction,
   deleteUserAction,
 } from "@/lib/server/control-actions";
+import {
+  USER_REQUEST_CATEGORY_LABEL,
+  type UserRequestDto,
+} from "@/lib/fixtures/account";
 import {
   createAccountAction,
   setEnabledAction as setTransferEnabledAction,
@@ -276,6 +281,143 @@ function StageUpgradeQueue({
       <ul className="mt-4 flex flex-col gap-3">
         {pending.map((u) => (
           <StageRequestItem key={u.id} user={u} demo={demo} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ServiceRequestItem({
+  req,
+  demo,
+}: {
+  req: UserRequestDto;
+  demo?: boolean;
+}) {
+  const [state, action] = useActionState(resolveUserRequestAction, null);
+  const [note, setNote] = useState("");
+
+  return (
+    <li
+      data-service-request-row
+      className="border-line/60 bg-surface/60 flex flex-col gap-3 rounded-lg border p-3.5"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded border border-cyan-500/40 bg-cyan-500/15 px-2 py-0.5 font-mono text-[11px] font-semibold text-cyan-300">
+              {USER_REQUEST_CATEGORY_LABEL[req.category]}
+            </span>
+            <span className="text-muted font-mono text-xs">
+              {req.createdAt.slice(0, 10)}
+            </span>
+          </div>
+          <p className="text-ink mt-1.5 text-sm font-medium">{req.title}</p>
+          <p className="text-muted text-data mt-0.5 text-xs">
+            From {req.userName} ({req.userEmail} · {ROLE_LABEL[req.userRole]})
+            {req.requestedRole
+              ? ` · Target role: ${ROLE_LABEL[req.requestedRole]}`
+              : ""}
+            {req.requestedQuotaMb !== undefined
+              ? ` · Requested quota: ${req.requestedQuotaMb} MiB`
+              : ""}
+          </p>
+          <p className="text-muted mt-1.5 text-xs italic">
+            &ldquo;{req.reason}&rdquo;
+          </p>
+          {req.sshPublicKey ? (
+            <p className="text-muted mt-1 font-mono text-[11px] break-all">
+              Public key: {req.sshPublicKey.slice(0, 80)}
+              {req.sshPublicKey.length > 80 ? "..." : ""}
+            </p>
+          ) : null}
+        </div>
+
+        <form
+          action={action}
+          className="flex flex-col gap-2 sm:flex-row sm:items-center"
+        >
+          <input type="hidden" name="requestId" value={req.id} />
+          <input
+            type="text"
+            name="resolutionNote"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={300}
+            disabled={demo}
+            aria-label={`Administrator note for request ${req.title}`}
+            placeholder="Optional resolution note..."
+            className="border-line bg-surface min-h-11 rounded-md border px-3 text-xs sm:w-56"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="submit"
+              name="decision"
+              value="approve"
+              disabled={demo}
+              className="bg-accent-ink text-canvas min-h-11 rounded-full px-4 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              Approve &amp; Fulfill
+              <span className="sr-only"> {req.title}</span>
+            </button>
+            <button
+              type="submit"
+              name="decision"
+              value="dismiss"
+              disabled={demo}
+              className="border-border-strong hover:bg-surface-raised min-h-11 rounded-full border px-4 text-xs font-medium disabled:opacity-60"
+            >
+              Dismiss
+              <span className="sr-only"> {req.title}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div role="status" aria-live="polite" className="text-xs">
+        {state && "error" in state ? (
+          <span className="text-bad-ink">{state.error}</span>
+        ) : null}
+        {state && "done" in state ? (
+          <span className="text-emerald-400">
+            Request marked {state.status}.
+          </span>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
+function ServiceRequestsQueue({
+  serviceRequests,
+  demo,
+}: {
+  serviceRequests?: readonly UserRequestDto[];
+  demo?: boolean;
+}) {
+  const pending = (serviceRequests ?? []).filter((r) => r.status === "pending");
+  if (pending.length === 0) return null;
+
+  return (
+    <div
+      data-service-requests-queue
+      className="rounded-xl border border-cyan-500/35 bg-cyan-950/15 p-5"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-base font-semibold text-cyan-200">
+            Pending Member &amp; Operator Service Requests ({pending.length})
+          </h3>
+          <p className="text-muted mt-0.5 text-xs">
+            Self-service requests submitted via Account &amp; Requests
+            (/account): stage promotions, SFTP accounts, SSH keys, quotas, and
+            internal mailboxes.
+          </p>
+        </div>
+      </div>
+      <ul className="mt-4 flex flex-col gap-3">
+        {pending.map((req) => (
+          <ServiceRequestItem key={req.id} req={req} demo={demo} />
         ))}
       </ul>
     </div>
@@ -1366,10 +1508,12 @@ function AccountLifecycleDrawer({
 export function ControlUsers({
   users,
   auditEvents,
+  serviceRequests,
   demo = false,
 }: {
   users: readonly ControlUser[];
   auditEvents?: readonly AuditEventDto[];
+  serviceRequests?: readonly UserRequestDto[];
   demo?: boolean;
 }) {
   const [search, setSearch] = useState("");
@@ -1416,6 +1560,8 @@ export function ControlUsers({
   return (
     <div className="flex flex-col gap-6">
       <UserMetrics users={users} />
+
+      <ServiceRequestsQueue serviceRequests={serviceRequests} demo={demo} />
 
       <StageUpgradeQueue users={users} demo={demo} />
 

@@ -5,19 +5,21 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                                    |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Last completed              | **Deployment & Verification (`037e4eb`):** deployed User Management page (`/control/users`) to Nexus Core 01; 86/86 smoke tests passed (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                              |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                    |
-| Recommended model           | Any                                                                                                                                                      |
-| Start the next session with | `Platform, Tour and User Management fully live and verified: ready for final handover presentation`                                                      |
+| Item                        | Value                                                                                                                                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Last completed              | **Self-Service Account & Requests (`/account`):** profile editor, request submission & tracking (promotions, SFTP, SSH keys, mail, quotas, general), password rotation, session management, and Control fulfillment queue (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                                                                 |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                                                       |
+| Recommended model           | Any                                                                                                                                                                                                                                         |
+| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                                                              |
 
 ## Recent deployments
 
 - **2026-11-18:** Deployed commit `037e4eb83c9962e7597e364f70b3da1df2f56d51` to Nexus Core 01 via `./infrastructure/scripts/deploy-remote HEAD`. Next.js standalone build compiled with 33 static/dynamic routes. Migrations verified. Database grants reapplied. Swapped symlink atomically. Post-deploy smoke test passed with 86 passed, 0 failed checks (TLS certificates, redirects, CSP headers, loopback listeners, `/control/users` 404 for unauthenticated visitors, background systemd services). Old release `00a255f3` safely pruned.
 
 ## Owner actions waiting
+
+- **Inspect Account & Requests (`/account`) as Member / Operator / Admin:** sign in as any workspace user on `https://ytl-nexus.ytlcomms.my` (or locally), open **Account & Requests** via the sidebar (`Manage`), Command Palette (<kbd>Cmd</kbd>+<kbd>K</kbd>), menu drawer session strip, or links on `/command`, `/transfer`, and `/mail`. Edit profile fields (display name, job title, department, phone, default SSH public key, bio), submit and withdraw service/promotion requests (`#requests`), change your password with optional revocation of other sessions, inspect/sign out active sessions, review linked SFTP/mail status, and verify that pending requests appear in `/control/users` for one-click **Approve & Fulfill** / **Dismiss** by an Administrator.
 
 - **Inspect User Management (`/control/users`) in a browser:** sign in as an Administrator on `https://ytl-nexus.ytlcomms.my` (or locally), navigate via the sidebar or Command Palette (<kbd>Cmd</kbd>+<kbd>K</kbd>) to **User Management** (`/control/users`). Verify KPI summary cards, pending stage promotion queue (approve/dismiss), search/role/status filtering, single-form account creation with optional SFTP/mailbox auto-provisioning, inline subsystem provisioning/credential rotation, display name updates, per-user recent audit activity, and email-confirmed deletion.
 - **Inspect Home Showcase (Spec 24) in a browser:** open `http://localhost:3000/` (or `https://ytl-nexus.ytlcomms.my/` after deploying to Nexus Core 01). Verify the high-definition 3D particle Yes logomark over the harmonized obsidian-violet backdrop (`.nx-tint-aurora`): stratified Sobel-normal shading eliminates back-face ghosting and highlights extruded edges, orbital dust rings rotate around the mark, it converges on load, smoothly rotates when idle, tilts and ripples around your pointer (or touch/drag), responds to horizontal trackpad scrolling, scatters into an ambient nebula behind the Project Facts strip, glass Modules bento grid, and animated 3-tier Architecture teaser, and re-forms when you scroll back up. Also verify the clean editorial hero layout with your attribution (**Muammer**) in the lead copy, hairline colophon, and About disclosure.
@@ -117,6 +119,9 @@
   - Built pure `lib/design/atmosphere.ts` (`Obsidian`, `Blueprint`, `Daylight` modes) and `components/layout/atmosphere-switcher.tsx` (`AtmosphereHeaderToggle`, `AtmosphereModeGroup`) using `useSyncExternalStore` + `localStorage` persistence, integrated into `SiteHeader`, `NavSheet`, and the `/` hero colophon.
   - Locked `data-theme="dark"` with `bg-canvas/95` / `bg-surface/95` on `SiteHeader` and `SiteFooter` so reverse-white YTL wordmarks retain WCAG AA contrast in `Daylight` (`light`) mode.
   - Added unit tests in `tests/unit/atmosphere.test.ts` and `tests/unit/home-page.test.tsx`, plus E2E mode-switching & axe verification in `tests/e2e/home.spec.ts`.
+- **Navigation Bar Distillation (`components/layout/site-header.tsx`, `components/layout/nav-sheet.tsx`, `components/navigation/command-palette.tsx`, done 2026-11-18):**
+  - Distilled `SiteHeader` into a calm, balanced 3-zone layout (Brand left, centered 6-link `<nav aria-label="Global">` at `xl:`, and right controls): removed `<AtmosphereHeaderToggle />` and duplicate unauthenticated `Sign up` neon chrome from the top bar while keeping `Sign in` inside `NavSheet` (and when `session === null`).
+  - Compacted `[data-command-palette-trigger]` (`CommandPalette`) into a quiet `44×44 px` magnifier + `⌘K` pill and streamlined `[data-session-label]` (`NavSheet`) into a single-line status indicator (`Demo session · ...`) with semantic tokens on `"All modules"`.
 
 ### Nexus Tour Full Content Seed & Resilience (`/tour`) (done 2026-11-18)
 

@@ -5,6 +5,7 @@ import type { MetadataRoute } from "next";
 // administration area exists. Control relies on its noindex metadata and, from
 // Task 6, on answering non-administrators with the same 404 as any unknown path.
 const WORKSPACE_PATHS = [
+  "/account",
   "/command",
   "/ai",
   "/transfer",

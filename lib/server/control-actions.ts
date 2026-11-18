@@ -11,6 +11,8 @@ import {
   revokeSessionsAsAdmin,
   changeUserRole,
   clearStageRequest,
+  findUserRequestById,
+  resolveUserRequestRecord,
   setUserBanned,
   resetTwoFactor as resetUserTwoFactor,
   createAccount,
@@ -27,6 +29,7 @@ import {
   type RevokeSessionsState,
   type UpdateUserNameState,
   type DismissStageRequestState,
+  type ResolveUserRequestState,
   type DeleteUserState,
 } from "@/lib/server/auth/form-state";
 import { getAuthRuntime } from "@/lib/server/auth/runtime";
@@ -51,6 +54,7 @@ const MB = 1024 * 1024;
 function revalidateControl() {
   revalidatePath("/control");
   revalidatePath("/control/users");
+  revalidatePath("/account");
 }
 
 function deriveSubsystemHandle(email: string): string {
@@ -245,7 +249,7 @@ const changeRole = guardAction(
     const email = await findUserEmail(rt, input.userId);
     if (!email) return { ok: false as const, error: "not-found" as const };
     await changeUserRole(rt, input.userId, input.role as Role);
-    await clearStageRequest(rt, input.userId);
+    await clearStageRequest(rt, input.userId, "approved");
     revalidateControl();
     return { ok: true as const, email, role: input.role as Role };
   },
@@ -582,6 +586,207 @@ export async function deleteUserAction(
       return { error: MESSAGES.confirmEmailMismatch };
     case "not-found":
       return { error: MESSAGES.notFound };
+    case "demo":
+      return { error: MESSAGES.demo };
+    case "step-up-required":
+      return { error: MESSAGES.stepUpRequired };
+    case "invalid-input":
+      return { error: MESSAGES.invalidInput };
+    default:
+      return { error: MESSAGES.genericFailure };
+  }
+}
+
+const resolveUserRequestSchema = z.object({
+  requestId: z.string().trim().min(4).max(64),
+  decision: z.enum(["approve", "dismiss"]),
+  resolutionNote: z.string().trim().max(300).optional(),
+});
+
+const resolveUserRequest = guardAction(
+  {
+    id: "control.user.resolve-request",
+    schema: resolveUserRequestSchema,
+    target: (i) => `request:${i.requestId}`,
+  },
+  async (input, ctx) => {
+    if (getMode() === "demo")
+      return { ok: false as const, error: "demo" as const };
+    const rt = getAuthRuntime();
+    const req = await findUserRequestById(rt, input.requestId);
+    if (!req || req.status !== "pending") {
+      return { ok: false as const, error: "not-found" as const };
+    }
+    const resolverEmail =
+      ctx.identity.kind === "user"
+        ? ((await findUserEmail(rt, ctx.identity.userId)) ?? "Administrator")
+        : "Administrator";
+
+    const nextStatus =
+      input.decision === "approve"
+        ? ("approved" as const)
+        : ("dismissed" as const);
+
+    if (input.decision === "approve") {
+      if (req.category === "role-upgrade" && req.requestedRole) {
+        if (ctx.identity.kind === "user" && ctx.owns(req.userId)) {
+          return { ok: false as const, error: "self-role" as const };
+        }
+        await changeUserRole(rt, req.userId, req.requestedRole);
+        await clearStageRequest(rt, req.userId, "approved");
+      } else if (req.category === "sftp-provision") {
+        const sftpgoConfig = readSftpgoConfig();
+        const handle = deriveSubsystemHandle(req.userEmail);
+        const parsedHandle = usernameSchema.safeParse(handle);
+        if (sftpgoConfig && parsedHandle.success) {
+          try {
+            const client = createSftpgoClient(sftpgoConfig);
+            await client.createAccount({
+              username: parsedHandle.data,
+              password: generatePassword(),
+              nexusUserId: req.userId,
+              quotaBytes: (req.requestedQuotaMb ?? 1024) * MB,
+              email: req.userEmail,
+            });
+          } catch {
+            // Best-effort subsystem provisioning; resolution still completes.
+          }
+        }
+      } else if (
+        req.category === "sftp-quota" &&
+        req.requestedQuotaMb !== undefined
+      ) {
+        const sftpgoConfig = readSftpgoConfig();
+        if (sftpgoConfig) {
+          try {
+            const client = createSftpgoClient(sftpgoConfig);
+            const all = await client.listAccounts();
+            const found = all.find((a) => a.nexusUserId === req.userId);
+            if (found) {
+              await client.setQuota(found.username, req.requestedQuotaMb * MB);
+            }
+          } catch {
+            // Best-effort quota adjustment.
+          }
+        }
+      } else if (req.category === "sftp-key" && req.sshPublicKey) {
+        const sftpgoConfig = readSftpgoConfig();
+        if (sftpgoConfig) {
+          try {
+            const client = createSftpgoClient(sftpgoConfig);
+            const all = await client.listAccounts();
+            const found = all.find((a) => a.nexusUserId === req.userId);
+            if (found) {
+              await client.addKey(found.username, req.sshPublicKey);
+            }
+          } catch {
+            // Best-effort SSH key registration.
+          }
+        }
+      } else if (req.category === "mail-provision") {
+        const mailConfig = readMailDbConfig();
+        const handle = deriveSubsystemHandle(req.userEmail);
+        const parsedLocal = localPartSchema.safeParse(handle);
+        if (mailConfig && parsedLocal.success) {
+          const db = createMailDb(mailConfig);
+          try {
+            const domain = await db
+              .selectFrom("virtual_domains")
+              .select("id")
+              .where("name", "=", MAIL_DOMAIN)
+              .executeTakeFirst();
+            if (domain) {
+              const existingMail = await db
+                .selectFrom("virtual_users")
+                .select("id")
+                .where("domain_id", "=", domain.id)
+                .where("local_part", "=", parsedLocal.data)
+                .executeTakeFirst();
+              if (!existingMail) {
+                const address = `${parsedLocal.data}@${MAIL_DOMAIN}`;
+                const mailQuota =
+                  Math.min(req.requestedQuotaMb ?? 512, MAIL_QUOTA_MB_MAX) * MB;
+                await db
+                  .insertInto("virtual_users")
+                  .values({
+                    domain_id: domain.id,
+                    local_part: parsedLocal.data,
+                    email: address,
+                    password: hashMailPassword(generatePassword()),
+                    quota_bytes: mailQuota,
+                    enabled: 1,
+                    nexus_user_id: req.userId,
+                  })
+                  .execute();
+              }
+            }
+          } catch {
+            // Best-effort subsystem provisioning.
+          } finally {
+            await db.destroy().catch(() => {});
+          }
+        }
+      } else if (
+        req.category === "mail-quota" &&
+        req.requestedQuotaMb !== undefined
+      ) {
+        const mailConfig = readMailDbConfig();
+        if (mailConfig) {
+          const db = createMailDb(mailConfig);
+          try {
+            const mailQuota =
+              Math.min(req.requestedQuotaMb, MAIL_QUOTA_MB_MAX) * MB;
+            await db
+              .updateTable("virtual_users")
+              .set({ quota_bytes: mailQuota })
+              .where("nexus_user_id", "=", req.userId)
+              .execute();
+          } catch {
+            // Best-effort mailbox quota adjustment.
+          } finally {
+            await db.destroy().catch(() => {});
+          }
+        }
+      }
+    } else if (req.category === "role-upgrade") {
+      await clearStageRequest(rt, req.userId, "dismissed");
+    }
+
+    await resolveUserRequestRecord(rt, input.requestId, {
+      status: nextStatus,
+      resolvedBy: resolverEmail,
+      resolutionNote: input.resolutionNote,
+    });
+    revalidateControl();
+    return {
+      ok: true as const,
+      requestId: input.requestId,
+      status: nextStatus,
+    };
+  },
+);
+
+export async function resolveUserRequestAction(
+  _previous: ResolveUserRequestState,
+  formData: FormData,
+): Promise<ResolveUserRequestState> {
+  const result = await resolveUserRequest({
+    requestId: formData.get("requestId") ?? "",
+    decision: formData.get("decision") ?? "",
+    resolutionNote: formData.get("resolutionNote") || undefined,
+  });
+  if (result.ok) {
+    return {
+      done: true,
+      requestId: result.requestId,
+      status: result.status,
+    };
+  }
+  switch (result.error) {
+    case "self-role":
+      return { error: MESSAGES.selfRole };
+    case "not-found":
+      return { error: MESSAGES.requestNotFound };
     case "demo":
       return { error: MESSAGES.demo };
     case "step-up-required":

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { requestStageUpgradeAction } from "@/lib/server/auth/actions";
 import { ROLE_LABEL, type Role } from "@/lib/roles";
@@ -33,15 +34,23 @@ export function StageUpgradeBanner({ currentRole }: { currentRole: Role }) {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-300 transition-colors hover:border-cyan-400 hover:bg-cyan-500/20"
-        >
-          {open
-            ? "Close"
-            : `Request Stage ${stageNum} (${ROLE_LABEL[targetRole]})`}
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/account#requests"
+            className="border-line text-muted hover:border-ink hover:text-ink inline-flex min-h-11 items-center rounded-lg border px-3 text-xs font-medium transition-colors"
+          >
+            Edit profile &amp; all requests →
+          </Link>
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="min-h-11 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 text-xs font-medium text-cyan-300 transition-colors hover:border-cyan-400 hover:bg-cyan-500/20"
+          >
+            {open
+              ? "Close"
+              : `Request Stage ${stageNum} (${ROLE_LABEL[targetRole]})`}
+          </button>
+        </div>
       </div>
 
       {open ? (

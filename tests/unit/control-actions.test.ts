@@ -67,6 +67,24 @@ vi.mock("@/lib/server/auth/service", () => ({
   createAccount: async () => ({ id: "user-created" }),
   changeUserRole: async () => {},
   clearStageRequest: async () => {},
+  findUserRequestById: async (_rt: unknown, reqId: string) =>
+    reqId === "req-role-1"
+      ? {
+          id: "req-role-1",
+          userId: "user-target",
+          userEmail: "target@example.com",
+          userName: "Target",
+          userRole: "member",
+          category: "role-upgrade",
+          title: "Promote to Operator",
+          requestedRole: "operator",
+          reason: "Night shift access",
+          status: "pending",
+          createdAt: "2026-11-18T00:00:00.000Z",
+          updatedAt: "2026-11-18T00:00:00.000Z",
+        }
+      : null,
+  resolveUserRequestRecord: async () => null,
   setUserBanned: async () => {},
   resetTwoFactor: async () => {},
   resetPasswordAsAdmin: async () => {},
@@ -326,5 +344,37 @@ describe("Nexus Control User Actions", () => {
         result: "success",
       }),
     ]);
+  });
+
+  it("resolves (approves or dismisses) a pending user service request and audits once", async () => {
+    const actions = await import("@/lib/server/control-actions");
+
+    const okForm = new FormData();
+    okForm.set("requestId", "req-role-1");
+    okForm.set("decision", "approve");
+    okForm.set("resolutionNote", "Approved for night shift");
+    const result = await actions.resolveUserRequestAction(null, okForm);
+    expect(result).toEqual({
+      done: true,
+      requestId: "req-role-1",
+      status: "approved",
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        action: "control.user.resolve-request",
+        target: "request:req-role-1",
+        result: "success",
+      }),
+    ]);
+
+    events.length = 0;
+    const missingForm = new FormData();
+    missingForm.set("requestId", "req-missing");
+    missingForm.set("decision", "dismiss");
+    expect(await actions.resolveUserRequestAction(null, missingForm)).toEqual({
+      error: "That request no longer exists or is already resolved.",
+    });
+    expect(events[0]).toMatchObject({ result: "failure" });
   });
 });

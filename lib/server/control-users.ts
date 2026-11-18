@@ -1,25 +1,30 @@
 import "server-only";
+import { demoAllUserRequests } from "@/lib/fixtures/account";
 import { demoControlUsers } from "@/lib/fixtures/control-users";
 import { listAuditEvents } from "@/lib/server/audit";
 import { getAuthRuntime } from "@/lib/server/auth/runtime";
-import { listUsersForAdmin } from "@/lib/server/auth/service";
+import { listUserRequests, listUsersForAdmin } from "@/lib/server/auth/service";
 import { readAllMailboxes } from "@/lib/server/mail";
 import { getMode } from "@/lib/server/mode";
 import { readAllAccounts } from "@/lib/server/transfer";
 
 /**
  * Loads the Administrator user directory combined with linked SFTPGo transfer
- * accounts, virtual mailboxes, and recent audit events for Nexus Control.
+ * accounts, virtual mailboxes, pending user service requests, and recent audit events
+ * for Nexus Control.
  */
 export async function readControlUsersSnapshot() {
   const demo = getMode() === "demo";
   const users = demo
     ? demoControlUsers
     : await listUsersForAdmin(getAuthRuntime());
-  const [transfer, mail, auditEvents] = await Promise.all([
+  const [transfer, mail, auditEvents, serviceRequests] = await Promise.all([
     readAllAccounts(),
     readAllMailboxes(),
     listAuditEvents({}, 100),
+    demo
+      ? Promise.resolve([...demoAllUserRequests])
+      : listUserRequests(getAuthRuntime()).catch(() => []),
   ]);
 
   const transferAccounts = transfer.state === "ready" ? transfer.accounts : [];
@@ -43,5 +48,6 @@ export async function readControlUsersSnapshot() {
     transfer,
     mail,
     auditEvents,
+    serviceRequests,
   };
 }

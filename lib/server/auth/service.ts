@@ -1,7 +1,16 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { sql } from "kysely";
 import QRCode from "qrcode";
 import { z } from "zod";
+import {
+  EMPTY_PROFILE_META,
+  USER_REQUEST_CATEGORIES,
+  type OwnSessionDto,
+  type UserProfileMeta,
+  type UserRequestCategory,
+  type UserRequestDto,
+  type UserRequestStatus,
+} from "../../fixtures/account.ts";
 import { ROLES, type Role } from "../../roles.ts";
 import type { Identity } from "../policy.ts";
 import type { AuthRuntime } from "./create-auth.ts";
@@ -333,7 +342,7 @@ export function parseStageRequest(banReason: string | null | undefined): {
   return null;
 }
 
-export async function requestStageUpgrade(
+async function syncStageRequestBanReason(
   rt: AuthRuntime,
   userId: string,
   role: Role,
@@ -353,9 +362,32 @@ export async function requestStageUpgrade(
     .execute();
 }
 
+export async function requestStageUpgrade(
+  rt: AuthRuntime,
+  userId: string,
+  role: Role,
+  reason?: string,
+): Promise<void> {
+  await syncStageRequestBanReason(rt, userId, role, reason);
+  const existing = await listUserRequests(rt, userId);
+  const hasPendingRoleUpgrade = existing.some(
+    (r) => r.category === "role-upgrade" && r.status === "pending",
+  );
+  if (!hasPendingRoleUpgrade) {
+    await createUserRequest(rt, {
+      userId,
+      category: "role-upgrade",
+      title: `Stage promotion request to ${role}`,
+      requestedRole: role,
+      reason: reason?.trim() || `Requested promotion to ${role}.`,
+    });
+  }
+}
+
 export async function clearStageRequest(
   rt: AuthRuntime,
   userId: string,
+  resolutionStatus: "approved" | "dismissed" = "dismissed",
 ): Promise<void> {
   const user = await rt.db
     .selectFrom("user")
@@ -368,6 +400,33 @@ export async function clearStageRequest(
       .set({ banReason: null })
       .where("id", "=", userId)
       .execute();
+  }
+  const rows = await rt.db
+    .selectFrom("verification")
+    .select(["id", "value"])
+    .where("identifier", "=", `${REQUEST_PREFIX}${userId}`)
+    .execute();
+  const nowDate = new Date();
+  for (const row of rows) {
+    const payload = parseRequestPayload(row.value);
+    if (
+      payload &&
+      payload.category === "role-upgrade" &&
+      payload.status === "pending"
+    ) {
+      await rt.db
+        .updateTable("verification")
+        .set({
+          value: JSON.stringify({
+            ...payload,
+            status: resolutionStatus,
+            updatedAt: nowDate.toISOString(),
+          }),
+          updatedAt: nowDate,
+        })
+        .where("id", "=", row.id)
+        .execute();
+    }
   }
 }
 
@@ -530,7 +589,515 @@ export async function deleteUserAccount(
   await rt.db.deleteFrom("twoFactor").where("userId", "=", userId).execute();
   await rt.db.deleteFrom("session").where("userId", "=", userId).execute();
   await rt.db.deleteFrom("account").where("userId", "=", userId).execute();
+  await rt.db
+    .deleteFrom("verification")
+    .where("identifier", "in", [
+      `${PROFILE_PREFIX}${userId}`,
+      `${REQUEST_PREFIX}${userId}`,
+    ])
+    .execute();
   await rt.db.deleteFrom("user").where("id", "=", userId).execute();
+}
+
+// ---- Self-service Profile, Requests, Password & Sessions --------------------------
+
+const PROFILE_PREFIX = "nexus:profile:";
+const REQUEST_PREFIX = "nexus:request:";
+const NON_EXPIRING = new Date("2099-12-31T23:59:59.000Z");
+
+export type OwnUserSummary = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  twoFactorEnabled: boolean;
+  createdAt: string;
+};
+
+export async function readUserSummary(
+  rt: AuthRuntime,
+  userId: string,
+): Promise<OwnUserSummary | null> {
+  const row = await rt.db
+    .selectFrom("user")
+    .select(["id", "name", "email", "role", "twoFactorEnabled", "createdAt"])
+    .where("id", "=", userId)
+    .executeTakeFirst();
+  if (!row || !isRole(row.role)) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    twoFactorEnabled: Boolean(row.twoFactorEnabled),
+    createdAt: new Date(row.createdAt).toISOString(),
+  };
+}
+
+export async function readUserProfileMeta(
+  rt: AuthRuntime,
+  userId: string,
+): Promise<UserProfileMeta> {
+  const row = await rt.db
+    .selectFrom("verification")
+    .select(["value", "updatedAt"])
+    .where("identifier", "=", `${PROFILE_PREFIX}${userId}`)
+    .orderBy("updatedAt", "desc")
+    .executeTakeFirst();
+  if (!row) return EMPTY_PROFILE_META;
+  try {
+    const parsed = JSON.parse(row.value) as Partial<UserProfileMeta>;
+    return {
+      jobTitle: typeof parsed.jobTitle === "string" ? parsed.jobTitle : "",
+      department:
+        typeof parsed.department === "string" ? parsed.department : "",
+      phone: typeof parsed.phone === "string" ? parsed.phone : "",
+      sshPublicKey:
+        typeof parsed.sshPublicKey === "string" ? parsed.sshPublicKey : "",
+      bio: typeof parsed.bio === "string" ? parsed.bio : "",
+      updatedAt:
+        typeof parsed.updatedAt === "string"
+          ? parsed.updatedAt
+          : new Date(row.updatedAt).toISOString(),
+    };
+  } catch {
+    return EMPTY_PROFILE_META;
+  }
+}
+
+export async function writeUserProfileMeta(
+  rt: AuthRuntime,
+  userId: string,
+  input: {
+    name?: string;
+    jobTitle: string;
+    department: string;
+    phone: string;
+    sshPublicKey: string;
+    bio: string;
+  },
+  now: number = Date.now(),
+): Promise<UserProfileMeta> {
+  const nowDate = new Date(now);
+  const nowIso = nowDate.toISOString();
+  if (input.name && input.name.trim()) {
+    await rt.db
+      .updateTable("user")
+      .set({ name: input.name.trim(), updatedAt: nowDate })
+      .where("id", "=", userId)
+      .execute();
+  }
+
+  const meta: UserProfileMeta = {
+    jobTitle: input.jobTitle.trim(),
+    department: input.department.trim(),
+    phone: input.phone.trim(),
+    sshPublicKey: input.sshPublicKey.trim(),
+    bio: input.bio.trim(),
+    updatedAt: nowIso,
+  };
+
+  const identifier = `${PROFILE_PREFIX}${userId}`;
+  const existing = await rt.db
+    .selectFrom("verification")
+    .select("id")
+    .where("identifier", "=", identifier)
+    .executeTakeFirst();
+
+  if (existing) {
+    await rt.db
+      .updateTable("verification")
+      .set({
+        value: JSON.stringify(meta),
+        expiresAt: NON_EXPIRING,
+        updatedAt: nowDate,
+      })
+      .where("id", "=", existing.id)
+      .execute();
+  } else {
+    await rt.db
+      .insertInto("verification")
+      .values({
+        id: `prof-${userId.slice(0, 56)}`,
+        identifier,
+        value: JSON.stringify(meta),
+        expiresAt: NON_EXPIRING,
+        createdAt: nowDate,
+        updatedAt: nowDate,
+      })
+      .execute();
+  }
+  return meta;
+}
+
+type StoredRequestPayload = {
+  category: UserRequestCategory;
+  title: string;
+  requestedRole?: Role;
+  requestedQuotaMb?: number;
+  sshPublicKey?: string;
+  reason: string;
+  status: UserRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+  resolvedBy?: string | null;
+  resolutionNote?: string | null;
+};
+
+function isRequestCategory(val: unknown): val is UserRequestCategory {
+  return (USER_REQUEST_CATEGORIES as readonly string[]).includes(String(val));
+}
+
+function parseRequestPayload(raw: string): StoredRequestPayload | null {
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredRequestPayload>;
+    if (!parsed || !isRequestCategory(parsed.category)) return null;
+    const status: UserRequestStatus =
+      parsed.status === "approved" || parsed.status === "dismissed"
+        ? parsed.status
+        : "pending";
+    return {
+      category: parsed.category,
+      title: typeof parsed.title === "string" ? parsed.title : "Request",
+      ...(parsed.requestedRole && isRole(parsed.requestedRole)
+        ? { requestedRole: parsed.requestedRole }
+        : {}),
+      ...(typeof parsed.requestedQuotaMb === "number"
+        ? { requestedQuotaMb: parsed.requestedQuotaMb }
+        : {}),
+      ...(typeof parsed.sshPublicKey === "string" && parsed.sshPublicKey
+        ? { sshPublicKey: parsed.sshPublicKey }
+        : {}),
+      reason: typeof parsed.reason === "string" ? parsed.reason : "",
+      status,
+      createdAt:
+        typeof parsed.createdAt === "string"
+          ? parsed.createdAt
+          : new Date().toISOString(),
+      updatedAt:
+        typeof parsed.updatedAt === "string"
+          ? parsed.updatedAt
+          : new Date().toISOString(),
+      ...(parsed.resolvedBy !== undefined
+        ? { resolvedBy: parsed.resolvedBy }
+        : {}),
+      ...(parsed.resolutionNote !== undefined
+        ? { resolutionNote: parsed.resolutionNote }
+        : {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function listUserRequests(
+  rt: AuthRuntime,
+  userId?: string,
+): Promise<UserRequestDto[]> {
+  let query = rt.db
+    .selectFrom("verification")
+    .select(["id", "identifier", "value", "createdAt", "updatedAt"])
+    .orderBy("createdAt", "desc")
+    .limit(200);
+
+  if (userId) {
+    query = query.where("identifier", "=", `${REQUEST_PREFIX}${userId}`);
+  } else {
+    query = query.where("identifier", "like", `${REQUEST_PREFIX}%`);
+  }
+
+  const rows = await query.execute();
+  if (rows.length === 0) return [];
+
+  const userIds = [
+    ...new Set(rows.map((r) => r.identifier.slice(REQUEST_PREFIX.length))),
+  ];
+  const users = await rt.db
+    .selectFrom("user")
+    .select(["id", "email", "name", "role"])
+    .where("id", "in", userIds)
+    .execute();
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  const out: UserRequestDto[] = [];
+  for (const r of rows) {
+    const uid = r.identifier.slice(REQUEST_PREFIX.length);
+    const payload = parseRequestPayload(r.value);
+    if (!payload) continue;
+    const owner = userMap.get(uid);
+    out.push({
+      id: r.id,
+      userId: uid,
+      userEmail: owner?.email ?? "unknown",
+      userName: owner?.name ?? "Unknown user",
+      userRole: owner && isRole(owner.role) ? owner.role : "viewer",
+      category: payload.category,
+      title: payload.title,
+      ...(payload.requestedRole
+        ? { requestedRole: payload.requestedRole }
+        : {}),
+      ...(payload.requestedQuotaMb !== undefined
+        ? { requestedQuotaMb: payload.requestedQuotaMb }
+        : {}),
+      ...(payload.sshPublicKey ? { sshPublicKey: payload.sshPublicKey } : {}),
+      reason: payload.reason,
+      status: payload.status,
+      createdAt: payload.createdAt,
+      updatedAt: payload.updatedAt,
+      resolvedBy: payload.resolvedBy ?? null,
+      resolutionNote: payload.resolutionNote ?? null,
+    });
+  }
+  return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function createUserRequest(
+  rt: AuthRuntime,
+  input: {
+    userId: string;
+    category: UserRequestCategory;
+    title: string;
+    requestedRole?: Role;
+    requestedQuotaMb?: number;
+    sshPublicKey?: string;
+    reason: string;
+  },
+  now: number = Date.now(),
+): Promise<{ id: string }> {
+  const id = `req-${randomUUID().replace(/-/g, "").slice(0, 28)}`;
+  const nowDate = new Date(now);
+  const nowIso = nowDate.toISOString();
+  const payload: StoredRequestPayload = {
+    category: input.category,
+    title: input.title.trim(),
+    ...(input.requestedRole ? { requestedRole: input.requestedRole } : {}),
+    ...(input.requestedQuotaMb !== undefined
+      ? { requestedQuotaMb: input.requestedQuotaMb }
+      : {}),
+    ...(input.sshPublicKey?.trim()
+      ? { sshPublicKey: input.sshPublicKey.trim() }
+      : {}),
+    reason: input.reason.trim(),
+    status: "pending",
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    resolvedBy: null,
+    resolutionNote: null,
+  };
+
+  await rt.db
+    .insertInto("verification")
+    .values({
+      id,
+      identifier: `${REQUEST_PREFIX}${input.userId}`,
+      value: JSON.stringify(payload),
+      expiresAt: NON_EXPIRING,
+      createdAt: nowDate,
+      updatedAt: nowDate,
+    })
+    .execute();
+
+  if (input.category === "role-upgrade" && input.requestedRole) {
+    await syncStageRequestBanReason(
+      rt,
+      input.userId,
+      input.requestedRole,
+      input.reason.trim() || input.title.trim(),
+    );
+  }
+  return { id };
+}
+
+export async function cancelUserRequest(
+  rt: AuthRuntime,
+  userId: string,
+  requestId: string,
+): Promise<boolean> {
+  const row = await rt.db
+    .selectFrom("verification")
+    .select(["id", "value"])
+    .where("id", "=", requestId)
+    .where("identifier", "=", `${REQUEST_PREFIX}${userId}`)
+    .executeTakeFirst();
+  if (!row) return false;
+  const payload = parseRequestPayload(row.value);
+  if (!payload || payload.status !== "pending") return false;
+
+  await rt.db
+    .deleteFrom("verification")
+    .where("id", "=", requestId)
+    .where("identifier", "=", `${REQUEST_PREFIX}${userId}`)
+    .execute();
+
+  if (payload.category === "role-upgrade") {
+    await clearStageRequest(rt, userId);
+  }
+  return true;
+}
+
+export async function findUserRequestById(
+  rt: AuthRuntime,
+  requestId: string,
+): Promise<UserRequestDto | null> {
+  const row = await rt.db
+    .selectFrom("verification")
+    .select(["id", "identifier", "value"])
+    .where("id", "=", requestId)
+    .where("identifier", "like", `${REQUEST_PREFIX}%`)
+    .executeTakeFirst();
+  if (!row) return null;
+  const uid = row.identifier.slice(REQUEST_PREFIX.length);
+  const payload = parseRequestPayload(row.value);
+  if (!payload) return null;
+  const user = await rt.db
+    .selectFrom("user")
+    .select(["email", "name", "role"])
+    .where("id", "=", uid)
+    .executeTakeFirst();
+  return {
+    id: row.id,
+    userId: uid,
+    userEmail: user?.email ?? "unknown",
+    userName: user?.name ?? "Unknown user",
+    userRole: user && isRole(user.role) ? user.role : "viewer",
+    category: payload.category,
+    title: payload.title,
+    ...(payload.requestedRole ? { requestedRole: payload.requestedRole } : {}),
+    ...(payload.requestedQuotaMb !== undefined
+      ? { requestedQuotaMb: payload.requestedQuotaMb }
+      : {}),
+    ...(payload.sshPublicKey ? { sshPublicKey: payload.sshPublicKey } : {}),
+    reason: payload.reason,
+    status: payload.status,
+    createdAt: payload.createdAt,
+    updatedAt: payload.updatedAt,
+    resolvedBy: payload.resolvedBy ?? null,
+    resolutionNote: payload.resolutionNote ?? null,
+  };
+}
+
+export async function resolveUserRequestRecord(
+  rt: AuthRuntime,
+  requestId: string,
+  resolution: {
+    status: "approved" | "dismissed";
+    resolvedBy: string;
+    resolutionNote?: string;
+  },
+  now: number = Date.now(),
+): Promise<UserRequestDto | null> {
+  const row = await rt.db
+    .selectFrom("verification")
+    .select(["id", "identifier", "value"])
+    .where("id", "=", requestId)
+    .where("identifier", "like", `${REQUEST_PREFIX}%`)
+    .executeTakeFirst();
+  if (!row) return null;
+  const payload = parseRequestPayload(row.value);
+  if (!payload || payload.status !== "pending") return null;
+
+  const nowDate = new Date(now);
+  const updated: StoredRequestPayload = {
+    ...payload,
+    status: resolution.status,
+    updatedAt: nowDate.toISOString(),
+    resolvedBy: resolution.resolvedBy,
+    resolutionNote: resolution.resolutionNote?.trim() || null,
+  };
+  await rt.db
+    .updateTable("verification")
+    .set({ value: JSON.stringify(updated), updatedAt: nowDate })
+    .where("id", "=", requestId)
+    .execute();
+
+  return findUserRequestById(rt, requestId);
+}
+
+export type ChangeOwnPasswordResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid-password" | "locked" | "no-credential" };
+
+export async function changeOwnPassword(
+  rt: AuthRuntime,
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+  options: { revokeOthers?: boolean; currentSessionId?: string | null } = {},
+  now: number = Date.now(),
+): Promise<ChangeOwnPasswordResult> {
+  if (await locked(rt, userId, now)) {
+    return { ok: false, reason: "locked" };
+  }
+  const ok = await passwordMatches(rt, userId, currentPassword);
+  if (!ok) {
+    await recordFailures(rt.db, [userSubject(userId)], now);
+    return { ok: false, reason: "invalid-password" };
+  }
+
+  const ctx = await rt.auth.$context;
+  const accounts = await ctx.internalAdapter.findAccounts(userId);
+  const credential = accounts.find((a) => a.providerId === "credential");
+  if (!credential) {
+    return { ok: false, reason: "no-credential" };
+  }
+
+  const hash = await ctx.password.hash(newPassword);
+  await rt.db
+    .updateTable("account")
+    .set({ password: hash, updatedAt: new Date(now) })
+    .where("userId", "=", userId)
+    .where("providerId", "=", "credential")
+    .execute();
+
+  if (options.revokeOthers) {
+    await revokeOtherSessions(rt, userId, options.currentSessionId ?? null);
+  }
+  return { ok: true };
+}
+
+export async function listOwnSessions(
+  rt: AuthRuntime,
+  userId: string,
+  currentSessionId: string | null,
+  now: number = Date.now(),
+): Promise<OwnSessionDto[]> {
+  const rows = await rt.db
+    .selectFrom("session")
+    .select([
+      "id",
+      "ipAddress",
+      "userAgent",
+      "createdAt",
+      "updatedAt",
+      "expiresAt",
+    ])
+    .where("userId", "=", userId)
+    .where("expiresAt", ">", new Date(now))
+    .orderBy("updatedAt", "desc")
+    .limit(20)
+    .execute();
+  return rows.map((r) => ({
+    id: r.id,
+    ipAddress: r.ipAddress ?? null,
+    userAgent: r.userAgent ?? null,
+    createdAt: new Date(r.createdAt).toISOString(),
+    updatedAt: new Date(r.updatedAt).toISOString(),
+    expiresAt: new Date(r.expiresAt).toISOString(),
+    current: Boolean(currentSessionId && r.id === currentSessionId),
+  }));
+}
+
+export async function revokeOtherSessions(
+  rt: AuthRuntime,
+  userId: string,
+  currentSessionId: string | null,
+): Promise<number> {
+  let q = rt.db.deleteFrom("session").where("userId", "=", userId);
+  if (currentSessionId) {
+    q = q.where("id", "<>", currentSessionId);
+  }
+  const res = await q.executeTakeFirst();
+  return Number(res?.numDeletedRows ?? 0);
 }
 
 export { LOCKOUT_MESSAGE };

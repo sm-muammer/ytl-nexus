@@ -12,6 +12,7 @@ export const PAGE_MATRIX: Record<string, Role | null> = {
   "/library": null,
   "/signin": null,
   "/design": "viewer",
+  "/account": "viewer",
   "/command": "viewer",
   "/command/core-01": "viewer",
   "/command/atlas": "viewer",

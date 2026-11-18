@@ -44,6 +44,17 @@ function buildSearchItems(actor: Actor): SearchItem[] {
     }
   }
 
+  if (meetsRole(actor, "viewer")) {
+    items.push({
+      id: "account",
+      title: "Account & Requests",
+      subtitle: "Profile, security, sessions and service requests",
+      href: "/account",
+      group: "manage",
+      minRole: "viewer",
+    });
+  }
+
   return items;
 }
 
@@ -115,11 +126,11 @@ export function CommandPalette({ actor }: { actor: Actor }) {
 
   return (
     <>
-      {/* Header Pill / Trigger Button */}
+      {/* Header Trigger Pill */}
       <button
         type="button"
         onClick={openPalette}
-        className="group relative inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full border border-slate-700/60 bg-slate-900/40 p-2.5 text-xs font-normal text-slate-300 shadow-sm backdrop-blur-md transition-all duration-200 hover:border-cyan-500/50 hover:bg-slate-800/60 hover:text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] sm:px-3.5 sm:py-1.5"
+        className="border-line bg-surface/50 text-muted hover:border-border-strong hover:bg-surface-raised hover:text-ink inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors duration-(--duration-fast)"
         data-command-palette-trigger
       >
         <svg
@@ -132,19 +143,16 @@ export function CommandPalette({ actor }: { actor: Actor }) {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="shrink-0 text-slate-400 transition-colors group-hover:text-cyan-400"
+          className="shrink-0"
           aria-hidden="true"
         >
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.3-4.3" />
         </svg>
-        <span className="sr-only sm:hidden">Search modules</span>
-        <span className="hidden text-xs whitespace-nowrap text-slate-400 transition-colors group-hover:text-slate-200 sm:inline">
-          Search modules...
-        </span>
+        <span className="sr-only">Search modules</span>
         <kbd
           aria-hidden="true"
-          className="ml-1 hidden rounded border border-slate-700/80 bg-slate-800/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400 group-hover:border-cyan-500/40 group-hover:text-cyan-300 sm:inline-block"
+          className="text-muted hidden font-mono text-[11px] sm:inline"
         >
           ⌘K
         </kbd>

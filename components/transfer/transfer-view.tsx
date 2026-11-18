@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ModuleHero } from "@/components/layout/module-hero";
 import { PageTransition } from "@/components/motion/page-transition";
 import { pageInfo } from "@/lib/navigation/modules";
@@ -81,11 +82,19 @@ function Keys({ account }: { account: TransferAccount }) {
         Registered keys
       </h2>
       {account.keys.length === 0 ? (
-        <p className="text-muted mt-2 max-w-(--spacing-prose)">
-          No public key is registered, so you sign in with your password. To use
-          a key, send the public half (the file ending in .pub) to an
-          Administrator, who adds it in Nexus Control.
-        </p>
+        <div className="mt-2 flex flex-col items-start gap-2">
+          <p className="text-muted max-w-(--spacing-prose)">
+            No public key is registered, so you sign in with your password. To
+            use a key, submit your public key (.pub) from Account &amp; Requests
+            for Administrator review.
+          </p>
+          <Link
+            href="/account#requests"
+            className="text-accent-ink inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+          >
+            Submit an SSH public key request →
+          </Link>
+        </div>
       ) : (
         <>
           <ul className="divide-line border-line mt-3 divide-y border-y">
@@ -199,10 +208,16 @@ export function TransferView({
               title="You do not have a file transfer account yet"
             >
               <p>
-                File transfer accounts are not created automatically. Ask an
-                Administrator to create one for you in Nexus Control. They will
-                give you your SFTP name and a first password.
+                File transfer accounts are not created automatically. Submit a
+                provisioning request directly from your account page, and an
+                Administrator will review and provision your SFTP account.
               </p>
+              <Link
+                href="/account#requests"
+                className="text-accent-ink inline-flex min-h-11 items-center self-start text-sm font-medium underline underline-offset-4"
+              >
+                Request SFTP access in Account &amp; Requests →
+              </Link>
             </Notice>
           ) : null}
 

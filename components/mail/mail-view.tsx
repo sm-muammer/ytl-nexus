@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ModuleHero } from "@/components/layout/module-hero";
 import { PageTransition } from "@/components/motion/page-transition";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -135,13 +136,20 @@ export function MailView({
               </dl>
             ) : ownMailbox.state === "no-mailbox" ? (
               <div
-                className="border-border-strong mt-3 max-w-(--spacing-prose) border-l-2 pl-6"
+                className="border-border-strong mt-3 flex max-w-(--spacing-prose) flex-col items-start gap-2 border-l-2 pl-6"
                 data-mail-state="no-mailbox"
               >
                 <p className="text-muted">
                   You do not have a mailbox linked to your Nexus account yet.
-                  Ask an Administrator to create one for you in Nexus Control.
+                  Submit a mailbox request and an Administrator can provision it
+                  for you.
                 </p>
+                <Link
+                  href="/account#requests"
+                  className="text-accent-ink inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+                >
+                  Request a mailbox in Account &amp; Requests →
+                </Link>
               </div>
             ) : (
               <p className="text-muted mt-3" data-mail-state="unavailable">

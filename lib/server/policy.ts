@@ -274,7 +274,34 @@ export const ACTION_POLICY: readonly ActionPolicy[] = [
   { id: "control.user.revoke-sessions", ...CONTROL },
   { id: "control.user.update-name", ...CONTROL },
   { id: "control.user.dismiss-stage-request", ...CONTROL },
+  { id: "control.user.resolve-request", ...CONTROL },
   { id: "control.user.delete", ...CONTROL },
+  // Self-service Account & Requests actions (signed-in users manage only their own identity & requests).
+  {
+    id: "account.update-profile",
+    minRole: "viewer",
+    note: "Signed-in users edit their own display name and profile fields.",
+  },
+  {
+    id: "account.change-password",
+    minRole: "viewer",
+    note: "Signed-in users update their own credential password after verifying the current password.",
+  },
+  {
+    id: "account.revoke-other-sessions",
+    minRole: "viewer",
+    note: "Signed-in users revoke all other active sessions belonging to their own account.",
+  },
+  {
+    id: "account.submit-request",
+    minRole: "viewer",
+    note: "Signed-in users submit role promotion, SFTP, mailbox, or operational requests for Administrator review.",
+  },
+  {
+    id: "account.cancel-request",
+    minRole: "viewer",
+    note: "Signed-in users withdraw their own pending requests.",
+  },
   // Nexus Transfer accounts (requirement 12.16). Administrators in Control, with a fresh Step_Up.
   { id: "transfer.account.create", ...CONTROL },
   { id: "transfer.account.set-enabled", ...CONTROL },

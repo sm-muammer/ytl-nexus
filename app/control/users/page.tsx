@@ -68,6 +68,7 @@ export default async function ControlUsersPage() {
                   <ControlUsers
                     users={snapshot?.usersWithServices ?? []}
                     auditEvents={snapshot?.auditEvents ?? []}
+                    serviceRequests={snapshot?.serviceRequests ?? []}
                     demo={demo}
                   />
                 </section>

@@ -5,16 +5,16 @@
 
 ## How it fits together
 
-| Piece              | Where                                                                              | What it does                                                                                                                                 |
-| ------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Better Auth        | `lib/server/auth/create-auth.ts`                                                   | Accounts, passwords, TOTP, sessions. Admin plugin with four roles. `nextCookies()` is the last plugin                                        |
-| Policy table       | `lib/server/policy.ts`                                                             | One row per page, Route Handler and Server Function: the lowest role, and whether it is hidden or needs Step_Up. `decide()` is the only rule |
-| Guards             | `lib/server/guards.ts` (logic in `guards-core.ts`)                                 | `requirePage`, `requireRole`, `requireStepUp`, `guardAction`, `guardHandler`. Each decides, audits a refusal once, and answers               |
-| Proxy              | `proxy.ts`                                                                         | Sends a request with no session cookie to `/signin`. Checks only that the cookie exists, so it is never the authorization check              |
-| Session rules      | `lib/server/auth/rules.ts`, `lib/server/auth/service.ts`, `lib/server/identity.ts` | 60 minutes idle, 12 hours absolute, Step_Up for 10 minutes, five failures lock for 15 minutes                                                |
-| Server Functions   | `lib/server/auth/actions.ts`, `lib/server/control-actions.ts`                      | Sign in, second step, sign out, enrolment, Step_Up, and the Control actions                                                                  |
-| First-admin script | `scripts/auth/create-user.ts`                                                      | Creates an account on the server without a session                                                                                           |
-| Demo sessions      | `lib/fixtures/session.ts`, `lib/server/adapters/demo.ts`                           | Fixture roles for the portfolio. The guards enforce the same matrix; nothing touches a database                                              |
+| Piece              | Where                                                                                          | What it does                                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Better Auth        | `lib/server/auth/create-auth.ts`                                                               | Accounts, passwords, TOTP, sessions. Admin plugin with four roles. `nextCookies()` is the last plugin                                        |
+| Policy table       | `lib/server/policy.ts`                                                                         | One row per page, Route Handler and Server Function: the lowest role, and whether it is hidden or needs Step_Up. `decide()` is the only rule |
+| Guards             | `lib/server/guards.ts` (logic in `guards-core.ts`)                                             | `requirePage`, `requireRole`, `requireStepUp`, `guardAction`, `guardHandler`. Each decides, audits a refusal once, and answers               |
+| Proxy              | `proxy.ts`                                                                                     | Sends a request with no session cookie to `/signin`. Checks only that the cookie exists, so it is never the authorization check              |
+| Session rules      | `lib/server/auth/rules.ts`, `lib/server/auth/service.ts`, `lib/server/identity.ts`             | 60 minutes idle, 12 hours absolute, Step_Up for 10 minutes, five failures lock for 15 minutes                                                |
+| Server Functions   | `lib/server/auth/actions.ts`, `lib/server/account-actions.ts`, `lib/server/control-actions.ts` | Sign in, second step, sign out, enrolment, Step_Up, self-service `/account` profile & request actions, and Control actions                   |
+| First-admin script | `scripts/auth/create-user.ts`                                                                  | Creates an account on the server without a session                                                                                           |
+| Demo sessions      | `lib/fixtures/session.ts`, `lib/server/adapters/demo.ts`                                       | Fixture roles for the portfolio. The guards enforce the same matrix; nothing touches a database                                              |
 
 ## Roles
 
@@ -82,7 +82,7 @@ sudo -u nexus bash -c 'cd /opt/ytl-nexus/current && set -a && . /etc/ytl-nexus/w
 
 It prints a random password once. Pass it on privately; the person sets up two-factor at the first sign-in. `--password-stdin` reads a chosen password instead (12 to 128 characters). `--role` is `admin` (default), `operator`, `member` or `viewer`. An existing email is refused. Each run writes one `admin.create-user` audit event with `cli:<unix user>` as the actor.
 
-Self-service password change is not built yet: use **Reset password** in Control, or run the script for a new account.
+Signed-in users can also manage their own profile, change their password (verifying their current password via `account.change-password`), revoke other active sessions (`account.revoke-other-sessions`), enrol TOTP, and submit or withdraw service and promotion requests on `/account`. For locked-out accounts, use **Reset password** in Control or run the script for a new account.
 
 ## Lost authenticator
 

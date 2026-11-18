@@ -392,6 +392,7 @@ test.describe("robots.txt", () => {
     expect(res.status()).toBe(200);
     const body = await res.text();
     for (const p of [
+      "/account",
       "/command",
       "/ai",
       "/transfer",

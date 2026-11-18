@@ -36,6 +36,7 @@ export default async function ControlPage() {
   const transfer = snapshot?.transfer ?? null;
   const mail = snapshot?.mail ?? null;
   const auditEvents = snapshot?.auditEvents ?? [];
+  const serviceRequests = snapshot?.serviceRequests ?? [];
 
   return (
     <ControlShell>
@@ -91,6 +92,7 @@ export default async function ControlPage() {
                   <ControlUsers
                     users={usersWithServices}
                     auditEvents={auditEvents}
+                    serviceRequests={serviceRequests}
                     demo={demo}
                   />
                 </section>

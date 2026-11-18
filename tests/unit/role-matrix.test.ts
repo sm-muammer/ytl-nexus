@@ -80,6 +80,9 @@ describe("Role Matrix Access Across All Module Pages", () => {
     expect(decide(viewer, policyForPage("/command"), now)).toEqual({
       allow: true,
     });
+    expect(decide(viewer, policyForPage("/account"), now)).toEqual({
+      allow: true,
+    });
     expect(decide(viewer, policyForPage("/data"), now)).toEqual({
       allow: true,
     });
@@ -90,7 +93,10 @@ describe("Role Matrix Access Across All Module Pages", () => {
     expect(decide(viewer, policyForPage("/control"), now).allow).toBe(false);
   });
 
-  it("allows members to access transfer, mail and AI", () => {
+  it("allows members to access transfer, mail, AI, and account self-service", () => {
+    expect(decide(member, policyForPage("/account"), now)).toEqual({
+      allow: true,
+    });
     expect(decide(member, policyForPage("/ai"), now)).toEqual({ allow: true });
     expect(decide(member, policyForPage("/transfer"), now)).toEqual({
       allow: true,

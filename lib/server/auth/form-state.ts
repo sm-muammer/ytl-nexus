@@ -63,8 +63,32 @@ export type SignUpState =
 export type RequestStageUpgradeState =
   null | { error: string } | { done: true; requestedRole: Role };
 
+export type UpdateProfileState =
+  null | { error: string } | { done: true; name: string };
+
+export type ChangeOwnPasswordState =
+  null | { error: string } | { done: true; revokedOthers: boolean };
+
+export type RevokeOtherSessionsState =
+  null | { error: string } | { done: true; revokedCount: number };
+
+export type SubmitUserRequestState =
+  null | { error: string } | { done: true; requestId: string; title: string };
+
+export type CancelUserRequestState =
+  null | { error: string } | { done: true; requestId: string };
+
+export type ResolveUserRequestState =
+  | null
+  | { error: string }
+  | { done: true; requestId: string; status: "approved" | "dismissed" };
+
 export const MESSAGES = {
   invalidCredentials: "The email or password is not correct.",
+  wrongCurrentPassword: "Your current password is not correct.",
+  passwordMismatch: "New password and confirmation do not match.",
+  passwordTooShort: "Password must be at least 12 characters.",
+  requestNotFound: "That request no longer exists or is already resolved.",
   locked: "Too many failed attempts. Try again in 15 minutes.",
   invalidInput: "Check the highlighted fields and try again.",
   invalidCode:

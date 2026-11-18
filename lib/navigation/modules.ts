@@ -397,6 +397,14 @@ const platformItem: NavItem = {
   group: "explore",
 };
 
+const accountItem: NavItem = {
+  label: "Account & Requests",
+  href: "/account",
+  subtitle: "Profile, security, sessions and service requests",
+  minRole: "viewer",
+  group: "manage",
+};
+
 function toNavItem(m: ModuleInfo): NavItem {
   return {
     label: m.name,
@@ -419,10 +427,11 @@ function toNavItem(m: ModuleInfo): NavItem {
   };
 }
 
-/** Global navigation: Platform first, then every module in registry order. */
+/** Global navigation: Platform first, then every module in registry order, plus Account & Requests. */
 export const NAV_ITEMS: readonly NavItem[] = [
   platformItem,
   ...MODULES.map(toNavItem),
+  accountItem,
 ];
 
 /**
@@ -509,6 +518,19 @@ const extraPages: readonly PageInfo[] = [
     accent: "blue",
     group: "explore",
     related: ["library", "status", "tour"],
+  },
+  {
+    path: "/account",
+    title: "Account & Requests",
+    subtitle: "Profile, security, sessions and service requests",
+    summary:
+      "Edit your display profile, update your password, manage two-factor authentication and active sessions, and submit or track role promotion and subsystem requests.",
+    task: 19,
+    backing: "auth",
+    minRole: "viewer",
+    accent: "blue",
+    group: "manage",
+    related: ["transfer", "mail", "command"],
   },
 ];
 
