@@ -20,7 +20,10 @@ export function SiteFooter({
 }) {
   const links = FOOTER_LINKS.filter((l) => meetsRole(actor, l.minRole));
   return (
-    <footer className="border-line bg-surface/70 relative z-10 border-t backdrop-blur-md">
+    <footer
+      data-theme="dark"
+      className="border-line bg-surface/95 relative z-10 border-t backdrop-blur-md"
+    >
       <div className="max-w-page mx-auto flex w-full flex-col gap-10 px-(--spacing-gutter) py-10 lg:flex-row lg:justify-between">
         <div className="flex max-w-md flex-col gap-4">
           {/* self-start: a stretched flex item would distort the logo. */}

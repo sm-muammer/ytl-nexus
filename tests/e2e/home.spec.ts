@@ -91,6 +91,33 @@ test.describe("Home showcase (spec 24)", () => {
       expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
     });
   }
+
+  test("switches atmosphere modes between obsidian, blueprint and daylight with zero axe violations", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await settle(page);
+
+    await expect(page.locator("[data-home-blueprint]")).toBeAttached();
+
+    const group = page.getByRole("group", { name: "Atmosphere mode" });
+    await group.getByRole("button", { name: "Blueprint" }).click();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-atmosphere",
+      "blueprint",
+    );
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await blockingViolations(page)).toEqual([]);
+
+    await group.getByRole("button", { name: "Daylight" }).click();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-atmosphere",
+      "daylight",
+    );
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    expect(await blockingViolations(page)).toEqual([]);
+  });
 });
 
 test.describe("Home showcase with reduced motion", () => {

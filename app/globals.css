@@ -349,13 +349,20 @@ body {
 }
 .nx-pat-grid {
   background-image:
-    linear-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.07) 1px, transparent 1px);
+    linear-gradient(
+      color-mix(in oklab, var(--nx-ink) 7%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--nx-ink) 7%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 56px 56px;
 }
 .nx-pat-dots {
   background-image: radial-gradient(
-    rgb(255 255 255 / 0.24) 1.2px,
+    color-mix(in oklab, var(--nx-ink) 22%, transparent) 1.2px,
     transparent 1.7px
   );
   background-size: 26px 26px;
@@ -364,14 +371,14 @@ body {
   background-image: repeating-radial-gradient(
     circle at 88% -6%,
     transparent 0 62px,
-    rgb(255 255 255 / 0.1) 63px 64px
+    color-mix(in oklab, var(--nx-ink) 10%, transparent) 63px 64px
   );
 }
 .nx-pat-lines {
   background-image: repeating-linear-gradient(
     115deg,
     transparent 0 34px,
-    rgb(255 255 255 / 0.07) 35px 36px
+    color-mix(in oklab, var(--nx-ink) 7%, transparent) 35px 36px
   );
 }
 .nx-pat-hex {
@@ -524,6 +531,90 @@ dialog[data-nav-sheet][open] {
 .nx-bento-card:hover::after,
 .nx-bento-card:focus-visible::after {
   opacity: 1;
+}
+
+.nx-home-blueprint {
+  background-image:
+    linear-gradient(
+      color-mix(in oklab, var(--nx-ink) 6%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--nx-ink) 6%, transparent) 1px,
+      transparent 1px
+    ),
+    radial-gradient(
+      circle,
+      color-mix(in oklab, var(--nx-accent-ink) 18%, transparent) 1px,
+      transparent 1.25px
+    );
+  background-size:
+    56px 56px,
+    56px 56px,
+    28px 28px;
+  background-position:
+    0 0,
+    0 0,
+    14px 14px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 7rem,
+    black 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 7rem,
+    black 92%,
+    transparent 100%
+  );
+}
+
+html[data-atmosphere="blueprint"] .nx-tint {
+  --l1: var(--color-ytl-blue);
+  --p1: 78% 18%;
+  --s1: 30%;
+  --l2: var(--color-yes-gradient-end);
+  --p2: 18% 72%;
+  --s2: 24%;
+  --l3: var(--color-ytl-blue);
+  --p3: 68% 64%;
+  --s3: 16%;
+}
+html[data-atmosphere="blueprint"] .nx-home-blueprint {
+  background-image:
+    linear-gradient(
+      color-mix(in oklab, var(--nx-accent-ink) 14%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--nx-accent-ink) 14%, transparent) 1px,
+      transparent 1px
+    ),
+    radial-gradient(
+      circle,
+      color-mix(in oklab, var(--nx-accent-ink) 32%, transparent) 1.15px,
+      transparent 1.45px
+    );
+}
+html[data-atmosphere="daylight"] .nx-tint {
+  --l1: var(--color-ytl-blue);
+  --s1: 12%;
+  --l2: var(--color-yes-pink);
+  --s2: 8%;
+  --l3: var(--color-yes-gradient-end);
+  --s3: 9%;
+}
+html[data-atmosphere="daylight"] .nx-vignette {
+  background: radial-gradient(
+    120% 95% at 50% 15%,
+    transparent 55%,
+    color-mix(in oklab, var(--nx-canvas) 45%, transparent) 100%
+  );
 }
 
 @keyframes nx-scroll-cue {

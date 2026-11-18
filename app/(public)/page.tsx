@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Backdrop } from "@/components/backdrop/backdrop";
 import { BentoCard } from "@/components/home/bento-card";
 import { ParticleLogoLoader } from "@/components/home/particle-logo-loader";
+import { AtmosphereModeGroup } from "@/components/layout/atmosphere-switcher";
 import { PageTransition } from "@/components/motion/page-transition";
 import { Fade, Rise } from "@/components/motion/reveal";
 import { PUBLIC_MODULES, type ModuleInfo } from "@/lib/navigation/modules";
@@ -144,10 +145,13 @@ export default function HomePage() {
                     How it fits together
                   </Link>
                 </div>
-                <p className="border-line/60 text-muted mt-10 max-w-xl border-t pt-4 text-xs">
-                  Engineered by Muammer · Rocky Linux (Nexus Core 01) · 16
-                  unified modules
-                </p>
+                <div className="border-line/60 mt-10 flex max-w-2xl flex-wrap items-center justify-between gap-4 border-t pt-4">
+                  <p className="text-muted text-xs">
+                    Engineered by Muammer · Rocky Linux (Nexus Core 01) · 16
+                    unified modules
+                  </p>
+                  <AtmosphereModeGroup />
+                </div>
               </Rise>
             </div>
           </div>
@@ -168,7 +172,12 @@ export default function HomePage() {
           </div>
         </section>
 
-        <div className="relative z-10">
+        <div className="relative isolate z-10">
+          <div
+            aria-hidden="true"
+            data-home-blueprint
+            className="nx-home-blueprint pointer-events-none absolute inset-0 -z-10"
+          />
           <section
             id="facts-strip"
             aria-labelledby="facts-heading"

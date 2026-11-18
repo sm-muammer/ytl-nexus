@@ -10,6 +10,7 @@ import {
 import type { NexusMode } from "@/lib/server/mode";
 import { ROLE_LABEL } from "@/lib/roles";
 import { CommandPalette } from "@/components/navigation/command-palette";
+import { AtmosphereHeaderToggle } from "./atmosphere-switcher";
 import { NavLink } from "./nav-link";
 import { NavSheet, type SessionSummary, type SheetGroup } from "./nav-sheet";
 
@@ -75,7 +76,10 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
       : null;
 
   return (
-    <header className="border-line bg-canvas/70 relative z-(--z-sticky) border-b backdrop-blur-md">
+    <header
+      data-theme="dark"
+      className="border-line bg-canvas/95 relative z-(--z-sticky) border-b backdrop-blur-md"
+    >
       <div className="max-w-page mx-auto flex w-full items-center gap-3 px-(--spacing-gutter) py-3">
         <Link
           href="/"
@@ -109,6 +113,7 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5 xl:ml-4">
+          <AtmosphereHeaderToggle />
           <CommandPalette actor={actor} />
 
           {actor === null ? (

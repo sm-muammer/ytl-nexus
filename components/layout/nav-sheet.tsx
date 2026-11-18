@@ -6,6 +6,7 @@ import { signOutAction } from "@/lib/server/auth/actions";
 import { setDemoSession } from "@/lib/server/demo-session-actions";
 import { ROLES, ROLE_LABEL, type Role } from "@/lib/roles";
 import type { NexusMode } from "@/lib/server/mode";
+import { AtmosphereModeGroup } from "./atmosphere-switcher";
 import { NavLink } from "./nav-link";
 
 export type SheetItem = {
@@ -211,13 +212,29 @@ export function NavSheet({
           </div>
 
           {session ? (
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-muted text-sm">
                 {session.kicker ? `${session.kicker}: ` : ""}
                 {session.name}
               </span>
+              {session.initial !== null ? (
+                <NavLink
+                  href="/account"
+                  onNavigate={close}
+                  className="border-border-strong hover:bg-surface-raised inline-flex min-h-11 items-center rounded-full border px-4 text-xs font-medium"
+                >
+                  Account & Requests
+                </NavLink>
+              ) : null}
             </div>
           ) : null}
+
+          <div className="border-line flex flex-wrap items-center justify-between gap-3 border-y py-3">
+            <span className="text-muted font-mono text-xs tracking-[0.18em] uppercase">
+              Atmosphere
+            </span>
+            <AtmosphereModeGroup />
+          </div>
 
           <nav aria-label="All modules" className="grid gap-8 sm:grid-cols-2">
             {groups.map((group) => (
