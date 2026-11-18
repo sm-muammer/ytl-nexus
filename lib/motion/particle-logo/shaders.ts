@@ -41,7 +41,7 @@ void main() {
   // Subtle living harmonic surface wave across the formed 3D mark.
   float isMoving = step(0.0001, uTime);
   float wave = sin(position.x * 3.2 + uTime * 2.0) * cos(position.y * 3.2 - uTime * 1.6);
-  pos.z += wave * 0.028 * (1.0 - eased) * isMoving;
+  pos.z += wave * 0.016 * (1.0 - eased) * isMoving;
 
   // Slow cosmic drift once scattered behind lower sections (zero when uTime == 0).
   float driftMask = eased * isMoving;
@@ -58,8 +58,8 @@ void main() {
     ? delta / dist
     : vec2(cos(aSeed * 6.28318), sin(aSeed * 6.28318));
   vec2 swirl = vec2(-dir.y, dir.x);
-  pos.xy += dir * push * 0.035 + swirl * push * 0.045 * sin(dist * 10.0 - uTime * 5.0);
-  pos.z += push * 0.22;
+  pos.xy += dir * push * 0.022 + swirl * push * 0.028 * sin(dist * 10.0 - uTime * 5.0);
+  pos.z += push * 0.12;
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPosition;
@@ -69,8 +69,8 @@ void main() {
   float scatterBoost = 1.0 + eased * 0.25;
   gl_PointSize = clamp(
     uBaseSize * sizeJitter * scatterBoost * uPixelRatio * distanceScale,
-    1.4,
-    16.0
+    1.2,
+    9.5
   );
 
   // Coherent diagonal sheen + gentle per-particle shimmer without static noise.

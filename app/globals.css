@@ -511,10 +511,22 @@ dialog[data-nav-sheet][open] {
 }
 
 /*
- * Home showcase (spec 24): flush Swiss hairline matrix cells with subtle
- * CSS-variable radial pointer spotlight (--mx, --my), hero scroll cue, and
- * topology teaser signal pulse (transform and opacity only).
+ * Home showcase (spec 24): pearlescent studio backlight behind the 3D mark,
+ * flush Swiss hairline matrix cells with subtle pointer spotlight (--mx, --my),
+ * hero scroll cue, and topology teaser signal pulse (transform and opacity only).
  */
+.nx-logo-backlight {
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in oklab, var(--nx-ink) 28%, transparent) 0%,
+    color-mix(in oklab, var(--nx-ink) 12%, transparent) 24%,
+    color-mix(in oklab, var(--color-yes-pink) 16%, transparent) 44%,
+    color-mix(in oklab, var(--color-yes-gradient-end) 12%, transparent) 60%,
+    transparent 74%
+  );
+  filter: blur(24px);
+}
+
 .nx-bento-card {
   position: relative;
   background: transparent;

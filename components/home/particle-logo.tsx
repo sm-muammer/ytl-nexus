@@ -89,9 +89,11 @@ function buildDustGeometry(count: number): BufferGeometry {
 }
 
 type StageMetrics = {
+  vw: number;
+  vh: number;
+  heroCenterX: number;
+  heroCenterY: number;
   baseCameraZ: number;
-  heroWorldX: number;
-  heroWorldY: number;
   basePointSize: number;
 };
 
@@ -124,27 +126,24 @@ function measureStage(
       ? vh * 0.48
       : vh * 0.3;
 
-  const stageScale = desktop ? 0.94 : 0.8;
+  const stageScale = desktop ? 0.72 : 0.78;
+  const maxTargetPx = desktop ? 400 : 300;
   const targetPx = Math.max(
     170,
-    Math.min(stageW * stageScale, stageH * stageScale),
+    Math.min(stageW * stageScale, stageH * stageScale, maxTargetPx),
   );
   const baseCameraZ = Math.max(
     3.3,
     (2.28 * vh) / (2 * TAN_HALF_FOV * targetPx),
   );
-  const halfWorldH = baseCameraZ * TAN_HALF_FOV;
-  const halfWorldW = halfWorldH * (vw / Math.max(1, vh));
-  const ndcX = (heroCenterX / Math.max(1, vw)) * 2 - 1;
-  const ndcY = 1 - (heroCenterY / Math.max(1, vh)) * 2;
-  const markPx = (2.2 / (2 * halfWorldH)) * vh;
-  const basePointSize =
-    6.4 * (baseCameraZ / 4.4) * Math.max(0.65, Math.min(1.55, markPx / 420));
+  const basePointSize = 4.2 * (baseCameraZ / 4.4);
 
   return {
+    vw,
+    vh,
+    heroCenterX,
+    heroCenterY,
     baseCameraZ,
-    heroWorldX: ndcX * halfWorldW,
-    heroWorldY: ndcY * halfWorldH,
     basePointSize,
   };
 }
@@ -195,10 +194,12 @@ export function ParticleLogo() {
   );
   const dustMaterialRef = useRef<ShaderMaterial | null>(null);
   const stageRef = useRef<StageMetrics>({
+    vw: 1440,
+    vh: 900,
+    heroCenterX: 1065,
+    heroCenterY: 432,
     baseCameraZ: 5.5,
-    heroWorldX: 0,
-    heroWorldY: 0,
-    basePointSize: 6.4,
+    basePointSize: 4.2,
   });
   const rafRef = useRef<number>(0);
   const framesRef = useRef<number>(0);
@@ -226,15 +227,23 @@ export function ParticleLogo() {
     }
 
     const m = stageRef.current;
-    group.position.set(m.heroWorldX, m.heroWorldY, 0);
+    group.position.set(0, 0, 0);
     group.rotation.set(0, 0, 0);
     camera.position.set(0, 0, m.baseCameraZ);
+    camera.setViewOffset(
+      m.vw,
+      m.vh,
+      m.vw / 2 - m.heroCenterX,
+      m.vh / 2 - m.heroCenterY,
+      m.vw,
+      m.vh,
+    );
     material.uniforms.uMorph!.value = 0;
     material.uniforms.uTime!.value = 0;
     material.uniforms.uOpacity!.value = 1;
     material.uniforms.uPointerStrength!.value = 0;
     if (dustPoints) {
-      dustPoints.position.set(m.heroWorldX * 0.65, m.heroWorldY * 0.65, 0);
+      dustPoints.position.set(0, 0, 0);
     }
     if (dustMaterial) {
       dustMaterial.uniforms.uTime!.value = 0;
@@ -299,7 +308,7 @@ export function ParticleLogo() {
         uMorph: { value: 1 },
         uOpacity: { value: 1 },
         uPixelRatio: { value: dpr },
-        uBaseSize: { value: 6.4 * TIER_SIZE_SCALE[currentTier] },
+        uBaseSize: { value: 4.2 * TIER_SIZE_SCALE[currentTier] },
         uIntensity: { value: TIER_INTENSITY[currentTier] },
         uPointer: { value: new Vector3(0, 0, 0) },
         uPointerStrength: { value: 0 },
@@ -343,16 +352,20 @@ export function ParticleLogo() {
       const stageEl = document.querySelector("[data-particle-stage]");
       const metrics = measureStage(vw, vh, stageEl);
       stageRef.current = metrics;
+      camera.setViewOffset(
+        metrics.vw,
+        metrics.vh,
+        metrics.vw / 2 - metrics.heroCenterX,
+        metrics.vh / 2 - metrics.heroCenterY,
+        metrics.vw,
+        metrics.vh,
+      );
       material.uniforms.uPixelRatio!.value = nextDpr;
       material.uniforms.uBaseSize!.value =
         metrics.basePointSize * TIER_SIZE_SCALE[tierRef.current];
       material.uniforms.uIntensity!.value = TIER_INTENSITY[tierRef.current];
       dustMaterial.uniforms.uPixelRatio!.value = nextDpr;
-      dustPoints.position.set(
-        metrics.heroWorldX * 0.65,
-        metrics.heroWorldY * 0.65,
-        0,
-      );
+      dustPoints.position.set(0, 0, 0);
 
       if (reducedRef.current) {
         renderStaticFrame();
@@ -543,13 +556,17 @@ export function ParticleLogo() {
         (targetPointerStrength * activeMask - pointerStrength) * smooth;
 
       const m = stageRef.current;
-      group.position.set(
-        m.heroWorldX * activeMask,
-        m.heroWorldY * activeMask,
-        scroll.groupZ,
-      );
+      group.position.set(0, 0, scroll.groupZ);
       group.rotation.set(wobbleX + tiltX, spinY + tiltY, 0);
       camera.position.set(0, 0, m.baseCameraZ + scroll.cameraDollyZ);
+      camera.setViewOffset(
+        m.vw,
+        m.vh,
+        (m.vw / 2 - m.heroCenterX) * activeMask,
+        (m.vh / 2 - m.heroCenterY) * activeMask,
+        m.vw,
+        m.vh,
+      );
       group.updateMatrixWorld();
 
       if (pointerStrength > 0.005) {
@@ -573,11 +590,7 @@ export function ParticleLogo() {
       );
       material.uniforms.uOpacity!.value = scroll.opacity;
       material.uniforms.uPointerStrength!.value = pointerStrength;
-      dustPoints.position.set(
-        m.heroWorldX * activeMask * 0.65,
-        m.heroWorldY * activeMask * 0.65,
-        0,
-      );
+      dustPoints.position.set(0, 0, 0);
       dustMaterial.uniforms.uTime!.value = elapsed;
       dustMaterial.uniforms.uScrollMorph!.value = scroll.morph;
       (dustMaterial.uniforms.uPointer!.value as Vector3).set(

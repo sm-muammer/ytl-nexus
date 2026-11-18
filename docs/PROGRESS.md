@@ -81,6 +81,10 @@
   - Refactored `components/home/bento-card.tsx` and `app/globals.css` (`.nx-bento-card`) from floating rounded glass cards with full-perimeter neon outlines into flush Swiss architectural hairline cells (`transparent` default, subtle pointer-following `--mx`/`--my` indigo-pink glow on hover).
   - Rebuilt the **Modules** section in `app/(public)/page.tsx` into a sticky editorial split (`Modules` heading + description on the left; flush 2-column 8-row matrix on the right with `Nexus Command` and `Yes Experience` spanning full rows and the 12 remaining modules paired cleanly). Stripped redundant group kickers, bordered role pills, duplicated subtitles, and URL footers down to module name, plain access label, and one summary.
   - Harmonized **Project facts**, **How it fits together**, and **About this project** into matching open hairline sections without nested boxes or kickers (`0` findings in `impeccable detect`).
+- **Desktop Perspective Alignment, Particle Fineness & White Backlight (`/ui-ux-pro-max`, done 2026-11-18):**
+  - Switched desktop logo positioning in `components/home/particle-logo.tsx` from off-axis world translation (`group.position.x`) to `camera.setViewOffset`, eliminating horizontal perspective stretch on 1440 px / 2560 px screens while keeping the mark centered cleanly on the camera's optical axis.
+  - Capped desktop stage sizing (`maxTargetPx = 400` on desktop, `300` on mobile) and unified `basePointSize` (`4.2 * (baseCameraZ / 4.4)`, `gl_PointSize` clamped `1.2..9.5 px` in `shaders.ts`) with tighter pointer ripple displacement (`0.022` radial / `0.028` swirl / `0.12` +z) so desktop matches mobile's crisp, high-density grain.
+  - Added `.nx-logo-backlight` (`app/globals.css`, `app/(public)/page.tsx`) behind `[data-particle-stage]` using semantic tokens (`--nx-ink` pearlescent white center fading through rose-violet) to separate the 3D silhouette and illuminate the `"yes"` cutout.
 
 ### Nexus Tour Full Content Seed & Resilience (`/tour`) (done 2026-11-18)
 
