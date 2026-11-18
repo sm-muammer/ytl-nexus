@@ -72,7 +72,9 @@ test.describe("/control (requirement 6.11)", () => {
     // Read as a crawler or curl would: the server's own HTML before any
     // JavaScript runs. Script tags carry per-route data, so they are removed.
     const strip = (html: string) =>
-      html.replace(/<script[\s\S]*?<\/script>/g, "");
+      html
+        .replace(/<script[\s\S]*?<\/script>/g, "")
+        .replace(/\snonce="[^"]*"/g, "");
     for (const path of ["/control", "/control/users"]) {
       const control = await request.get(path);
       const unknown = await request.get("/this-page-does-not-exist");

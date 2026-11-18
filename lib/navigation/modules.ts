@@ -306,6 +306,22 @@ export const MODULES: readonly ModuleInfo[] = [
     backing: "auth",
     related: ["shield", "transfer", "mail"],
     hidden: true,
+    subNav: [
+      { label: "Overview", href: "/control" },
+      { label: "User Management", href: "/control/users" },
+    ],
+    pages: [
+      {
+        href: "/control/users",
+        title: "User Management",
+        subtitle:
+          "Accounts, roles, stage approvals, SFTP and mailbox provisioning",
+        summary:
+          "Full lifecycle administration for YTL Nexus accounts: create and delete users, manage four-tier roles and stage upgrade requests, enforce two-factor authentication, and provision unified SFTPGo and internal mail storage.",
+        task: 19,
+        backing: "auth",
+      },
+    ],
   },
   {
     slug: "yes",

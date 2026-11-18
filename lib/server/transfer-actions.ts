@@ -232,6 +232,7 @@ function toState(
 ): TransferActionState {
   if (!result.ok) return { error: guardMessage(result.error) };
   revalidatePath("/control");
+  revalidatePath("/control/users");
   return {
     done,
     username: result.username,

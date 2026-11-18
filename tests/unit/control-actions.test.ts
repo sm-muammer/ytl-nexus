@@ -71,6 +71,8 @@ vi.mock("@/lib/server/auth/service", () => ({
   resetTwoFactor: async () => {},
   resetPasswordAsAdmin: async () => {},
   revokeSessionsAsAdmin: async () => {},
+  updateUserName: async () => {},
+  deleteUserAccount: async () => {},
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
@@ -241,6 +243,85 @@ describe("Nexus Control User Actions", () => {
     expect(events).toEqual([
       expect.objectContaining({
         action: "control.user.reset-2fa",
+        target: "user:user-target",
+        result: "success",
+      }),
+    ]);
+  });
+
+  it("updates display name and emits an audit event", async () => {
+    const actions = await import("@/lib/server/control-actions");
+    const form = new FormData();
+    form.set("userId", "user-target");
+    form.set("name", "Updated Target Name");
+    const result = await actions.updateUserNameAction(null, form);
+    expect(result).toEqual({
+      done: true,
+      email: "target@example.com",
+      name: "Updated Target Name",
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        action: "control.user.update-name",
+        target: "user:user-target",
+        result: "success",
+      }),
+    ]);
+  });
+
+  it("dismisses a stage promotion request and emits an audit event", async () => {
+    const actions = await import("@/lib/server/control-actions");
+    const form = new FormData();
+    form.set("userId", "user-target");
+    const result = await actions.dismissStageRequestAction(null, form);
+    expect(result).toEqual({
+      done: true,
+      email: "target@example.com",
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        action: "control.user.dismiss-stage-request",
+        target: "user:user-target",
+        result: "success",
+      }),
+    ]);
+  });
+
+  it("deletes a target user after exact email confirmation and blocks self-deletion", async () => {
+    const actions = await import("@/lib/server/control-actions");
+
+    const selfForm = new FormData();
+    selfForm.set("userId", "user-admin");
+    selfForm.set("confirmEmail", "admin@example.com");
+    const selfResult = await actions.deleteUserAction(null, selfForm);
+    expect(selfResult).toEqual({
+      error: "You cannot delete your own account.",
+    });
+
+    const mismatchForm = new FormData();
+    mismatchForm.set("userId", "user-target");
+    mismatchForm.set("confirmEmail", "wrong@example.com");
+    const mismatchResult = await actions.deleteUserAction(null, mismatchForm);
+    expect(mismatchResult).toEqual({
+      error: "Type the exact account email address to confirm deletion.",
+    });
+
+    events.length = 0;
+
+    const okForm = new FormData();
+    okForm.set("userId", "user-target");
+    okForm.set("confirmEmail", "target@example.com");
+    const okResult = await actions.deleteUserAction(null, okForm);
+    expect(okResult).toEqual({
+      done: true,
+      email: "target@example.com",
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        action: "control.user.delete",
         target: "user:user-target",
         result: "success",
       }),

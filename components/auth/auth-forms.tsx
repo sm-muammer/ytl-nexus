@@ -58,9 +58,9 @@ export function SignInForm({ next }: { next: string }) {
           <p className="mt-1">
             YTL Nexus accounts are protected under enterprise operational
             controls. If you forgot your password, please request an
-            Administrator in Nexus Control (
-            <code className="font-mono text-cyan-200">/control</code>) to issue
-            a secure password reset.
+            Administrator in Nexus Control → User Management (
+            <code className="font-mono text-cyan-200">/control/users</code>) to
+            issue a secure password reset.
           </p>
         </div>
       ) : null}
@@ -242,10 +242,11 @@ export function EnrolForm({ next }: { next: string }) {
 }
 
 /** Asked on /control when the last password-and-code check is older than 10 minutes. */
-export function StepUpForm() {
+export function StepUpForm({ next = "/control" }: { next?: string }) {
   const [state, action] = useActionState(stepUpAction, null);
   return (
     <form action={action} className={formClass}>
+      <input type="hidden" name="next" value={next} />
       <Field
         label="Password"
         name="password"

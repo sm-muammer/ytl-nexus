@@ -302,6 +302,7 @@ const stepUpSchema = z.object({
     .string()
     .trim()
     .regex(/^\d{6}$/),
+  next: z.string().max(512).optional(),
 });
 
 const stepUp = guardAction(
@@ -319,8 +320,12 @@ const stepUp = guardAction(
       await headers(),
       input,
     );
+    const target = safeNext(input.next);
     return result.ok
-      ? { ok: true as const, to: "/control" }
+      ? {
+          ok: true as const,
+          to: target.startsWith("/control") ? target : "/control",
+        }
       : { ok: false as const, error: result.reason };
   },
 );
@@ -329,7 +334,7 @@ export async function stepUpAction(
   _previous: StepUpState,
   formData: FormData,
 ): Promise<StepUpState> {
-  const result = await stepUp(form(formData, "password", "code"));
+  const result = await stepUp(form(formData, "password", "code", "next"));
   if (result.ok) redirect(result.to);
   switch (result.error) {
     case "locked":

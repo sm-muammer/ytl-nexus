@@ -29,7 +29,24 @@ export type RevokeSessionsState =
   null | { error: string } | { done: true; email: string };
 
 export type CreateUserState =
-  null | { error: string } | { done: true; email: string; password: string };
+  | null
+  | { error: string }
+  | {
+      done: true;
+      email: string;
+      password: string;
+      transferUsername?: string | null;
+      mailboxAddress?: string | null;
+    };
+
+export type UpdateUserNameState =
+  null | { error: string } | { done: true; email: string; name: string };
+
+export type DismissStageRequestState =
+  null | { error: string } | { done: true; email: string };
+
+export type DeleteUserState =
+  null | { error: string } | { done: true; email: string };
 
 export type ChangeRoleState =
   null | { error: string } | { done: true; email: string; role: Role };
@@ -60,6 +77,9 @@ export const MESSAGES = {
   self: "Use another Administrator account to reset your own password.",
   selfRole: "You cannot change your own role in Control.",
   selfDisable: "You cannot disable your own account.",
+  selfDelete: "You cannot delete your own account.",
+  confirmEmailMismatch:
+    "Type the exact account email address to confirm deletion.",
   emailExists: "An account with that email already exists.",
   notFound: "That account no longer exists.",
 } as const;

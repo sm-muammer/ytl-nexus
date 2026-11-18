@@ -13,6 +13,9 @@ test.describe("Nexus Control Completion (Task 19)", () => {
 
     // Verify all 6 core sections exist
     await expect(page.locator("[data-control-users]")).toBeVisible();
+    await page
+      .getByText(/Advanced Subsystems: Direct SFTPGo & Virtual Mailbox Tables/i)
+      .click();
     await expect(page.locator("[data-control-transfer]")).toBeVisible();
     await expect(page.locator("[data-control-mail]")).toBeVisible();
     await expect(page.locator("[data-control-services]")).toBeVisible();
@@ -78,5 +81,58 @@ test.describe("Nexus Control Completion (Task 19)", () => {
       () => document.documentElement.clientWidth,
     );
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+  });
+
+  test("Dedicated User Management page (/control/users) renders metrics, filters, sub-nav and passes a11y", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await signInAs(context, baseURL, "admin");
+    const res = await page.goto("/control/users");
+    expect(res?.status()).toBe(200);
+
+    // Control section sub-navigation
+    const sectionNav = page.getByRole("navigation", {
+      name: "Control sections",
+    });
+    await expect(sectionNav).toBeVisible();
+    await expect(sectionNav.locator('[aria-current="page"]')).toHaveAttribute(
+      "href",
+      "/control/users",
+    );
+
+    // KPI summary cards, filter toolbar, and all 4 demo accounts
+    await expect(page.locator("[data-user-metrics]")).toBeVisible();
+    await expect(page.locator("[data-user-filters]")).toBeVisible();
+    const userRows = page.locator("[data-user-row]");
+    await expect(userRows).toHaveCount(4);
+
+    // Filter by search query
+    await page.getByLabel("Search accounts").fill("operator");
+    await expect(userRows).toHaveCount(1);
+    await expect(userRows.first()).toContainText("operator@example.com");
+
+    // Clear filters and filter by role
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await expect(userRows).toHaveCount(4);
+    await page.getByLabel("Filter by role").selectOption("member");
+    await expect(userRows).toHaveCount(1);
+    await expect(userRows.first()).toContainText("member@example.com");
+    await page.getByRole("button", { name: "Clear filters" }).click();
+
+    // Accessibility check at desktop (1440px) and mobile (390px)
+    await page.setViewportSize({ width: 1440, height: 900 });
+    expect(await blockingViolations(page)).toEqual([]);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const scrollWidth = await page.evaluate(
+      () => document.documentElement.scrollWidth,
+    );
+    const clientWidth = await page.evaluate(
+      () => document.documentElement.clientWidth,
+    );
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+    expect(await blockingViolations(page)).toEqual([]);
   });
 });

@@ -50,6 +50,24 @@ export function WorkspaceSidebar({ actor }: { actor: Actor }) {
                       >
                         {item.label}
                       </NavLink>
+                      {group === "manage" &&
+                      item.children &&
+                      item.children.length > 0 ? (
+                        <ul className="border-line/60 mt-0.5 ml-3 flex flex-col border-l pl-2">
+                          {item.children
+                            .filter((c) => c.href !== item.href)
+                            .map((child) => (
+                              <li key={child.href}>
+                                <NavLink
+                                  href={child.href}
+                                  className="text-muted hover:bg-surface-raised hover:text-ink aria-[current=page]:bg-surface-raised aria-[current=page]:text-ink flex min-h-9 items-center rounded-md px-3 text-xs font-medium transition-colors duration-(--duration-fast)"
+                                >
+                                  {child.label}
+                                </NavLink>
+                              </li>
+                            ))}
+                        </ul>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

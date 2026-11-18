@@ -31,21 +31,25 @@ function getSearchItems(actor: Actor) {
 }
 
 describe("Command Palette Indexer & Concealment", () => {
-  it("conceals Nexus Control from visitors and non-admins", () => {
+  it("conceals Nexus Control and User Management from visitors and non-admins", () => {
     const visitorItems = getSearchItems(null);
     expect(visitorItems.some((i) => i.id === "control")).toBe(false);
+    expect(visitorItems.some((i) => i.href === "/control/users")).toBe(false);
 
     const viewerItems = getSearchItems({ userId: "u1", role: "viewer" });
     expect(viewerItems.some((i) => i.id === "control")).toBe(false);
+    expect(viewerItems.some((i) => i.href === "/control/users")).toBe(false);
 
     const operatorItems = getSearchItems({ userId: "u2", role: "operator" });
     expect(operatorItems.some((i) => i.id === "control")).toBe(false);
+    expect(operatorItems.some((i) => i.href === "/control/users")).toBe(false);
   });
 
-  it("exposes Nexus Control to Administrators only", () => {
+  it("exposes Nexus Control and User Management to Administrators only", () => {
     const adminItems = getSearchItems({ userId: "admin1", role: "admin" });
     expect(adminItems.some((i) => i.id === "control")).toBe(true);
     expect(adminItems.find((i) => i.id === "control")?.href).toBe("/control");
+    expect(adminItems.some((i) => i.href === "/control/users")).toBe(true);
   });
 
   it("indexes sub-pages for multi-page modules", () => {

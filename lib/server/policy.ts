@@ -111,7 +111,8 @@ export const PAGE_POLICY: readonly PagePolicy[] = [
   // Public shell; the item itself is filtered for the actor (lib/server/content.ts).
   { path: "/library/[slug]", minRole: null },
   ...PAGES.map((p): PagePolicy => {
-    if (p.path === "/control") return { path: p.path, ...CONTROL };
+    if (p.path === "/control" || p.path.startsWith("/control/"))
+      return { path: p.path, ...CONTROL };
     return { path: p.path, minRole: p.minRole };
   }),
 ];
@@ -271,6 +272,9 @@ export const ACTION_POLICY: readonly ActionPolicy[] = [
   { id: "control.user.reset-2fa", ...CONTROL },
   { id: "control.user.reset-password", ...CONTROL },
   { id: "control.user.revoke-sessions", ...CONTROL },
+  { id: "control.user.update-name", ...CONTROL },
+  { id: "control.user.dismiss-stage-request", ...CONTROL },
+  { id: "control.user.delete", ...CONTROL },
   // Nexus Transfer accounts (requirement 12.16). Administrators in Control, with a fresh Step_Up.
   { id: "transfer.account.create", ...CONTROL },
   { id: "transfer.account.set-enabled", ...CONTROL },

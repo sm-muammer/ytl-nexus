@@ -39,12 +39,27 @@ export function SiteHeader({ mode, actor }: { mode: NexusMode; actor: Actor }) {
     label: NAV_GROUP_LABEL[key],
     items: items
       .filter((i) => i.group === key)
-      .map((i) => ({
-        label: i.label,
-        href: i.href,
-        subtitle: i.subtitle,
-        apacheServed: Boolean(i.apacheServed),
-      })),
+      .flatMap((i) => {
+        const base = {
+          label: i.label,
+          href: i.href,
+          subtitle: i.subtitle,
+          apacheServed: Boolean(i.apacheServed),
+        };
+        if (key === "manage" && i.children && i.children.length > 0) {
+          const extra = i.children
+            .filter((c) => c.href !== i.href)
+            .map((c) => ({
+              label: c.label,
+              href: c.href,
+              subtitle:
+                "Accounts, roles, stage approvals, SFTP and mailbox provisioning",
+              apacheServed: false,
+            }));
+          return [base, ...extra];
+        }
+        return [base];
+      }),
   })).filter((g) => g.items.length > 0);
 
   const demo = mode === "demo";

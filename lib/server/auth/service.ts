@@ -507,4 +507,30 @@ export async function revokeSessionsAsAdmin(
   await rt.auth.api.revokeUserSessions({ body: { userId }, headers });
 }
 
+export async function updateUserName(
+  rt: AuthRuntime,
+  userId: string,
+  name: string,
+): Promise<void> {
+  await rt.db
+    .updateTable("user")
+    .set({ name: name.trim() })
+    .where("id", "=", userId)
+    .execute();
+}
+
+export async function deleteUserAccount(
+  rt: AuthRuntime,
+  headers: Headers,
+  userId: string,
+): Promise<void> {
+  await rt.auth.api
+    .revokeUserSessions({ body: { userId }, headers })
+    .catch(() => undefined);
+  await rt.db.deleteFrom("twoFactor").where("userId", "=", userId).execute();
+  await rt.db.deleteFrom("session").where("userId", "=", userId).execute();
+  await rt.db.deleteFrom("account").where("userId", "=", userId).execute();
+  await rt.db.deleteFrom("user").where("id", "=", userId).execute();
+}
+
 export { LOCKOUT_MESSAGE };

@@ -247,6 +247,7 @@ function toState(
 ): MailActionState {
   if (!result.ok) return { error: guardMessage(result.error) };
   revalidatePath("/control");
+  revalidatePath("/control/users");
   revalidatePath("/mail");
   return {
     done,

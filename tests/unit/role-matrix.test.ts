@@ -150,4 +150,32 @@ describe("Role Matrix Access Across All Module Pages", () => {
       allow: true,
     });
   });
+
+  it("protects /control/users identically: hidden to non-admins, requires fresh Step_Up for admins", () => {
+    const usersPolicy = policyForPage("/control/users");
+    expect(usersPolicy).toMatchObject({
+      minRole: "admin",
+      hidden: true,
+      stepUp: true,
+    });
+    expect(decide(visitor, usersPolicy, now)).toEqual({
+      allow: false,
+      reason: "hidden",
+    });
+    expect(decide(member, usersPolicy, now)).toEqual({
+      allow: false,
+      reason: "hidden",
+    });
+    expect(decide(operatorWith2FA, usersPolicy, now)).toEqual({
+      allow: false,
+      reason: "hidden",
+    });
+    expect(decide(adminStaleStepUp, usersPolicy, now)).toEqual({
+      allow: false,
+      reason: "step-up-required",
+    });
+    expect(decide(adminFreshStepUp, usersPolicy, now)).toEqual({
+      allow: true,
+    });
+  });
 });

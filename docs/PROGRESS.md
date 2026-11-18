@@ -5,16 +5,17 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Last completed              | **Home showcase (spec 24):** WebGL 3D Yes particle logomark, glass bento grid, facts strip and architecture teaser on `/` (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                 |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                       |
-| Recommended model           | Any                                                                                                                                         |
-| Start the next session with | `Platform and Tour fully live and verified: ready for final handover presentation`                                                          |
+| Item                        | Value                                                                                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Last completed              | **User Management (`/control/users`):** dedicated user lifecycle page, unified SFTP/mailbox provisioning, stage approvals, filters, and deletion (done 2026-11-18) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                        |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                              |
+| Recommended model           | Any                                                                                                                                                                |
+| Start the next session with | `Platform and Tour fully live and verified: ready for final handover presentation`                                                                                 |
 
 ## Owner actions waiting
 
+- **Inspect User Management (`/control/users`) in a browser:** sign in as an Administrator on `https://ytl-nexus.ytlcomms.my` (or locally), navigate via the sidebar or Command Palette (<kbd>Cmd</kbd>+<kbd>K</kbd>) to **User Management** (`/control/users`). Verify KPI summary cards, pending stage promotion queue (approve/dismiss), search/role/status filtering, single-form account creation with optional SFTP/mailbox auto-provisioning, inline subsystem provisioning/credential rotation, display name updates, per-user recent audit activity, and email-confirmed deletion.
 - **Inspect Home Showcase (Spec 24) in a browser:** open `http://localhost:3000/` (or `https://ytl-nexus.ytlcomms.my/` after deploying to Nexus Core 01). Verify the high-definition 3D particle Yes logomark over the harmonized obsidian-violet backdrop (`.nx-tint-aurora`): stratified Sobel-normal shading eliminates back-face ghosting and highlights extruded edges, orbital dust rings rotate around the mark, it converges on load, smoothly rotates when idle, tilts and ripples around your pointer (or touch/drag), responds to horizontal trackpad scrolling, scatters into an ambient nebula behind the Project Facts strip, glass Modules bento grid, and animated 3-tier Architecture teaser, and re-forms when you scroll back up. Also verify the clean editorial hero layout with your attribution (**Muammer**) in the lead copy, hairline colophon, and About disclosure.
 
 - **Inspect Platform Section in a browser:** open `https://ytl-nexus.ytlcomms.my/platform` (or locally at `http://localhost:3000/platform` or from the home page CTA "How it fits together"). Verify the full interactive architecture overview: the 3-tier Network Topology & Ingress Flow, the 6 Core Trust Boundaries, live/demo subsystem health cards, runtime services table on Rocky Linux Nexus Core 01, and the categorized 16 Unified Modules matrix. Notice that the stub notice "Not available yet" has been completely replaced with a comprehensive systems engineering presentation.
@@ -49,6 +50,20 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Dedicated User Management (`/control/users`) & Platform Integration (done 2026-11-18)
+
+- **Hidden Route & Policy Integration (`app/control/users/page.tsx`, `lib/navigation/modules.ts`, `lib/navigation/scenes.ts`, `lib/server/policy.ts`):**
+  - Registered `/control/users` under `Nexus Control` (`subNav` + `pages`), assigned unique still backdrop `{ tint: "quiet", pattern: "lines" }`, and applied `{ minRole: "admin", hidden: true, stepUp: true }` across page policy and three new audited Server Functions (`control.user.update-name`, `control.user.dismiss-stage-request`, `control.user.delete`).
+  - Integrated `/control/users` into Control's `SectionNav` (`Overview` / `User Management`), Administrator `WorkspaceSidebar` child links, `NavSheet` (`All modules`), Command Palette (`Nexus Control: User Management`), `/control` Accounts header CTA, and the `/signin` password-recovery guidance.
+  - Updated `StepUpForm` and `stepUpAction` to preserve the `next` destination (`/control` or `/control/users`).
+- **Account Lifecycle & Unified Subsystem Provisioning (`lib/server/auth/service.ts`, `lib/server/control-actions.ts`, `lib/server/control-users.ts`, `components/auth/control-users.tsx`):**
+  - Added KPI summary metrics (`Total Accounts`, `Account Status`, `Stage Promotions`, `2FA & Subsystems`), pending Stage 2/3 promotion approval/dismissal queue, and client search/role/status filtering.
+  - Enhanced user creation with optional auto-provisioning of linked SFTPGo transfer accounts and `@ytl-nexus.internal` mailboxes.
+  - Added inline SFTPGo and mailbox provisioning, status toggles, secret rotation, display name editing, per-user recent audit activity, and exact-email-confirmed account deletion (with self-delete protection).
+- **Tests & Docs:**
+  - Added unit tests in `tests/unit/control-actions.test.ts`, `tests/unit/role-matrix.test.ts`, and `tests/unit/command-palette.test.ts`, and E2E verification in `tests/e2e/control.spec.ts`.
+  - Updated `docs/spec/23-nexus-control.md` and `docs/security/auth.md`.
 
 ### Home showcase (spec 24) (done 2026-11-18)
 

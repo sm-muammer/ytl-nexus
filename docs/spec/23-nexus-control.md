@@ -5,21 +5,21 @@
 
 ## Summary
 
-Nexus Control lives at `/control/*`. It is unlinked, `noindex`, returns 404 to everyone except Administrators, and requires password plus TOTP re-authentication within the last 10 minutes.
+Nexus Control lives at `/control/*` (with dedicated User Management at `/control/users`). It is unlinked, `noindex`, returns 404 to everyone except Administrators, and requires password plus TOTP re-authentication within the last 10 minutes.
 
 ## Requirements
 
-| ID     | Requirement                                                                                                     |
-| ------ | --------------------------------------------------------------------------------------------------------------- |
-| CTL-01 | Access rules as in [10 Identity and access](10-identity-and-access.md) (IAM-05, IAM-06)                         |
-| CTL-02 | **Users and roles:** create, change role, disable, revoke sessions, reset password, force 2FA re-enrolment      |
-| CTL-03 | **SFTP accounts:** create, disable, delete, quotas, public keys, password reset (through the SFTPGo API)        |
-| CTL-04 | **Mail accounts:** create, disable, reset password, quota (through the restricted mail database user)           |
-| CTL-05 | **Service actions:** the operations agent allowlist ([12](12-nexus-status-and-operations.md))                   |
-| CTL-06 | **Configuration view:** non-secret settings only (mode, versions, enabled modules, bindings)                    |
-| CTL-07 | **Audit viewer:** filters by actor, action, target, result and date; CSV export with formula-injection escaping |
-| CTL-08 | Every Control mutation asks for confirmation and writes an audit event                                          |
-| CTL-09 | Destructive actions name the exact target in the confirmation (for example the account email)                   |
+| ID     | Requirement                                                                                                                                                                                                                              |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CTL-01 | Access rules as in [10 Identity and access](10-identity-and-access.md) (IAM-05, IAM-06)                                                                                                                                                  |
+| CTL-02 | **Users and roles:** create (with optional SFTP/mail auto-provisioning), edit name, change role, approve or dismiss stage promotions, disable, revoke sessions, reset password, force 2FA re-enrolment, delete (with email confirmation) |
+| CTL-03 | **SFTP accounts:** create, disable, delete, quotas, public keys, password reset (through the SFTPGo API)                                                                                                                                 |
+| CTL-04 | **Mail accounts:** create, disable, reset password, quota (through the restricted mail database user)                                                                                                                                    |
+| CTL-05 | **Service actions:** the operations agent allowlist ([12](12-nexus-status-and-operations.md))                                                                                                                                            |
+| CTL-06 | **Configuration view:** non-secret settings only (mode, versions, enabled modules, bindings)                                                                                                                                             |
+| CTL-07 | **Audit viewer:** filters by actor, action, target, result and date; CSV export with formula-injection escaping                                                                                                                          |
+| CTL-08 | Every Control mutation asks for confirmation and writes an audit event                                                                                                                                                                   |
+| CTL-09 | Destructive actions name the exact target in the confirmation (for example the account email)                                                                                                                                            |
 
 ## Security requirements
 

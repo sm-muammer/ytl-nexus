@@ -66,7 +66,7 @@ A refused request never runs the handler and writes one `refused` event. Validat
 
 Rewrite and proxies: behind Apache the request says `X-Forwarded-Proto: https` while the Node server listens on plain http. A rewrite to an https URL is fetched as an external request and fails with a 500, so `proxy.ts` gives the rewrite the `http:` scheme. To reproduce locally, run `.next/standalone/server.js` with `HOSTNAME=127.0.0.1` and request it with `-H 'Host: ytl-nexus.internal' -H 'X-Forwarded-Proto: https'`.
 
-Administrators then pass Step_Up before Control shows anything. The Task 6 tools are the account list, **password reset** and **end sessions**. Reset creates a random 24-character password, shows it once to the Administrator, ends the user's sessions and sends no email. Task 19 adds the rest.
+Administrators then pass Step_Up before Control shows anything (`/control` or `/control/users`). User Management supports account creation (with optional unified SFTPGo and internal mailbox provisioning), display name updates, role changes, Stage 2/3 promotion approval or dismissal, account disabling, session revocation, password resets (random 24-character password shown once with no email), two-factor resets, and email-confirmed account deletion (`control.user.update-name`, `control.user.dismiss-stage-request`, `control.user.delete`).
 
 Credential separation (requirement 6.24): WordPress, mail and SFTP accounts live in their own services and databases (`nexus_wordpress`, `nexus_mail`, `nexus_sftpgo`, each with a single-database user). No Nexus password hash is copied there and the reverse.
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ControlUsers } from "@/components/auth/control-users";
 import { ControlTransfer } from "@/components/transfer/control-transfer";
 import { ControlMail } from "@/components/mail/control-mail";
@@ -6,19 +7,16 @@ import { ControlConfig } from "@/components/control/control-config";
 import { ControlServices } from "@/components/control/control-services";
 import { RelatedModules } from "@/components/layout/related-modules";
 import { StepUpForm } from "@/components/auth/auth-forms";
+import { Backdrop } from "@/components/backdrop/backdrop";
 import { ControlShell } from "@/components/layout/control-shell";
 import { ModuleHero } from "@/components/layout/module-hero";
+import { SectionNav } from "@/components/layout/section-nav";
 import { PageTransition } from "@/components/motion/page-transition";
-import { demoControlUsers } from "@/lib/fixtures/control-users";
-import { pageInfo } from "@/lib/navigation/modules";
-import { getAuthRuntime } from "@/lib/server/auth/runtime";
-import { listUsersForAdmin } from "@/lib/server/auth/service";
-import { listAuditEvents } from "@/lib/server/audit";
+import { findModule, pageInfo } from "@/lib/navigation/modules";
 import { controlMetadata } from "@/lib/server/control-metadata";
+import { readControlUsersSnapshot } from "@/lib/server/control-users";
 import { requirePage } from "@/lib/server/guards";
 import { getMode } from "@/lib/server/mode";
-import { readAllAccounts } from "@/lib/server/transfer";
-import { readAllMailboxes } from "@/lib/server/mail";
 
 // Administrator-only, and only after a fresh Step_Up (password plus a code from
 // the authenticator app, within the last 10 minutes).
@@ -29,35 +27,22 @@ export const generateMetadata = () => controlMetadata("/control");
 export default async function ControlPage() {
   const { stepUpRequired } = await requirePage("/control");
   const page = pageInfo("/control");
+  const control = findModule("control");
   const demo = getMode() === "demo";
 
-  const users = stepUpRequired
-    ? []
-    : demo
-      ? demoControlUsers
-      : await listUsersForAdmin(getAuthRuntime());
-  const transfer = stepUpRequired ? null : await readAllAccounts();
-  const mail = stepUpRequired ? null : await readAllMailboxes();
-  const auditEvents = stepUpRequired ? [] : await listAuditEvents({}, 100);
-
-  const transferAccounts = transfer?.state === "ready" ? transfer.accounts : [];
-  const mailAccounts = mail?.state === "ready" ? mail.accounts : [];
-
-  const transferByNexusId = new Map(
-    transferAccounts.map((a) => [a.nexusUserId, a]),
-  );
-  const mailByNexusId = new Map(mailAccounts.map((a) => [a.nexusUserId, a]));
-
-  const usersWithServices = users.map((u) => ({
-    ...u,
-    transferAccount: transferByNexusId.get(u.id) ?? null,
-    mailAccount: mailByNexusId.get(u.id) ?? null,
-  }));
+  const snapshot = stepUpRequired ? null : await readControlUsersSnapshot();
+  const users = snapshot?.users ?? [];
+  const usersWithServices = snapshot?.usersWithServices ?? [];
+  const transfer = snapshot?.transfer ?? null;
+  const mail = snapshot?.mail ?? null;
+  const auditEvents = snapshot?.auditEvents ?? [];
 
   return (
     <ControlShell>
+      <SectionNav label="Control sections" items={control.subNav ?? []} />
       <PageTransition>
         <div>
+          <Backdrop path="/control" />
           <ModuleHero page={page} register="workspace" />
           <div className="flex flex-col gap-12 px-(--spacing-gutter) py-8">
             {stepUpRequired ? (
@@ -73,7 +58,7 @@ export default async function ControlPage() {
                   asks for your password and a code from your authenticator app
                   again. The verification lasts 10 minutes.
                 </p>
-                <StepUpForm />
+                <StepUpForm next="/control" />
               </section>
             ) : (
               <>
@@ -83,13 +68,19 @@ export default async function ControlPage() {
                   className="flex flex-col gap-4"
                   data-control-users
                 >
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2
                       id="users-title"
                       className="text-heading-3 font-semibold"
                     >
                       Accounts
                     </h2>
+                    <Link
+                      href="/control/users"
+                      className="border-line hover:border-ink hover:bg-surface-raised inline-flex min-h-11 items-center rounded-full border px-4 text-xs font-medium transition-colors"
+                    >
+                      Open User Management →
+                    </Link>
                   </div>
                   {demo ? (
                     <p className="text-muted text-data max-w-(--spacing-prose)">
@@ -97,7 +88,11 @@ export default async function ControlPage() {
                       not persist.
                     </p>
                   ) : null}
-                  <ControlUsers users={usersWithServices} demo={demo} />
+                  <ControlUsers
+                    users={usersWithServices}
+                    auditEvents={auditEvents}
+                    demo={demo}
+                  />
                 </section>
 
                 {/* Legacy Subsystem Tables: Details & Unlinked Service Accounts */}
