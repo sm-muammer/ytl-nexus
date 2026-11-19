@@ -71,6 +71,7 @@ describe("constraints", () => {
 
   it("rejects a resolved incident without a resolution time and the reverse", async () => {
     const base = {
+      ticket_no: "INC-2026-9001",
       service_id: 1,
       title: "x",
       opened_at: when,
@@ -85,9 +86,31 @@ describe("constraints", () => {
     await expect(
       s.migrate
         .insertInto("incidents")
-        .values({ ...base, state: "open", resolved_at: when })
+        .values({
+          ...base,
+          ticket_no: "INC-2026-9002",
+          state: "open",
+          resolved_at: when,
+        })
         .execute(),
     ).rejects.toThrow(/constraint/i);
+  });
+
+  it("rejects a duplicate incident ticket number", async () => {
+    await expect(
+      s.migrate
+        .insertInto("incidents")
+        .values({
+          ticket_no: "INC-2026-0001",
+          service_id: 1,
+          title: "Duplicate ticket",
+          state: "open",
+          opened_at: when,
+          resolved_at: null,
+          opened_by: null,
+        })
+        .execute(),
+    ).rejects.toThrow(/Duplicate entry/);
   });
 
   it("rejects a resolution that happens before the incident opened", async () => {
@@ -95,6 +118,7 @@ describe("constraints", () => {
       s.migrate
         .insertInto("incidents")
         .values({
+          ticket_no: "INC-2026-9003",
           service_id: 1,
           title: "x",
           state: "resolved",

@@ -220,6 +220,7 @@ export function buildChecks(): SeedCheck[] {
 
 export const incidents: Array<{
   id: number;
+  ticket_no: string;
   service_id: number;
   title: string;
   state: IncidentState;
@@ -228,6 +229,7 @@ export const incidents: Array<{
 }> = [
   {
     id: 1,
+    ticket_no: "INC-2026-0001",
     service_id: 5,
     title: "Nexus Studio unavailable after PHP-FPM restart",
     state: "resolved",
@@ -236,6 +238,7 @@ export const incidents: Array<{
   },
   {
     id: 2,
+    ticket_no: "INC-2026-0002",
     service_id: 10,
     title: "Nexus AI answers slower than usual",
     state: "monitoring",
@@ -244,6 +247,7 @@ export const incidents: Array<{
   },
   {
     id: 3,
+    ticket_no: "INC-2026-0003",
     service_id: 3,
     title: "Planned MariaDB minor upgrade window",
     state: "resolved",

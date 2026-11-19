@@ -9,14 +9,15 @@ Nexus Status records service health over time and tracks incidents. Controlled o
 
 ## Nexus Status requirements
 
-| ID     | Requirement                                                                                           |
-| ------ | ----------------------------------------------------------------------------------------------------- |
-| STA-01 | `nexus-worker` runs predefined service checks every 60 s and stores results in `service_checks`       |
-| STA-02 | Uptime per service is computed for 24 h, 7 d and 30 d                                                 |
-| STA-03 | `/status` shows Visitors a sanitized summary (service names and states only, no hosts, IPs or errors) |
-| STA-04 | Viewers and above see full history, incidents and incident updates                                    |
-| STA-05 | Operators and Administrators can open, update and resolve incidents; every change is audited          |
-| STA-06 | WordPress `announcement` items appear as maintenance notices                                          |
+| ID     | Requirement                                                                                                                                                                                 |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| STA-01 | `nexus-worker` runs predefined service checks every 60 s and stores results in `service_checks`                                                                                             |
+| STA-02 | Uptime per service is computed for 24 h, 7 d and 30 d                                                                                                                                       |
+| STA-03 | `/status` shows Visitors a sanitized summary (service names and states only, no hosts, IPs or errors)                                                                                       |
+| STA-04 | Viewers and above see full history, incidents, incident ticket numbers and incident updates                                                                                                 |
+| STA-05 | Operators and Administrators can open, update and resolve incidents; every change is audited                                                                                                |
+| STA-06 | WordPress `announcement` items appear as maintenance notices                                                                                                                                |
+| STA-07 | Every incident receives an auto-generated ticket number (`INC-YYYY-NNNN`), trackable at `/status/incidents/<ticket>` by Viewers and above (including resolved incidents older than 30 days) |
 
 ## Operations agent requirements
 

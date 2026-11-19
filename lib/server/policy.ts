@@ -110,6 +110,7 @@ export const PAGE_POLICY: readonly PagePolicy[] = [
   { path: "/design", minRole: "viewer" },
   // Public shell; the item itself is filtered for the actor (lib/server/content.ts).
   { path: "/library/[slug]", minRole: null },
+  { path: "/status/incidents/[ticket]", minRole: "viewer" },
   ...PAGES.map((p): PagePolicy => {
     if (p.path === "/control" || p.path.startsWith("/control/"))
       return { path: p.path, ...CONTROL };

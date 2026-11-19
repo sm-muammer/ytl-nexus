@@ -13,6 +13,7 @@ const WORKSPACE_PATHS = [
   "/data",
   "/continuity",
   "/shield",
+  "/status/incidents",
   "/design",
   "/api/",
 ];

@@ -5,13 +5,13 @@
 
 ## Current status
 
-| Item                        | Value                                                                                                                                                                                                                             |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Last completed              | **Theme Selection in All Modules & Tactile Session Button:** preserved theme switcher inside "All modules" navigation drawer, removed indicator dots, and added tactile physical feedback via `emil-design-eng` (done 2026-11-18) |
-| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                                                       |
-| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                                             |
-| Recommended model           | Any                                                                                                                                                                                                                               |
-| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                                                    |
+| Item                        | Value                                                                                                                                                                                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Last completed              | **Auto Incident Ticket Numbers & Status Tracking:** auto-generated `INC-YYYY-NNNN` ticket numbers on all incidents, database migration + backfill, Viewer-gated `/status/incidents/[ticket]` tracker, `/status` ticket lookup, Atlas/AI/Command Palette integration (done 2026-11-19) |
+| Current task                | None (Platform & Tour Completed & Deployed)                                                                                                                                                                                                                                           |
+| Next task                   | None (Handover Walkthrough & Team Account Onboarding)                                                                                                                                                                                                                                 |
+| Recommended model           | Any                                                                                                                                                                                                                                                                                   |
+| Start the next session with | `Platform, Tour, User Management and Self-Service Account & Requests live and verified: ready for final handover presentation`                                                                                                                                                        |
 
 ## Recent deployments
 
@@ -19,6 +19,8 @@
 - **2026-11-18:** Deployed commit `037e4eb83c9962e7597e364f70b3da1df2f56d51` to Nexus Core 01 via `./infrastructure/scripts/deploy-remote HEAD`. Next.js standalone build compiled with 33 static/dynamic routes. Migrations verified. Database grants reapplied. Swapped symlink atomically. Post-deploy smoke test passed with 86 passed, 0 failed checks (TLS certificates, redirects, CSP headers, loopback listeners, `/control/users` 404 for unauthenticated visitors, background systemd services). Old release `00a255f3` safely pruned.
 
 ## Owner actions waiting
+
+- **Inspect Auto Incident Ticket Tracking (`/status` & `/status/incidents/INC-2026-0002`):** once deployed to Nexus Core 01 (which runs migration `20261119100000-add-incident-ticket-no` and backfills any existing incidents with `INC-YYYY-NNNN` ticket numbers), sign in as Viewer or above on `/status`, copy any ticket number or enter it into **Track by ticket number** (or press <kbd>Cmd</kbd>+<kbd>K</kbd> and type `INC-2026-...`), and verify the tracking view at `/status/incidents/<ticket>`. Confirm Visitors still cannot view incidents or ticket numbers.
 
 - **Inspect Account & Requests (`/account`) as Member / Operator / Admin:** sign in as any workspace user on `https://ytl-nexus.ytlcomms.my` (or locally), open **Account & Requests** via the sidebar (`Manage`), Command Palette (<kbd>Cmd</kbd>+<kbd>K</kbd>), menu drawer session strip, or links on `/command`, `/transfer`, and `/mail`. Edit profile fields (display name, job title, department, phone, default SSH public key, bio), submit and withdraw service/promotion requests (`#requests`), change your password with optional revocation of other sessions, inspect/sign out active sessions, review linked SFTP/mail status, and verify that pending requests appear in `/control/users` for one-click **Approve & Fulfill** / **Dismiss** by an Administrator.
 
@@ -57,6 +59,35 @@
 11. Calendar reminder: the server certificate expires 2027-12-04 (renewal steps in `docs/operations/server-baseline.md`).
 
 ## Task log
+
+### Auto Incident Ticket Numbers & Status Tracking (done 2026-11-19)
+
+- **Ticket Format & Pure Helpers (`lib/status/tickets.ts`, `lib/status/types.ts`, `lib/status/form-state.ts`):**
+  - Standardized `INC-YYYY-NNNN` ticket numbers (scaling cleanly past 9,999) with canonical normalization (`#inc-2026-0002` -> `INC-2026-0002`), tracking URL builder (`/status/incidents/<ticket>`), and duration formatting.
+- **Database Schema, Migration & Fixtures (`lib/server/db/migrations/20261119100000-add-incident-ticket-no.ts`, `lib/server/db/schema.ts`, `lib/server/db/seed/data.ts`, `lib/fixtures/status.ts`):**
+  - Added `ticket_no VARCHAR(24) NOT NULL UNIQUE` to `incidents`, deterministically backfilling existing database rows from `opened_at` and `id`.
+  - Updated `openIncident` (`lib/server/incidents.ts`) to derive `ticket_no` atomically inside a transaction from the row's InnoDB `AUTO_INCREMENT` `id` (inserting a short unique placeholder first, then updating to `INC-YYYY-NNNN`), avoiding race conditions or number reuse.
+- **Role-Gated Tracking & Server Layer (`lib/server/status.ts`, `lib/server/status-actions.ts`, `proxy.ts`, `lib/server/policy.ts`, `lib/navigation/modules.ts`, `lib/navigation/scenes.ts`, `app/robots.ts`):**
+  - Added `loadIncidentByTicket` (without the 30-day cutoff so historical resolved incidents remain trackable) and `getIncidentByTicket` returning `null` for Visitors (`STA-03`/`STA-04`).
+  - Registered `/status/incidents/[ticket]` as `minRole: "viewer"`, updated `proxy.ts` to protect dynamic `[ticket]` paths in Live Mode, and updated `status-actions.ts` to return `ticketNo` and revalidate `/status` + `/status/incidents/<ticket>`.
+- **Status Tracking UI & Platform Links (`app/(workspace)/status/incidents/[ticket]/page.tsx`, `app/(public)/status/page.tsx`, `components/status/ticket-controls.tsx`, `components/status/status-parts.tsx`, `components/status/incident-forms.tsx`, `components/atlas/atlas-view.tsx`, `components/navigation/command-palette.tsx`, `lib/ai/prompts.ts`):**
+  - Added ticket lookup form on `/status` (progressive enhancement with client push + server GET redirect for signed-in users only), dedicated tracking page with 4-step progress indicator, status badge (icon + label), duration/timestamps, update timeline, copy ticket / tracking link buttons, and missing-ticket recovery.
+  - Linked ticket numbers directly from Open Incident confirmation banners, Incident List, Atlas service panels, Command Palette (`Cmd+K`), and Nexus AI explain prompts.
+- **Tests & Docs:**
+  - Added unit tests (`tests/unit/status-tickets.test.ts`, `tests/unit/status-actions.test.ts`, `tests/unit/status-ui.test.tsx`), extended `status-view.test.ts`, `proxy.test.ts`, `role-matrix.test.ts`, `ai/prompts.test.ts`, integration tests (`constraints.test.ts`, `status-data.test.ts`, `migrations.test.ts`), and E2E specs (`tests/e2e/status.spec.ts`, `tests/e2e/atlas.spec.ts`).
+  - Updated `docs/spec/12-nexus-status-and-operations.md`, `docs/operations/ops-and-status.md`, and `docs/product.md`.
+
+### Nexus Tour Native Interactive Slide Deck (Option A) (done 2026-11-19)
+
+- **Slide Metadata Registry (`lib/tour/slides.ts`):**
+  - Added typed `TourSlideMeta` and 6 `TourVisualPreview` archetypes (`architecture`, `telemetry`, `topology`, `conversation`, `records`, `assurance`) covering all 16 `tour_step` slugs with clean unknown-slug fallback, `parseInitialTourStep` (`?step=N`), and `moduleHref: null` on `tour-14-control` so hidden `/control` is never exposed.
+- **2-Column Stage, Visual Previews & Slide Overview Modal (`components/tour/tour-view.tsx`, `components/tour/tour-slide-visual.tsx`, `components/tour/tour-overview-dialog.tsx`, `app/(public)/tour/page.tsx`, `app/globals.css`):**
+  - Upgraded `/tour` into a responsive 2-column presentation stage pairing WordPress `tour_step` narrative, 3 key highlights, and safe module links with theme-aware visual previews labelled `Illustrative · Demo`.
+  - Added chapter quick-jump pills (`Overview`, `Operate`, `Services`, `Assure`, `Govern`, `Showcase`), native `<dialog data-tour-overview>` grid (`G`) with `closedby="any"`, Safari light-dismiss fallback, and `overscroll-behavior: contain` scroll containment, URL `?step=N` sync (only on navigation; clean on step 1), `Home`/`End` and touch-swipe navigation, presenter elapsed timer, GPU-accelerated `scaleX` progress ribbon, and a `"Continue exploring"` hairline footer strip.
+  - Replaced hardcoded `text-white` / `border-white/20` and invalid token names with semantic tokens so Obsidian, Blueprint, and Daylight themes all satisfy WCAG 2.2 AA contrast.
+- **Tests & Verification:**
+  - Added `tests/unit/tour-slides.test.ts` (6 tests) and expanded `tests/unit/tour-view.test.tsx` (10 tests) — all 16 tour unit tests passing.
+  - Expanded `tests/e2e/tour.spec.ts` (6 Playwright tests) covering sequential stepping, keyboard/Presenter Mode, `?step=5` deep-link, `G` overview + layered `Escape`, and 0 axe-core violations + 0 `/tour` content overflow at `390px` and `1440px` in both Obsidian dark and Daylight light modes. (Note: `document.documentElement` overflow at `390px` is a pre-existing `SiteHeader`/`NavSheet` session-pill issue from `3236ab6` affecting all routes, unrelated to `/tour`.)
 
 ### Theme Selection in All Modules & Tactile Session Button (done 2026-11-18)
 

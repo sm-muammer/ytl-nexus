@@ -24,6 +24,7 @@ describe("proxy in Live_Mode", () => {
       "/design",
       "/studio",
       "/data",
+      "/status/incidents/INC-2026-0002",
     ]) {
       const res = proxy(request(path));
       expect(res.status, path).toBe(307);
@@ -42,6 +43,11 @@ describe("proxy in Live_Mode", () => {
       const res = proxy(request("/command", cookie));
       expect(res.status).toBe(200);
       expect(res.headers.get("location")).toBeNull();
+      const ticketRes = proxy(
+        request("/status/incidents/INC-2026-0002", cookie),
+      );
+      expect(ticketRes.status).toBe(200);
+      expect(ticketRes.headers.get("location")).toBeNull();
     }
   });
 

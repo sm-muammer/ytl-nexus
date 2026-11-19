@@ -479,6 +479,50 @@ dialog[data-nav-sheet][open] {
 }
 
 /*
+ * Tour slide overview modal: top-layer scroll containment + subtle scale-from-0.97
+ * entrance with fast exit. Falls back to opacity-only under reduced motion.
+ */
+dialog[data-tour-overview]:modal {
+  overscroll-behavior: contain;
+}
+dialog[data-tour-overview]::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: color-mix(in oklab, var(--nx-canvas) 72%, transparent);
+  backdrop-filter: blur(6px);
+}
+dialog[data-tour-overview],
+dialog[data-tour-overview]::backdrop {
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) var(--ease-in-quad),
+    transform var(--duration-fast) var(--ease-in-quad),
+    display var(--duration-fast) allow-discrete,
+    overlay var(--duration-fast) allow-discrete;
+}
+dialog[data-tour-overview] {
+  transform: scale(0.97);
+}
+dialog[data-tour-overview][open],
+dialog[data-tour-overview][open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--duration-base);
+  transition-timing-function: var(--ease-out-quint);
+}
+dialog[data-tour-overview][open] {
+  transform: scale(1);
+}
+@starting-style {
+  dialog[data-tour-overview][open],
+  dialog[data-tour-overview][open]::backdrop {
+    opacity: 0;
+  }
+  dialog[data-tour-overview][open] {
+    transform: scale(0.97);
+  }
+}
+
+/*
  * Entrance primitives (components/motion/reveal.tsx). Plain CSS, so the page
  * is visible without JavaScript and nothing waits for hydration. --nx-delay is
  * set per element.

@@ -22,11 +22,27 @@ import { PAGE_POLICY } from "@/lib/server/policy";
 // Administrator is answered by the page guard (docs/security/auth.md, "The
 // hidden area").
 
-const PROTECTED = new Set(
-  PAGE_POLICY.filter(
-    (p) => p.minRole !== null && !p.hidden && p.path !== "/",
-  ).map((p) => p.path),
+const PROTECTED_ENTRIES = PAGE_POLICY.filter(
+  (p) => p.minRole !== null && !p.hidden && p.path !== "/",
 );
+
+const PROTECTED = new Set(
+  PROTECTED_ENTRIES.filter((p) => !p.path.includes("[")).map((p) => p.path),
+);
+
+const PROTECTED_PATTERNS = PROTECTED_ENTRIES.filter((p) =>
+  p.path.includes("["),
+).map((p) => {
+  const escaped = p.path
+    .split("/")
+    .map((seg) =>
+      seg.startsWith("[") && seg.endsWith("]")
+        ? "[^/]+"
+        : seg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    )
+    .join("/");
+  return new RegExp(`^${escaped}$`);
+});
 
 const HIDDEN = PAGE_POLICY.filter((p) => p.hidden).map((p) => p.path);
 
@@ -38,7 +54,8 @@ function normalise(pathname: string): string {
 }
 
 function isProtectedPath(pathname: string): boolean {
-  return PROTECTED.has(normalise(pathname));
+  const path = normalise(pathname);
+  return PROTECTED.has(path) || PROTECTED_PATTERNS.some((re) => re.test(path));
 }
 
 function isHiddenPath(pathname: string): boolean {

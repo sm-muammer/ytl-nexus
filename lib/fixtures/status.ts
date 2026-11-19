@@ -197,6 +197,7 @@ export function demoIncidents(now: number): IncidentDto[] {
   return [
     {
       id: 2,
+      ticketNo: "INC-2026-0002",
       serviceSlug: "ollama",
       serviceName: name("ollama"),
       title: "Nexus AI answers slower than usual",
@@ -218,6 +219,7 @@ export function demoIncidents(now: number): IncidentDto[] {
     },
     {
       id: 1,
+      ticketNo: "INC-2026-0001",
       serviceSlug: "wordpress",
       serviceName: name("wordpress"),
       title: "Nexus Studio unavailable after PHP-FPM restart",
@@ -244,6 +246,7 @@ export function demoIncidents(now: number): IncidentDto[] {
     },
     {
       id: 3,
+      ticketNo: "INC-2026-0003",
       serviceSlug: "mariadb",
       serviceName: name("mariadb"),
       title: "Planned MariaDB minor upgrade window",

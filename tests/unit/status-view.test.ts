@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { demoStatus } from "@/lib/fixtures/status";
-import { getStatusView } from "@/lib/server/status";
+import { getIncidentByTicket, getStatusView } from "@/lib/server/status";
 import { overallStatus } from "@/lib/status/types";
 
 // STA-03 and STA-04: a Visitor gets service names and states only; a signed-in
@@ -35,10 +35,12 @@ describe("getStatusView", () => {
     const text = JSON.stringify(await getStatusView(null, NOW));
     for (const incident of full.incidents) {
       expect(text).not.toContain(incident.title);
+      expect(text).not.toContain(incident.ticketNo);
       for (const update of incident.updates) {
         expect(text).not.toContain(update.body);
       }
     }
+    expect(text).not.toMatch(/INC-\d{4}-\d+/);
     expect(text).not.toMatch(/latencyMs|detail|uptime|history|lastCheckedAt/);
     expect(text).not.toMatch(/\d+\.\d+\.\d+\.\d+|127\.0\.0\.1|localhost/);
   });
@@ -50,10 +52,58 @@ describe("getStatusView", () => {
       expect(view.kind).toBe("full");
       if (view.kind !== "full") return;
       expect(view.incidents.length).toBeGreaterThan(0);
+      expect(
+        view.incidents.every((i) => /^INC-\d{4}-\d{4,}$/.test(i.ticketNo)),
+      ).toBe(true);
       expect(view.services[0]?.history.length).toBe(48);
       expect(view.source).toBe("demo");
     },
   );
+});
+
+describe("getIncidentByTicket", () => {
+  it("gives a Visitor nothing", async () => {
+    expect(await getIncidentByTicket(null, "INC-2026-0002", NOW)).toBeNull();
+  });
+
+  it.each(["viewer", "member", "operator", "admin"] as const)(
+    "lets a %s look up an incident by exact or lowercase ticket number",
+    async (role) => {
+      const actor = { userId: "u1", role };
+      const exact = await getIncidentByTicket(actor, "INC-2026-0002", NOW);
+      expect(exact).toMatchObject({
+        source: "demo",
+        takenAt: NOW,
+        incident: {
+          id: 2,
+          ticketNo: "INC-2026-0002",
+          serviceSlug: "ollama",
+          state: "monitoring",
+        },
+      });
+
+      const normalized = await getIncidentByTicket(
+        actor,
+        " #inc-2026-0002 ",
+        NOW,
+      );
+      expect(normalized?.incident?.ticketNo).toBe("INC-2026-0002");
+    },
+  );
+
+  it("returns incident: null for an unknown or invalid ticket number", async () => {
+    const actor = { userId: "u1", role: "viewer" as const };
+    expect(await getIncidentByTicket(actor, "INC-2026-9999", NOW)).toEqual({
+      source: "demo",
+      takenAt: NOW,
+      incident: null,
+    });
+    expect(await getIncidentByTicket(actor, "../etc", NOW)).toEqual({
+      source: "demo",
+      takenAt: NOW,
+      incident: null,
+    });
+  });
 });
 
 describe("demo fixtures", () => {

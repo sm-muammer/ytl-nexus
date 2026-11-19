@@ -132,6 +132,7 @@ export interface ServiceChecksTable {
 
 export interface IncidentsTable {
   id: Id;
+  ticket_no: string;
   service_id: number;
   title: string;
   state: Generated<IncidentState>;

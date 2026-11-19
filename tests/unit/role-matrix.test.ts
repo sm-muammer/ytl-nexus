@@ -86,6 +86,17 @@ describe("Role Matrix Access Across All Module Pages", () => {
     expect(decide(viewer, policyForPage("/data"), now)).toEqual({
       allow: true,
     });
+    expect(
+      decide(viewer, policyForPage("/status/incidents/[ticket]"), now),
+    ).toEqual({
+      allow: true,
+    });
+    expect(
+      decide(visitor, policyForPage("/status/incidents/[ticket]"), now),
+    ).toEqual({
+      allow: false,
+      reason: "unauthenticated",
+    });
     expect(decide(viewer, policyForPage("/ai"), now).allow).toBe(false);
     expect(decide(viewer, policyForPage("/transfer"), now).allow).toBe(false);
     expect(decide(viewer, policyForPage("/continuity"), now).allow).toBe(false);

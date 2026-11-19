@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MODULES, type ModuleInfo } from "@/lib/navigation/modules";
 import { meetsRole, type Actor } from "@/lib/roles";
+import {
+  incidentTrackingPath,
+  normalizeIncidentTicketNo,
+} from "@/lib/status/tickets";
 
 type SearchItem = {
   id: string;
@@ -66,12 +70,28 @@ export function CommandPalette({ actor }: { actor: Actor }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const allItems = buildSearchItems(actor);
-  const filtered = allItems.filter(
+  const ticketMatch = meetsRole(actor, "viewer")
+    ? normalizeIncidentTicketNo(query)
+    : null;
+  const matchedList = allItems.filter(
     (i) =>
       i.title.toLowerCase().includes(query.toLowerCase()) ||
       i.subtitle.toLowerCase().includes(query.toLowerCase()) ||
       i.group.toLowerCase().includes(query.toLowerCase()),
   );
+  const filtered: SearchItem[] = ticketMatch
+    ? [
+        {
+          id: `ticket:${ticketMatch}`,
+          title: `Track incident ${ticketMatch}`,
+          subtitle: "View current incident status and update timeline",
+          href: incidentTrackingPath(ticketMatch),
+          group: "operate",
+          minRole: "viewer",
+        },
+        ...matchedList,
+      ]
+    : matchedList;
 
   function openPalette() {
     setQuery("");

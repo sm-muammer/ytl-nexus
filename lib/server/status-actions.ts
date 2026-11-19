@@ -1,10 +1,12 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
   INCIDENT_MESSAGES,
   type IncidentFormState,
 } from "@/lib/status/form-state";
+import { incidentTrackingPath } from "@/lib/status/tickets";
 import { INCIDENT_STATES } from "@/lib/status/types";
 import { getDb } from "@/lib/server/db";
 import { guardAction } from "@/lib/server/guards";
@@ -67,10 +69,12 @@ const open = guardAction(
     if (getMode() === "demo")
       return { ok: false as const, error: "demo" as const };
     const author = ctx.identity.kind === "user" ? ctx.identity.userId : null;
-    const id = await openIncident(getDb(), input, author, new Date());
-    if (id === null) return { ok: false as const, error: "not-found" as const };
+    const created = await openIncident(getDb(), input, author, new Date());
+    if (!created) return { ok: false as const, error: "not-found" as const };
     invalidateStatusCache();
-    return { ok: true as const, id };
+    revalidatePath("/status");
+    revalidatePath(incidentTrackingPath(created.ticketNo));
+    return { ok: true as const, id: created.id, ticketNo: created.ticketNo };
   },
 );
 
@@ -84,7 +88,7 @@ export async function openIncidentAction(
     body: formData.get("body") ?? undefined,
   });
   return result.ok
-    ? { done: "opened", id: result.id }
+    ? { done: "opened", id: result.id, ticketNo: result.ticketNo }
     : { error: message(result.error) };
 }
 
@@ -98,10 +102,12 @@ const update = guardAction(
     if (getMode() === "demo")
       return { ok: false as const, error: "demo" as const };
     const author = ctx.identity.kind === "user" ? ctx.identity.userId : null;
-    const found = await updateIncident(getDb(), input, author, new Date());
-    if (!found) return { ok: false as const, error: "not-found" as const };
+    const updated = await updateIncident(getDb(), input, author, new Date());
+    if (!updated) return { ok: false as const, error: "not-found" as const };
     invalidateStatusCache();
-    return { ok: true as const, id: input.id };
+    revalidatePath("/status");
+    revalidatePath(incidentTrackingPath(updated.ticketNo));
+    return { ok: true as const, id: updated.id, ticketNo: updated.ticketNo };
   },
 );
 
@@ -115,6 +121,6 @@ export async function updateIncidentAction(
     body: formData.get("body") ?? undefined,
   });
   return result.ok
-    ? { done: "updated", id: result.id }
+    ? { done: "updated", id: result.id, ticketNo: result.ticketNo }
     : { error: message(result.error) };
 }

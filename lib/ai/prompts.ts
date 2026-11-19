@@ -16,6 +16,7 @@ export type ServiceExplainTarget = {
 
 export type IncidentExplainTarget = {
   type: "incident";
+  ticketNo?: string;
   title: string;
   serviceName: string;
   state: string;
@@ -133,8 +134,11 @@ export function formatExplainPrompt(target: ExplainTarget): string {
     return parts.join("\n");
   }
 
+  const heading = target.ticketNo
+    ? `Please explain incident ${target.ticketNo}: "${target.title}".`
+    : `Please explain incident: "${target.title}".`;
   const parts = [
-    `Please explain incident: "${target.title}".`,
+    heading,
     `Affected service: ${target.serviceName}`,
     `Current status: ${target.state}`,
   ];

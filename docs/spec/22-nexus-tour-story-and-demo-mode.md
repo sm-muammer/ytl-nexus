@@ -26,6 +26,8 @@ Nexus Tour is a guided, sanitized walk through every module. Project Story is th
 | TOUR-02 | Signal-ribbon transitions between steps; reduced motion uses fades                                         |
 | TOUR-03 | Presenter mode: large type, hidden chrome, keyboard stepping (arrow keys, space, Escape to exit)           |
 
+Each slide pairs the WordPress `tour_step` narrative and module metadata (`lib/tour/slides.ts`) with a theme-aware visual preview (`components/tour/tour-slide-visual.tsx`), chapter quick-jump rail, `?step=N` deep-link support, and a native light-dismissable Slide Overview modal (`G`, `components/tour/tour-overview-dialog.tsx`) with layered `Escape` handling in Presenter Mode. Step 14 (`Nexus Control`) intentionally omits any clickable `/control` link to preserve hidden-route policy.
+
 ## Project Story requirements
 
 | ID       | Requirement                                                                                                                                                 |

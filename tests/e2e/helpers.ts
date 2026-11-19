@@ -45,7 +45,9 @@ export async function horizontalOverflow(page: Page) {
 
 /** A real URL for a registered route that has a dynamic segment. */
 export function concreteRoute(route: string) {
-  return route.replace("[slug]", "platform-overview");
+  return route
+    .replace("[slug]", "platform-overview")
+    .replace("[ticket]", "INC-2026-0002");
 }
 
 export function escapeRegExp(text: string) {

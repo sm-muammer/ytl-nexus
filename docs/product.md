@@ -81,7 +81,7 @@ One hostname with path routing through Apache.
 
 | Area                       | Routes                                                                                                                                                                                                                          |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Next.js public             | `/`, `/platform`, `/story`, `/tour`, `/yes/*`, `/status`, `/library/*`, `/signin`                                                                                                                                               |
+| Next.js public             | `/`, `/platform`, `/story`, `/tour`, `/yes/*`, `/status/*`, `/library/*`, `/signin`                                                                                                                                             |
 | Next.js internal reference | `/design` (Viewer and above)                                                                                                                                                                                                    |
 | Next.js workspace          | `/account`, `/command`, `/command/core-01`, `/command/atlas`, `/command/metrics`, `/command/services`, `/ai`, `/transfer`, `/mail`, `/data`, `/continuity`, `/shield`                                                           |
 | Next.js hidden             | `/control/*`                                                                                                                                                                                                                    |
@@ -89,7 +89,7 @@ One hostname with path routing through Apache.
 | Apache, not Next.js        | `/studio/` WordPress (admin and REST only; its frontend redirects to `/`), `/webmail/` Roundcube, `/files/` SFTPGo WebClient                                                                                                    |
 | Other ports                | SFTP on 2022 (SSH stays on 22); mail submission 587; IMAPS 993                                                                                                                                                                  |
 
-`/transfer` and `/mail` are Nexus entry pages (guides, status, help). The actual file portal and webmail live at `/files/` and `/webmail/`.
+`/transfer` and `/mail` are Nexus entry pages (guides, status, help). The actual file portal and webmail live at `/files/` and `/webmail/`. `/status/incidents/[ticket]` is workspace-protected (Viewer and above) so ticket details never reach unauthenticated visitors.
 
 ## 5. Greenfield and cleanup rules
 

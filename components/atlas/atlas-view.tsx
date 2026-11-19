@@ -19,6 +19,7 @@ import { KIND_LABEL, type AtlasData, type AtlasNode } from "@/lib/atlas/types";
 import type { Role } from "@/lib/roles";
 import { badgeHealth, formatTime } from "@/lib/status/format";
 import { UPTIME_WINDOWS, formatUptime } from "@/lib/status/health";
+import { incidentTrackingPath } from "@/lib/status/tickets";
 import { HEALTH_TEXT } from "@/lib/status/types";
 
 // Nexus Atlas (ATL-01 to ATL-06). The map is drawn as SVG from the graph model
@@ -563,8 +564,11 @@ function Panel({
           <ul className="text-data mt-2 flex flex-col gap-2">
             {node.incidents.map((i) => (
               <li key={i.id}>
-                <Link href="/status" className="underline underline-offset-4">
-                  {i.title}
+                <Link
+                  href={incidentTrackingPath(i.ticketNo)}
+                  className="underline underline-offset-4"
+                >
+                  <span className="font-mono">{i.ticketNo}</span> · {i.title}
                 </Link>
                 <span className="text-muted">
                   {" "}

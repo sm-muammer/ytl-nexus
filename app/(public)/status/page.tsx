@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { Backdrop } from "@/components/backdrop/backdrop";
 import { ModuleHero } from "@/components/layout/module-hero";
 import { RelatedModules } from "@/components/layout/related-modules";
@@ -14,6 +15,7 @@ import {
   PublicServiceList,
   ServiceHistoryTable,
 } from "@/components/status/status-parts";
+import { IncidentTicketLookup } from "@/components/status/ticket-controls";
 import { EnvironmentBadge } from "@/components/ui/environment-badge";
 import { LiveDemoLabel } from "@/components/ui/live-demo-label";
 import { meetsRole } from "@/lib/roles";
@@ -23,6 +25,10 @@ import { getMode } from "@/lib/server/mode";
 import { getActor } from "@/lib/server/session";
 import { getStatusView } from "@/lib/server/status";
 import { formatTime } from "@/lib/status/format";
+import {
+  incidentTrackingPath,
+  normalizeIncidentTicketNo,
+} from "@/lib/status/tickets";
 import type { MaintenanceNotice, StatusView } from "@/lib/status/types";
 
 export const metadata = pageMetadata("/status");
@@ -32,8 +38,29 @@ export const metadata = pageMetadata("/status");
 // getStatusView, not here, so this page cannot show a Visitor more by mistake
 // (requirements 9.15 and 9.16). Operators and Administrators can open and update
 // incidents; those Server Functions guard themselves.
-export default async function StatusPage() {
+export default async function StatusPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ticket?: string | string[] }>;
+}) {
   const actor = await getActor();
+  let initialTicketQuery = "";
+  let initialTicketError: string | undefined;
+
+  if (actor !== null) {
+    const query = await searchParams;
+    const raw = typeof query.ticket === "string" ? query.ticket.trim() : "";
+    if (raw) {
+      const normalized = normalizeIncidentTicketNo(raw);
+      if (normalized) {
+        redirect(incidentTrackingPath(normalized));
+      }
+      initialTicketQuery = raw;
+      initialTicketError =
+        "Enter a valid ticket number such as INC-2026-0001 (format INC-YYYY-NNNN).";
+    }
+  }
+
   const [view, notices] = await Promise.all([
     getStatusView(actor).catch((): StatusView | null => null),
     loadNotices(actor),
@@ -104,6 +131,12 @@ export default async function StatusPage() {
                   >
                     Incidents
                   </h2>
+                  <div className="mt-4 mb-6">
+                    <IncidentTicketLookup
+                      defaultValue={initialTicketQuery}
+                      initialError={initialTicketError}
+                    />
+                  </div>
                   {canManage ? (
                     <div className="mt-4 mb-8">
                       <OpenIncidentForm services={view.services} demo={demo} />
@@ -117,6 +150,7 @@ export default async function StatusPage() {
                           ? (incident) => (
                               <UpdateIncidentForm
                                 id={incident.id}
+                                ticketNo={incident.ticketNo}
                                 current={incident.state}
                                 demo={demo}
                               />

@@ -50,6 +50,7 @@ export type IncidentUpdateDto = { id: number; ts: number; body: string };
 
 export type IncidentDto = {
   id: number;
+  ticketNo: string;
   serviceSlug: string;
   serviceName: string;
   title: string;
@@ -57,6 +58,12 @@ export type IncidentDto = {
   openedAt: number;
   resolvedAt: number | null;
   updates: IncidentUpdateDto[];
+};
+
+export type IncidentLookupView = {
+  source: DataSource;
+  takenAt: number;
+  incident: IncidentDto | null;
 };
 
 export type MaintenanceNotice = {

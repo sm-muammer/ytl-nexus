@@ -581,6 +581,7 @@ export const ROUTE_PATHS: readonly string[] = [
   "/design",
   // A content page: the slug is a Library item (Task 7).
   "/library/[slug]",
+  "/status/incidents/[ticket]",
   ...PAGES.map((p) => p.path),
 ];
 

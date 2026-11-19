@@ -23,13 +23,23 @@ test.describe("/status for a Visitor", () => {
     await expect(list.locator('li[data-service="dovecot"]')).toContainText(
       "Unknown",
     );
-    // No history, uptime, incident or form for a Visitor.
+    // No history, uptime, incident, ticket lookup or form for a Visitor.
     await expect(page.locator("[data-history]")).toHaveCount(0);
     await expect(page.locator("[data-incidents]")).toHaveCount(0);
+    await expect(page.locator("[data-ticket-lookup]")).toHaveCount(0);
     await expect(page.locator("[data-open-incident]")).toHaveCount(0);
     const body = await page.locator("main").innerText();
     expect(body).not.toContain("Nexus AI answers slower than usual");
+    expect(body).not.toMatch(/INC-\d{4}-\d+/);
     expect(body).not.toMatch(/Uptime 24h|\d+ ms/);
+  });
+
+  test("does not expose incident tracking pages to a Visitor", async ({
+    page,
+  }) => {
+    await page.goto("/status/incidents/INC-2026-0002");
+    await expect(page.locator("[data-incident-tracker]")).toHaveCount(0);
+    await expect(page.locator("[data-incident-timeline]")).toHaveCount(0);
   });
 
   test("passes the accessibility check and does not overflow", async ({
@@ -63,10 +73,38 @@ test.describe("/status for a Viewer", () => {
     );
     const incidents = page.locator("[data-incidents]");
     await expect(incidents.locator("li[data-incident]")).toHaveCount(3);
+    for (const ticket of ["INC-2026-0002", "INC-2026-0001", "INC-2026-0003"]) {
+      await expect(incidents).toContainText(ticket);
+    }
     await expect(incidents).toContainText("Nexus AI answers slower than usual");
     await expect(incidents).toContainText("Watching latency");
     // A Viewer cannot manage incidents.
     await expect(page.locator("[data-open-incident]")).toHaveCount(0);
+    expect(await blockingViolations(page)).toEqual([]);
+  });
+
+  test("tracks an incident by ticket number and shows a helpful missing-ticket state", async ({
+    page,
+  }) => {
+    await page.goto("/status");
+    const lookup = page.locator("[data-ticket-lookup]");
+    await expect(lookup).toBeVisible();
+    await lookup.getByLabel(/ticket number/i).fill("inc-2026-0002");
+    await lookup.getByRole("button", { name: "Track status" }).click();
+
+    await expect(page).toHaveURL(/\/status\/incidents\/INC-2026-0002$/);
+    const tracker = page.locator('[data-incident-tracker="INC-2026-0002"]');
+    await expect(tracker).toBeVisible();
+    await expect(tracker).toContainText("Monitoring");
+    await expect(tracker).toContainText("Ollama (Nexus AI)");
+    const timeline = tracker.locator("[data-incident-timeline]");
+    await expect(timeline).toContainText("Watching latency");
+    expect(await blockingViolations(page)).toEqual([]);
+
+    await page.goto("/status/incidents/INC-2026-9999");
+    await expect(
+      page.locator('[data-ticket-not-found="INC-2026-9999"]'),
+    ).toBeVisible();
     expect(await blockingViolations(page)).toEqual([]);
   });
 
@@ -98,6 +136,17 @@ for (const role of ["operator", "admin"] as const) {
       await expect(form.locator("[data-demo-note]")).toContainText(
         "Demo session",
       );
+
+      await page.goto("/status/incidents/INC-2026-0002");
+      const tracker = page.locator('[data-incident-tracker="INC-2026-0002"]');
+      await expect(tracker).toBeVisible();
+      await expect(
+        tracker.getByRole("button", { name: "Post update" }),
+      ).toBeDisabled();
+      await expect(tracker.locator("[data-demo-note]")).toContainText(
+        "Demo session",
+      );
+      expect(await blockingViolations(page)).toEqual([]);
     });
 
     test("sees the operations panel with every control disabled and an explanation", async ({

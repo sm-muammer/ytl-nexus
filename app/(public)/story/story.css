@@ -1,0 +1,75 @@
+/*
+ * Project Story reading typography and scrollspy styling.
+ * Uses semantic --nx-* tokens so contrast holds across Obsidian, Blueprint,
+ * and Daylight atmospheres without raw hex literals.
+ *
+ * scroll-target-group enables native browser fragment tracking when supported;
+ * ChapterToc mirrors the active item to [aria-current="true"] and
+ * .target-current so LightningCSS compiles with zero warnings and all engines
+ * receive identical active styling.
+ */
+
+.nx-story-toc {
+  scroll-target-group: auto;
+}
+
+.nx-story-toc a[aria-current="true"],
+.nx-story-toc a.target-current {
+  color: var(--nx-ink);
+  border-color: var(--nx-pink-ink);
+  background: color-mix(in oklab, var(--nx-surface-raised) 76%, transparent);
+  font-weight: 600;
+}
+
+.nx-story-prose {
+  overflow-wrap: break-word;
+}
+
+.nx-story-prose p,
+.nx-story-prose li {
+  text-wrap: pretty;
+}
+
+.nx-story-prose p + p,
+.nx-story-prose p + ul,
+.nx-story-prose p + ol,
+.nx-story-prose ul + p,
+.nx-story-prose ol + p {
+  margin-top: 1.125rem;
+}
+
+.nx-story-prose ul,
+.nx-story-prose ol {
+  display: grid;
+  gap: 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.nx-story-prose li {
+  margin-left: 0;
+  padding-left: 0.25rem;
+}
+
+.nx-story-prose li::marker {
+  color: var(--nx-pink-ink);
+}
+
+.nx-story-prose strong {
+  color: var(--nx-ink);
+  font-weight: 600;
+}
+
+.nx-story-prose code {
+  border: 1px solid var(--nx-line);
+  border-radius: 0.25rem;
+  background: var(--nx-surface-raised);
+  color: var(--nx-ink);
+  padding: 0.1rem 0.35rem;
+  font-size: 0.875em;
+  font-family: var(--font-mono);
+}
+
+.nx-story-prose a {
+  color: var(--nx-accent-ink);
+  text-underline-offset: 0.22em;
+}

@@ -94,12 +94,14 @@ describe("formatExplainPrompt", () => {
   it("formats incident context into an explanation request", () => {
     const prompt = formatExplainPrompt({
       type: "incident",
+      ticketNo: "INC-2026-0042",
       title: "Elevated 500 error rate on API",
       serviceName: "nexus-web",
       state: "investigating",
       updates: ["Checking database connection pool"],
     });
 
+    expect(prompt).toContain("INC-2026-0042");
     expect(prompt).toContain("Elevated 500 error rate on API");
     expect(prompt).toContain("nexus-web");
     expect(prompt).toContain("investigating");

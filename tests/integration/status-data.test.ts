@@ -1,6 +1,6 @@
 import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { loadLiveStatus } from "@/lib/server/status";
+import { loadIncidentByTicket, loadLiveStatus } from "@/lib/server/status";
 import { openIncident, updateIncident } from "@/lib/server/incidents";
 import { seedDatabase } from "@/lib/server/db/seed/run";
 import { createScratchDatabase, type ScratchDatabase } from "./helpers/test-db";
@@ -111,8 +111,8 @@ describe("loadLiveStatus", () => {
 });
 
 describe("incidents", () => {
-  it("opens an incident with its first update", async () => {
-    const id = await openIncident(
+  it("opens an incident with an auto-generated ticket number and its first update", async () => {
+    const created = await openIncident(
       s.app,
       {
         serviceSlug: "ollama",
@@ -122,16 +122,38 @@ describe("incidents", () => {
       "user-1",
       new Date(NOW),
     );
-    expect(id).not.toBeNull();
+    expect(created).not.toBeNull();
+    expect(created?.ticketNo).toMatch(/^INC-2026-\d{4,}$/);
     const status = await loadLiveStatus(s.app, NOW);
-    const incident = status.incidents.find((i) => i.id === id);
+    const incident = status.incidents.find((i) => i.id === created?.id);
     expect(incident).toMatchObject({
+      ticketNo: created?.ticketNo,
       title: "Slow answers",
       state: "open",
       serviceSlug: "ollama",
       resolvedAt: null,
     });
     expect(incident?.updates.map((u) => u.body)).toEqual(["Looking into it."]);
+  });
+
+  it("assigns distinct auto-generated ticket numbers across multiple opened incidents", async () => {
+    const first = await openIncident(
+      s.app,
+      { serviceSlug: "apache", title: "Proxy blip", body: "Checking." },
+      "user-1",
+      new Date(NOW),
+    );
+    const second = await openIncident(
+      s.app,
+      { serviceSlug: "postfix", title: "Queue delay", body: "Checking." },
+      "user-1",
+      new Date(NOW),
+    );
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+    expect(first?.ticketNo).toMatch(/^INC-2026-\d{4,}$/);
+    expect(second?.ticketNo).toMatch(/^INC-2026-\d{4,}$/);
+    expect(second?.ticketNo).not.toBe(first?.ticketNo);
   });
 
   it("returns null for an unknown service and writes nothing", async () => {
@@ -149,9 +171,11 @@ describe("incidents", () => {
   });
 
   it("resolves, which sets the resolution time, and reopens, which clears it", async () => {
-    const id = (
-      await s.app.selectFrom("incidents").select("id").executeTakeFirstOrThrow()
-    ).id;
+    const existing = await s.app
+      .selectFrom("incidents")
+      .select(["id", "ticket_no"])
+      .executeTakeFirstOrThrow();
+    const id = existing.id;
     expect(
       await updateIncident(
         s.app,
@@ -159,7 +183,7 @@ describe("incidents", () => {
         "user-2",
         new Date(NOW + 10 * MIN),
       ),
-    ).toBe(true);
+    ).toEqual({ id, ticketNo: existing.ticket_no });
     let row = await s.app
       .selectFrom("incidents")
       .selectAll()
@@ -175,7 +199,7 @@ describe("incidents", () => {
         "user-2",
         new Date(NOW + 20 * MIN),
       ),
-    ).toBe(true);
+    ).toEqual({ id, ticketNo: existing.ticket_no });
     row = await s.app
       .selectFrom("incidents")
       .selectAll()
@@ -215,20 +239,21 @@ describe("incidents", () => {
   });
 
   it("does not resolve before the incident opened, even if the clock is behind", async () => {
-    const id = (
-      await s.app.selectFrom("incidents").select("id").executeTakeFirstOrThrow()
-    ).id;
+    const existing = await s.app
+      .selectFrom("incidents")
+      .select(["id", "ticket_no"])
+      .executeTakeFirstOrThrow();
     await expect(
       updateIncident(
         s.app,
-        { id, state: "resolved", body: "Done." },
+        { id: existing.id, state: "resolved", body: "Done." },
         null,
         new Date(NOW - 60 * MIN),
       ),
-    ).resolves.toBe(true);
+    ).resolves.toEqual({ id: existing.id, ticketNo: existing.ticket_no });
   });
 
-  it("returns false for an unknown incident", async () => {
+  it("returns null for an unknown incident", async () => {
     expect(
       await updateIncident(
         s.app,
@@ -236,11 +261,57 @@ describe("incidents", () => {
         null,
         new Date(NOW),
       ),
-    ).toBe(false);
+    ).toBeNull();
+  });
+
+  it("looks up any incident by ticket number, including resolved ones older than 30 days", async () => {
+    const oldOpened = new Date(NOW - 45 * 24 * 60 * MIN);
+    const oldResolved = new Date(NOW - 45 * 24 * 60 * MIN + 15 * MIN);
+    const created = await openIncident(
+      s.app,
+      {
+        serviceSlug: "mariadb",
+        title: "Old resolved incident",
+        body: "Archived issue.",
+      },
+      "user-1",
+      oldOpened,
+    );
+    expect(created).not.toBeNull();
+    await updateIncident(
+      s.app,
+      { id: created!.id, state: "resolved", body: "Closed cleanly." },
+      "user-2",
+      oldResolved,
+    );
+
+    const recent = await loadLiveStatus(s.app, NOW);
+    expect(recent.incidents.some((i) => i.id === created!.id)).toBe(false);
+
+    const exact = await loadIncidentByTicket(s.app, created!.ticketNo);
+    expect(exact).toMatchObject({
+      id: created!.id,
+      ticketNo: created!.ticketNo,
+      state: "resolved",
+      title: "Old resolved incident",
+    });
+    expect(exact?.updates.map((u) => u.body)).toEqual([
+      "Closed cleanly.",
+      "Archived issue.",
+    ]);
+
+    const lower = await loadIncidentByTicket(
+      s.app,
+      ` #${created!.ticketNo.toLowerCase()} `,
+    );
+    expect(lower?.ticketNo).toBe(created!.ticketNo);
+
+    expect(await loadIncidentByTicket(s.app, "INC-2026-999999")).toBeNull();
+    expect(await loadIncidentByTicket(s.app, "../etc")).toBeNull();
   });
 
   it("stores hostile text literally", async () => {
-    const id = await openIncident(
+    const created = await openIncident(
       s.app,
       {
         serviceSlug: "mariadb",
@@ -251,7 +322,7 @@ describe("incidents", () => {
       new Date(NOW),
     );
     const status = await loadLiveStatus(s.app, NOW);
-    const incident = status.incidents.find((i) => i.id === id);
+    const incident = status.incidents.find((i) => i.id === created?.id);
     expect(incident?.title).toBe("'; DROP TABLE incidents; --");
     expect(incident?.updates[0]?.body).toBe("<script>alert(1)</script>");
   });

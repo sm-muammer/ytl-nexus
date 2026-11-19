@@ -4,6 +4,7 @@ import path from "node:path";
 import {
   MIGRATIONS_DIR,
   migrateDownAll,
+  migrateDownOne,
   migrateToLatest,
 } from "@/lib/server/db/migrate";
 import { APPLICATION_TABLES } from "@/lib/server/db/schema";
@@ -68,5 +69,31 @@ describe("migrations", () => {
 
   it("is a no-op when run again at the latest version", async () => {
     expect(await migrateToLatest(scratch.migrate)).toEqual([]);
+  });
+
+  it("backfills unique INC-YYYY-NNNN ticket numbers for pre-existing incidents", async () => {
+    const reversed = await migrateDownOne(scratch.migrate);
+    expect(reversed).toBe("20261119100000-add-incident-ticket-no");
+
+    await scratch.admin.query(
+      `INSERT INTO \`${scratch.name}\`.services (id, slug, name, kind) VALUES (1, 'apache', 'Apache HTTP Server', 'proxy')`,
+    );
+    await scratch.admin.query(
+      `INSERT INTO \`${scratch.name}\`.incidents (id, service_id, title, state, opened_at, resolved_at, opened_by)
+       VALUES
+         (7, 1, 'Pre-migration incident A', 'open', '2026-11-10 08:00:00.000', NULL, NULL),
+         (12, 1, 'Pre-migration incident B', 'resolved', '2026-11-11 09:00:00.000', '2026-11-11 10:00:00.000', NULL)`,
+    );
+
+    const applied = await migrateToLatest(scratch.migrate);
+    expect(applied).toEqual(["20261119100000-add-incident-ticket-no"]);
+
+    const [rows] = await scratch.admin.query(
+      `SELECT id, ticket_no FROM \`${scratch.name}\`.incidents ORDER BY id ASC`,
+    );
+    expect(rows).toEqual([
+      { id: 7, ticket_no: "INC-2026-0007" },
+      { id: 12, ticket_no: "INC-2026-0012" },
+    ]);
   });
 });

@@ -49,11 +49,16 @@ test.describe("Nexus Atlas", () => {
       "true",
     );
 
-    // A service with an incident lists it and links to Status.
+    // A service with an incident lists its ticket number and links directly to its tracker.
     await page.locator('[data-node="wordpress"]').click();
-    await expect(
-      page.locator("[data-panel-incidents] a", { hasText: "Nexus Studio" }),
-    ).toHaveAttribute("href", "/status");
+    const incidentLink = page.locator("[data-panel-incidents] a", {
+      hasText: "Nexus Studio",
+    });
+    await expect(incidentLink).toContainText("INC-2026-0001");
+    await expect(incidentLink).toHaveAttribute(
+      "href",
+      "/status/incidents/INC-2026-0001",
+    );
   });
 
   test("a Viewer sees why there are no actions", async ({ page }) => {

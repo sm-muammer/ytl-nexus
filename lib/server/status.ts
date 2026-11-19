@@ -1,6 +1,6 @@
 import "server-only";
 import { sql, type Kysely } from "kysely";
-import { demoStatus } from "@/lib/fixtures/status";
+import { demoIncidents, demoStatus } from "@/lib/fixtures/status";
 import type { Actor } from "@/lib/roles";
 import { getDb } from "@/lib/server/db";
 import type { Database } from "@/lib/server/db/schema";
@@ -11,11 +11,13 @@ import {
   type CheckState,
   type UptimeSummary,
 } from "@/lib/status/health";
+import { normalizeIncidentTicketNo } from "@/lib/status/tickets";
 import {
   toPublicService,
   type FullStatus,
   type HistoryBucket,
   type IncidentDto,
+  type IncidentLookupView,
   type IncidentState,
   type ServiceStatus,
   type StatusView,
@@ -151,6 +153,54 @@ export async function loadLiveStatus(
   };
 }
 
+const INCIDENT_COLUMNS = [
+  "incidents.id",
+  "incidents.ticket_no",
+  "incidents.title",
+  "incidents.state",
+  "incidents.opened_at",
+  "incidents.resolved_at",
+  "services.slug as service_slug",
+  "services.name as service_name",
+] as const;
+
+type IncidentRow = {
+  id: number;
+  ticket_no: string;
+  title: string;
+  state: IncidentState;
+  opened_at: Date;
+  resolved_at: Date | null;
+  service_slug: string;
+  service_name: string;
+};
+
+type UpdateRow = {
+  id: number;
+  incident_id: number;
+  ts: Date;
+  body: string;
+};
+
+function toIncidentDto(
+  row: IncidentRow,
+  updates: readonly UpdateRow[],
+): IncidentDto {
+  return {
+    id: row.id,
+    ticketNo: row.ticket_no,
+    serviceSlug: row.service_slug,
+    serviceName: row.service_name,
+    title: row.title,
+    state: row.state,
+    openedAt: row.opened_at.getTime(),
+    resolvedAt: row.resolved_at ? row.resolved_at.getTime() : null,
+    updates: updates
+      .filter((u) => u.incident_id === row.id)
+      .map((u) => ({ id: u.id, ts: u.ts.getTime(), body: u.body })),
+  };
+}
+
 export async function loadIncidents(
   db: Kysely<Database>,
   now: number,
@@ -159,15 +209,7 @@ export async function loadIncidents(
   const incidents = await db
     .selectFrom("incidents")
     .innerJoin("services", "services.id", "incidents.service_id")
-    .select([
-      "incidents.id",
-      "incidents.title",
-      "incidents.state",
-      "incidents.opened_at",
-      "incidents.resolved_at",
-      "services.slug as service_slug",
-      "services.name as service_name",
-    ])
+    .select(INCIDENT_COLUMNS)
     .where((eb) =>
       eb.or([
         eb("incidents.state", "!=", "resolved"),
@@ -189,18 +231,59 @@ export async function loadIncidents(
     .orderBy("ts", "desc")
     .orderBy("id", "desc")
     .execute();
-  return incidents.map((i) => ({
-    id: i.id,
-    serviceSlug: i.service_slug,
-    serviceName: i.service_name,
-    title: i.title,
-    state: i.state as IncidentState,
-    openedAt: i.opened_at.getTime(),
-    resolvedAt: i.resolved_at ? i.resolved_at.getTime() : null,
-    updates: updates
-      .filter((u) => u.incident_id === i.id)
-      .map((u) => ({ id: u.id, ts: u.ts.getTime(), body: u.body })),
-  }));
+  return incidents.map((i) => toIncidentDto(i, updates));
+}
+
+/**
+ * Loads one incident by ticket number (no 30-day cutoff, so resolved
+ * historical incidents remain trackable by ticket number).
+ */
+export async function loadIncidentByTicket(
+  db: Kysely<Database>,
+  rawTicketNo: string,
+): Promise<IncidentDto | null> {
+  const ticketNo = normalizeIncidentTicketNo(rawTicketNo);
+  if (!ticketNo) return null;
+  const row = await db
+    .selectFrom("incidents")
+    .innerJoin("services", "services.id", "incidents.service_id")
+    .select(INCIDENT_COLUMNS)
+    .where("incidents.ticket_no", "=", ticketNo)
+    .executeTakeFirst();
+  if (!row) return null;
+
+  const updates = await db
+    .selectFrom("incident_updates")
+    .select(["id", "incident_id", "ts", "body"])
+    .where("incident_id", "=", row.id)
+    .orderBy("ts", "desc")
+    .orderBy("id", "desc")
+    .execute();
+
+  return toIncidentDto(row, updates);
+}
+
+/**
+ * Looks up an incident by ticket number for signed-in viewers and above.
+ * Visitors receive null so ticket details are never leaked (STA-03, STA-04).
+ */
+export async function getIncidentByTicket(
+  actor: Actor,
+  rawTicketNo: string,
+  now: number = Date.now(),
+): Promise<IncidentLookupView | null> {
+  if (actor === null) return null;
+  const ticketNo = normalizeIncidentTicketNo(rawTicketNo);
+  if (getMode() === "demo") {
+    const incident = ticketNo
+      ? (demoIncidents(now).find((i) => i.ticketNo === ticketNo) ?? null)
+      : null;
+    return { source: "demo", takenAt: now, incident };
+  }
+  const incident = ticketNo
+    ? await loadIncidentByTicket(getDb(), ticketNo)
+    : null;
+  return { source: "live", takenAt: now, incident };
 }
 
 /** The full dataset for this process, from the database or the fixtures. */

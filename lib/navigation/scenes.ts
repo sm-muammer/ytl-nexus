@@ -57,6 +57,7 @@ const SCENES: Record<string, SceneConfig> = {
   "/story": { tint: "ember", canvas: "embers" },
   "/tour": { tint: "orbit", pattern: "rings", canvas: "orbit" },
   "/status": { tint: "signal", pattern: "grid", canvas: "waves" },
+  "/status/incidents/[ticket]": { tint: "signal", pattern: "lines" },
   "/library": { tint: "library", pattern: "lines", canvas: "dust" },
   "/library/[slug]": { tint: "library", pattern: "lines" },
   "/yes": { tint: "blossom", canvas: "petals" },
