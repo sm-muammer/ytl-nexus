@@ -18,6 +18,7 @@ Editor ─ https://…/studio/wp-admin (allowed addresses only, two-factor)
 - WordPress never renders public pages. The `nexus-headless` theme redirects every front-end request to the site root (`/`).
 - The Next.js server reads content over a loopback-only Apache listener (`127.0.0.1:8081`) with an Application Password of the user `nexus-reader`. That account has no editing rights and cannot sign in to wp-admin.
 - Role filtering happens twice: WordPress returns only public items to anyone without the capability `nexus_read_internal` (an anonymous call to `/studio/wp-json/` never sees an internal item), and `lib/server/content.ts` filters again for the signed-in role. Pages and `/api/library` use only that module.
+- Single Sign-On (SSO): WordPress uses `nexus-sso` (in `wp-content/mu-plugins/nexus-sso.php`) to validate incoming requests against `ytl_nexus.session`. When a logged-in YTL Nexus administrator or operator visits `/studio/wp-admin/`, WordPress resolves their identity automatically, provisions or syncs their account matching their YTL Nexus email and role (Administrator -> `administrator`, Operator -> `editor`), and logs them in directly with no separate WordPress password or 2FA prompt. Visiting `wp-login.php` without a session redirects back to `https://ytl-nexus.ytlcomms.my/signin`.
 
 ## What was installed
 

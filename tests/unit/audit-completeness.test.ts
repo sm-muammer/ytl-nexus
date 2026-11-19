@@ -52,7 +52,7 @@ describe("Audit Completeness & CSV Export", () => {
     expect(csv).toContain("control.user.create");
   });
 
-  it("ensures every Control action in ACTION_POLICY is configured with audit and step-up requirements", () => {
+  it("ensures every Control action in ACTION_POLICY is configured with audit and admin requirements", () => {
     const controlActions = ACTION_POLICY.filter(
       (a) =>
         a.id.startsWith("control.") ||
@@ -65,7 +65,7 @@ describe("Audit Completeness & CSV Export", () => {
       expect(action.minRole, `${action.id} must require admin role`).toBe(
         "admin",
       );
-      expect(action.stepUp, `${action.id} must require stepUp`).toBe(true);
+      expect(action.stepUp, `${action.id} must not require stepUp`).toBe(false);
       expect(action.hidden, `${action.id} must be hidden`).toBe(true);
     }
   });

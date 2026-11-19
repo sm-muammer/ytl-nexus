@@ -197,20 +197,16 @@ describe("Nexus Mail actions - Authorization & Guards", () => {
     });
   });
 
-  it("refuses actions when Step_Up is missing or stale", async () => {
-    identity = admin(null); // No Step_Up
+  it("allows actions for administrator without requiring separate Step_Up", async () => {
+    identity = admin(null); // No separate Step_Up required
     const result = await actions.createMailboxAction(
       null,
       form({ localPart: "newuser", quotaMb: "512" }),
     );
-    expect(result).toEqual({
-      error: expect.stringContaining(
-        "Confirm your password and authenticator code",
-      ),
-    });
+    expect(result).toHaveProperty("done", "created");
     expect(events[0]).toMatchObject({
       action: "mail.account.create",
-      result: "refused",
+      result: "success",
     });
   });
 

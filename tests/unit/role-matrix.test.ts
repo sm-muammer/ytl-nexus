@@ -139,7 +139,7 @@ describe("Role Matrix Access Across All Module Pages", () => {
     });
   });
 
-  it("protects /control: hidden to non-admins, requires fresh Step_Up for admins", () => {
+  it("protects /control: hidden to non-admins, allows admins directly without additional step-up", () => {
     const controlPolicy = policyForPage("/control");
 
     // Hidden to visitors, viewers, members, operators
@@ -156,10 +156,9 @@ describe("Role Matrix Access Across All Module Pages", () => {
       reason: "hidden",
     });
 
-    // Admin with stale step-up requires step-up
+    // Admin is allowed directly without step-up
     expect(decide(adminStaleStepUp, controlPolicy, now)).toEqual({
-      allow: false,
-      reason: "step-up-required",
+      allow: true,
     });
 
     // Admin with fresh step-up (<10m) is allowed in
@@ -173,7 +172,7 @@ describe("Role Matrix Access Across All Module Pages", () => {
     expect(usersPolicy).toMatchObject({
       minRole: "admin",
       hidden: true,
-      stepUp: true,
+      stepUp: false,
     });
     expect(decide(visitor, usersPolicy, now)).toEqual({
       allow: false,
@@ -188,8 +187,7 @@ describe("Role Matrix Access Across All Module Pages", () => {
       reason: "hidden",
     });
     expect(decide(adminStaleStepUp, usersPolicy, now)).toEqual({
-      allow: false,
-      reason: "step-up-required",
+      allow: true,
     });
     expect(decide(adminFreshStepUp, usersPolicy, now)).toEqual({
       allow: true,

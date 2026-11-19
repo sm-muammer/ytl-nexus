@@ -139,11 +139,11 @@ describe("the policy tables", () => {
     for (const route of ROUTE_PATHS) expect(paths.has(route)).toBe(true);
   });
 
-  it("make /control hidden, administrator-only and step-up", () => {
+  it("make /control hidden, administrator-only and no additional step-up needed", () => {
     expect(policyForPage("/control")).toMatchObject({
       minRole: "admin",
       hidden: true,
-      stepUp: true,
+      stepUp: false,
     });
   });
 
@@ -169,12 +169,12 @@ describe("the policy tables", () => {
     }
   });
 
-  it("send every Control action through admin and step-up", () => {
+  it("send every Control action through admin without requiring step-up", () => {
     const control = ACTION_POLICY.filter((a) => a.id.startsWith("control."));
     expect(control.length).toBeGreaterThan(0);
     for (const a of control) {
       expect(a.minRole).toBe("admin");
-      expect(a.stepUp).toBe(true);
+      expect(a.stepUp).toBe(false);
     }
   });
 });

@@ -103,7 +103,7 @@ export function isOwner(identity: Identity, ownerId: string): boolean {
 
 export type PagePolicy = Requirement & { path: string };
 
-const CONTROL: Requirement = { minRole: "admin", hidden: true, stepUp: true };
+const CONTROL: Requirement = { minRole: "admin", hidden: true, stepUp: false };
 
 export const PAGE_POLICY: readonly PagePolicy[] = [
   { path: "/", minRole: null },

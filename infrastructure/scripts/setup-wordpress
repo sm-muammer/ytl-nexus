@@ -137,10 +137,13 @@ if ! wp core is-installed 2>/dev/null; then
 fi
 
 # ---- 8. Theme, plugins, settings -----------------------------------------------------------
-rm -rf "$WEB_ROOT/wp-content/themes/nexus-headless" "$WEB_ROOT/wp-content/plugins/nexus-content"
+rm -rf "$WEB_ROOT/wp-content/themes/nexus-headless" "$WEB_ROOT/wp-content/plugins/nexus-content" "$WEB_ROOT/wp-content/mu-plugins"
 cp -r "$OPS_DIR/wordpress/themes/nexus-headless" "$WEB_ROOT/wp-content/themes/"
 cp -r "$OPS_DIR/wordpress/plugins/nexus-content" "$WEB_ROOT/wp-content/plugins/"
-chown -R root:root "$WEB_ROOT/wp-content/themes/nexus-headless" "$WEB_ROOT/wp-content/plugins/nexus-content"
+if [ -d "$OPS_DIR/wordpress/mu-plugins" ]; then
+  cp -r "$OPS_DIR/wordpress/mu-plugins" "$WEB_ROOT/wp-content/"
+fi
+chown -R root:root "$WEB_ROOT/wp-content/themes/nexus-headless" "$WEB_ROOT/wp-content/plugins/nexus-content" "$WEB_ROOT/wp-content/mu-plugins" 2>/dev/null || true
 wp theme activate nexus-headless
 wp plugin is-installed two-factor || wp plugin install two-factor
 wp plugin activate two-factor

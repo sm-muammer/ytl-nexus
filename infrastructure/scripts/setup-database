@@ -100,5 +100,10 @@ REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$db'@'$HOST';
 GRANT ALL PRIVILEGES ON \`$db\`.* TO '$db'@'$HOST';
 SQL
 done
+# Nexus Studio SSO: allow nexus_wordpress to read session and user tables from ytl_nexus
+mariadb_sql <<SQL
+GRANT SELECT ON \`ytl_nexus\`.\`session\` TO 'nexus_wordpress'@'$HOST';
+GRANT SELECT ON \`ytl_nexus\`.\`user\` TO 'nexus_wordpress'@'$HOST';
+SQL
 mariadb_sql <<<"FLUSH PRIVILEGES;"
 echo "Databases and users are ready. The next deploy migrates and applies the table grants."

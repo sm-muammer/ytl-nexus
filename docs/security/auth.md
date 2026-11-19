@@ -29,8 +29,8 @@ Operators and Administrators must enrol TOTP before they can open any protected 
 | Absolute lifetime | 12 hours from sign-in | Better Auth `session.expiresIn`, never extended (`disableSessionRefresh`)                                                                                                                       |
 | Idle limit        | 60 minutes            | `resolveIdentity()` ends the session when `updatedAt` is older, and records activity at most once a minute. Page renders cannot write cookies, so this lives in the database, not in the cookie |
 | Revocation        | Immediate             | The cookie cache is off. Every request reads the session row                                                                                                                                    |
-| Cookie            | `nexus.session_token` | `HttpOnly`, `SameSite=Lax`, and `Secure` with the `__Secure-` prefix when `BETTER_AUTH_URL` is `https`. Plain `http` (local development) cannot carry `Secure`                                  |
-| Step_Up           | 10 minutes            | `session.stepUpAt`, set after password plus TOTP. Control pages ask again when it is older                                                                                                      |
+| Cookie            | `nexus.session_token` | `HttpOnly`, `SameSite=Lax`, and `Secure` with the `__Secure-` prefix when `BETTER_AUTH_URL` is `https`. Plain `http` (local development) cannot carry `Secure`. Shared with Studio for SSO      |
+| Step_Up           | Optional / disabled   | Administrators authenticate once with password and TOTP at initial sign-in; Control and Studio authoring do not require re-verification                                                         |
 
 ## Sign-in lockout
 

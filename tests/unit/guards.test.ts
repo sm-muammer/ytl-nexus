@@ -137,12 +137,12 @@ describe("/control (requirements 6.10, 6.11)", () => {
     );
   });
 
-  it("lets an Administrator in and reports when Step_Up is needed, without auditing the prompt", async () => {
-    const stale = setup(user("admin", { stepUpAt: null }));
-    expect(await stale.guards.requirePage("/control")).toMatchObject({
-      stepUpRequired: true,
+  it("lets an Administrator in without requiring Step_Up, without auditing the access", async () => {
+    const adminUser = setup(user("admin", { stepUpAt: null }));
+    expect(await adminUser.guards.requirePage("/control")).toMatchObject({
+      stepUpRequired: false,
     });
-    expect(stale.audits).toHaveLength(0);
+    expect(adminUser.audits).toHaveLength(0);
 
     const fresh = setup(user("admin"));
     expect(await fresh.guards.requirePage("/control")).toMatchObject({
@@ -226,16 +226,6 @@ describe("guardAction (requirements 6.4, 6.5, 6.6, 6.20, 6.27)", () => {
       "an unenrolled Administrator",
       user("admin", { twoFactorEnabled: false }),
       "enrolment-required",
-    ],
-    [
-      "an Administrator without Step_Up",
-      user("admin", { stepUpAt: null }),
-      "step-up-required",
-    ],
-    [
-      "an Administrator with a stale Step_Up",
-      user("admin", { stepUpAt: NOW - 11 * 60_000 }),
-      "step-up-required",
     ],
   ];
 
