@@ -102,7 +102,7 @@ export function NavSheet({
           onClick={open}
           aria-haspopup="dialog"
           data-session-label
-          className="group border-line bg-surface/70 text-ink hover:border-border-strong hover:bg-surface-raised focus-visible:ring-accent-ink/50 inline-flex min-h-11 min-w-11 items-center gap-2 rounded-full border px-3 text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.15)] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97]"
+          className="group border-line bg-surface/70 text-ink hover:border-border-strong hover:bg-surface-raised focus-visible:ring-accent-ink/50 hidden min-h-11 min-w-11 items-center gap-2 rounded-full border px-3 text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.15)] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97] md:inline-flex"
         >
           <span className="border-line bg-surface-raised/80 text-ink group-hover:border-border-strong flex size-5 shrink-0 items-center justify-center rounded-full border font-mono text-[10px] font-semibold transition-colors">
             {session.initial ?? (

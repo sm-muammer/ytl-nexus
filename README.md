@@ -23,7 +23,7 @@ It runs on the team's Rocky Linux server (**Nexus Core 01**) as a controlled int
 - **Nexus Continuity (`/continuity`):** Automated multi-tier backup registry, point-in-time restore drills, and disaster recovery runbooks.
 - **Nexus Shield (`/shield`):** Read-only security posture analysis, compliance baselines, and configuration drift detection.
 - **Nexus Tour & Story (`/tour`, `/story`):** 16-step guided interactive presentation with Presenter Mode and the internship engineering case study.
-- **Nexus Control (`/control`, `/control/users`):** Hidden administrative portal with role-based access control (RBAC), multi-factor authentication (MFA), step-up auth, session revocation, and user provisioning.
+- **Nexus Control (`/control`, `/control/users`):** Hidden administrative portal with role-based access control (RBAC), multi-factor authentication (MFA), session revocation, and user provisioning.
 - **Yes Experience (`/yes`):** Responsive Yes 5G public portal redesign with coverage checker, plan comparison, and Yes 5G Assistant.
 
 Full requirements & specifications: [`docs/product.md`](docs/product.md) · [`docs/spec/implementation-plan.md`](docs/spec/implementation-plan.md).

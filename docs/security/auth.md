@@ -20,7 +20,7 @@
 
 `viewer`, `member`, `operator`, `admin`, in that order. A Visitor is nobody signed in. The matrix of what each role may open is in [Product, roles](../product.md#3-roles) and is written out by hand in `tests/helpers/role-matrix.ts`, which the unit and end-to-end tests check every page against.
 
-Operators and Administrators must enrol TOTP before they can open any protected page. A Viewer or Member never has to.
+Administrators must enrol TOTP before they can open any protected page. Viewers, Members and Operators do not require an authenticator.
 
 ## Sessions
 
@@ -66,9 +66,9 @@ A refused request never runs the handler and writes one `refused` event. Validat
 
 Rewrite and proxies: behind Apache the request says `X-Forwarded-Proto: https` while the Node server listens on plain http. A rewrite to an https URL is fetched as an external request and fails with a 500, so `proxy.ts` gives the rewrite the `http:` scheme. To reproduce locally, run `.next/standalone/server.js` with `HOSTNAME=127.0.0.1` and request it with `-H 'Host: ytl-nexus.internal' -H 'X-Forwarded-Proto: https'`.
 
-Administrators then pass Step_Up before Control shows anything (`/control` or `/control/users`). User Management supports account creation (with optional unified SFTPGo and internal mailbox provisioning), display name updates, role changes, Stage 2/3 promotion approval or dismissal, account disabling, session revocation, password resets (random 24-character password shown once with no email), two-factor resets, and email-confirmed account deletion (`control.user.update-name`, `control.user.dismiss-stage-request`, `control.user.delete`).
+Administrators access Control directly with their primary authenticated session (`/control` or `/control/users`). User Management supports account creation (with optional unified SFTPGo and internal mailbox provisioning), display name updates, role changes, Stage 2/3 promotion approval or dismissal, account disabling, session revocation, password resets (random 24-character password shown once with no email), two-factor resets, and email-confirmed account deletion (`control.user.update-name`, `control.user.dismiss-stage-request`, `control.user.delete`).
 
-Credential separation (requirement 6.24): WordPress, mail and SFTP accounts live in their own services and databases (`nexus_wordpress`, `nexus_mail`, `nexus_sftpgo`, each with a single-database user). No Nexus password hash is copied there and the reverse.
+Credential separation & SSO (requirement 6.24): WordPress, mail and SFTP accounts live in their own services and databases (`nexus_wordpress`, `nexus_mail`, `nexus_sftpgo`). Mail and SFTP passwords remain distinct; Nexus Studio integrates with YTL Nexus via Single Sign-On (SSO) allowing Administrators and Operators to seamlessly access WordPress authoring without separate passwords while preserving database-level user isolation.
 
 ## Creating accounts (first administrator)
 
@@ -86,7 +86,7 @@ Signed-in users can also manage their own profile, change their password (verify
 
 ## Lost authenticator
 
-Backup codes (shown once at enrolment) work in place of the code at sign-in, one time each. If both are lost, an Administrator cannot yet reset two-factor from Control (Task 19). On the server, with the migrate user:
+Backup codes (shown once at enrolment) work in place of the code at sign-in, one time each. If both are lost, an Administrator can reset two-factor directly from Nexus Control (`/control/users`) or on the server with the migrate user:
 
 ```bash
 sudo -u nexus bash -c 'set -a && . /etc/ytl-nexus/migrate.env && set +a && \
@@ -129,10 +129,8 @@ sudo -u nexus bash -c 'set -a && . /etc/ytl-nexus/migrate.env && set +a && \
 
 ## What is not covered yet
 
-- Self-service password change and reset of two-factor from Control (Task 19).
-- Roles can be changed, accounts disabled or deleted, only by SQL or by Task 19's Control tools.
 - The Better Auth rate limiter keeps its counters in memory, so a restart resets that one layer. The five-in-15 lockout is in the database and survives restarts.
-- Corporate single sign-on. The account model (`user`, `account`) is Better Auth's standard one, so SSO can replace the password provider later without changing module code.
+- Corporate single sign-on with enterprise IdPs (e.g. Entra ID / Okta). The account model (`user`, `account`) is Better Auth's standard one, so external SAML/OIDC can plug in without changing module code.
 - Cross-site request protection for the HTTP handler is Better Auth's origin check (enabled explicitly, also under test). Server Functions rely on Next.js's own origin check.
 
 ## Tests

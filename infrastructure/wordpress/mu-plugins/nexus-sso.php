@@ -48,7 +48,7 @@ function nexus_sso_authenticate( $user_id = 0 ) {
 	global $wpdb;
 	$row = $wpdb->get_row(
 		$wpdb->prepare(
-			"SELECT s.userId, s.expiresAt, u.email, u.name, u.role
+			"SELECT s.userId, s.expiresAt, s.updatedAt, u.email, u.name, u.role, u.twoFactorEnabled, u.banned
 			 FROM ytl_nexus.session s
 			 JOIN ytl_nexus.user u ON s.userId = u.id
 			 WHERE s.token = %s",
@@ -60,13 +60,32 @@ function nexus_sso_authenticate( $user_id = 0 ) {
 		return false;
 	}
 
+	// 1. Account must not be banned or disabled.
+	if ( ! empty( $row->banned ) && (int) $row->banned !== 0 ) {
+		return false;
+	}
+
+	// 2. Absolute expiration check (12 hours).
 	$expires = strtotime( $row->expiresAt );
 	if ( false !== $expires && $expires < time() ) {
 		return false;
 	}
 
-	// Access control: only Administrators and Operators access Nexus Studio.
+	// 3. Idle timeout check (60 minutes / 3600 seconds from last activity).
+	if ( ! empty( $row->updatedAt ) ) {
+		$updated = strtotime( $row->updatedAt );
+		if ( false !== $updated && ( time() - $updated ) >= 3600 ) {
+			return false;
+		}
+	}
+
+	// 4. Access control: only Administrators and Operators access Nexus Studio.
 	if ( ! in_array( $row->role, array( 'admin', 'operator' ), true ) ) {
+		return false;
+	}
+
+	// 5. Administrators must have completed two-factor TOTP enrolment in YTL Nexus.
+	if ( 'admin' === $row->role && empty( $row->twoFactorEnabled ) ) {
 		return false;
 	}
 
@@ -139,9 +158,9 @@ add_filter( 'determine_current_user', 'nexus_sso_authenticate', 1 );
 add_filter(
 	'two_factor_is_required_for_user',
 	function( $is_required, $user ) {
-		$token = nexus_get_session_token_from_cookie();
-		if ( ! empty( $token ) ) {
-			return true;
+		$sso_user = nexus_sso_authenticate();
+		if ( $sso_user && (int) $sso_user === (int) ( is_object( $user ) ? $user->ID : $user ) ) {
+			return false;
 		}
 		return $is_required;
 	},

@@ -20,7 +20,7 @@ YTL Nexus is a controlled internal pilot on one Rocky Linux server. It also has 
 
 | Threat                             | Required controls                                                                                                                                             |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Authentication bypass              | Better Auth; server-side `requireRole()` in every protected page, Route Handler and Server Function; TOTP for Operator and Administrator; step-up for Control |
+| Authentication bypass              | Better Auth; server-side `requireRole()` in every protected page, Route Handler and Server Function; TOTP for Administrator; Control hidden with 404 parity   |
 | IDOR across users                  | Derive resource owner from the session; check ownership and role in the server data layer; test another user's identifiers                                    |
 | Privilege escalation               | Fixed role hierarchy; Administrator-only role changes; no impersonation; audit every change                                                                   |
 | Command injection or host takeover | No shell endpoint. `nexus-ops` accepts only three typed operations and fixed units; HMAC, nonce, timestamp and polkit enforce the boundary                    |

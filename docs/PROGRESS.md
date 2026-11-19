@@ -61,6 +61,23 @@
 
 ## Task log
 
+### Security Hardening, Studio SSO Validation & Responsive Header Polish (done 2026-11-19)
+
+- **WordPress Studio SSO Hardening (`infrastructure/wordpress/mu-plugins/nexus-sso.php`):**
+  - Updated `nexus_sso_authenticate()` to query `twoFactorEnabled`, `banned`, and `updatedAt` alongside session expiry.
+  - Enforced that banned/disabled accounts (`banned != 0`) are refused immediately.
+  - Enforced the 60-minute idle session timeout (`time() - updatedAt >= 3600`) matching `IDLE_TIMEOUT_MS`.
+  - Required that Administrators must have completed two-factor TOTP enrolment in YTL Nexus before being granted WordPress Administrator access.
+  - Updated the `two_factor_is_required_for_user` filter to accurately verify that the current user ID matches the authenticated SSO user ID.
+  - Deployed and verified on live server `10.26.64.164`.
+- **Responsive Header & Zero Mobile Overflow (`components/layout/site-header.tsx`, `components/layout/nav-sheet.tsx`):**
+  - Restored clean 0px document overflow at 390px mobile viewports: hidden the visitor "Sign in" button on viewports smaller than `sm` (it is prominently accessible inside the mobile drawer menu via the hamburger trigger), and kept `[data-session-label]` on `md:inline-flex`.
+- **Session Count & Idle Expiration (`lib/server/auth/service.ts`):**
+  - Updated `listUsersForAdmin()` active session query to filter by both `expiresAt > NOW()` and `updatedAt > (NOW() - IDLE_TIMEOUT_MS)`, accurately reflecting live active sessions in `/control/users`.
+  - Corrected documentation comments to reflect the 60-minute idle rule.
+- **Documentation & Spec Alignment (`README.md`, `docs/security/auth.md`, `docs/spec/10-identity-and-access.md`, `docs/spec/23-nexus-control.md`, `docs/security.md`):**
+  - Aligned all documentation with single sign-on for Studio, direct administrator access to Control, and TOTP requirement for administrators.
+
 ### Auto Incident Ticket Numbers & Status Tracking (done 2026-11-19)
 
 - **Ticket Format & Pure Helpers (`lib/status/tickets.ts`, `lib/status/types.ts`, `lib/status/form-state.ts`):**

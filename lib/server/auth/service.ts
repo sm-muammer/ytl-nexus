@@ -20,10 +20,10 @@ import {
   recordFailures,
   userSubject,
 } from "./lockout.ts";
-import { ACTIVITY_TOUCH_MS, sessionVerdict } from "./rules.ts";
+import { ACTIVITY_TOUCH_MS, IDLE_TIMEOUT_MS, sessionVerdict } from "./rules.ts";
 import { sourceIpFromHeaders } from "./ip.ts";
 
-// What the application does with Better Auth: who is asking (with the 30-minute
+// What the application does with Better Auth: who is asking (with the 60-minute
 // idle rule), Step_Up, TOTP enrolment, the Administrator's account actions and
 // the first-admin script. Every function takes the runtime and the request's
 // headers, so the same code runs in a page, a Server Function, a script and a
@@ -51,7 +51,7 @@ function isRole(value: unknown): value is Role {
 
 /**
  * Who is asking. Reads the session from the database every time (so a revoked
- * session fails at once), ends it when it has been idle for 30 minutes or is
+ * session fails at once), ends it when it has been idle for 60 minutes or is
  * 12 hours old, and otherwise records the activity at most once a minute.
  */
 export async function resolveIdentity(
@@ -432,7 +432,9 @@ export async function clearStageRequest(
 
 export async function listUsersForAdmin(
   rt: AuthRuntime,
+  now: number = Date.now(),
 ): Promise<AdminUserDto[]> {
+  const activeIdleThreshold = new Date(now - IDLE_TIMEOUT_MS);
   const rows = await rt.db
     .selectFrom("user")
     .select([
@@ -449,7 +451,8 @@ export async function listUsersForAdmin(
           .selectFrom("session")
           .select(sql<number>`count(*)`.as("n"))
           .whereRef("session.userId", "=", "user.id")
-          .where("session.expiresAt", ">", new Date())
+          .where("session.expiresAt", ">", new Date(now))
+          .where("session.updatedAt", ">", activeIdleThreshold)
           .as("activeSessions"),
     ])
     .orderBy("user.email")

@@ -1,11 +1,11 @@
 # Nexus Control: hidden administration
 
 > **Purpose:** requirements for the Administrator-only area that manages people, accounts, service actions and the audit trail.
-> **Audience:** builders and reviewers of Tasks 6 (entry) and 19 (completion). Access: Administrators with a fresh step-up only.
+> **Audience:** builders and reviewers of Tasks 6 (entry) and 19 (completion). Access: authenticated Administrators.
 
 ## Summary
 
-Nexus Control lives at `/control/*` (with dedicated User Management at `/control/users`). It is unlinked, `noindex`, returns 404 to everyone except Administrators, and requires password plus TOTP re-authentication within the last 10 minutes.
+Nexus Control lives at `/control/*` (with dedicated User Management at `/control/users`). It is unlinked, `noindex`, and returns 404 to everyone except authenticated Administrators.
 
 ## Requirements
 

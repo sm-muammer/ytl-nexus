@@ -13,16 +13,16 @@ One central Nexus login with role-based access. Authorization runs on the server
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | IAM-01 | Authentication uses Better Auth with MariaDB storage: email and password, admin plugin with custom roles, two-factor TOTP, built-in rate limiting, `nextCookies()` as the last plugin                   |
 | IAM-02 | Roles: Visitor (signed out), Viewer, Member, Operator, Administrator. The capability matrix is in [Product roles](../product.md#3-roles)                                                                |
-| IAM-03 | Operator and Administrator must enrol TOTP on first sign-in before reaching any protected page                                                                                                          |
+| IAM-03 | Administrator must enrol TOTP on first sign-in before reaching any protected page                                                                                                                       |
 | IAM-04 | One `requireRole(minRole)` guard is called in every protected page, layout, Route Handler and Server Function. Proxy-level checks only redirect on missing session cookies                              |
-| IAM-05 | `requireStepUp()` requires password plus TOTP within the last 10 minutes. `/control/*` requires it                                                                                                      |
+| IAM-05 | Administrators sign in once via password + TOTP; `/control/*` is accessible directly without step-up prompting                                                                                          |
 | IAM-06 | `/control/*` returns `notFound()` to everyone except Administrators. It is unlinked from public navigation and marked `noindex`                                                                         |
 | IAM-07 | Administrator impersonation is disabled                                                                                                                                                                 |
 | IAM-08 | Password resets are performed by an Administrator (no outbound email). A first-admin CLI script creates the initial Administrator on the server                                                         |
 | IAM-09 | Cookies are `Secure`, `HttpOnly` and `SameSite=Lax`; sessions expire and can be revoked by an Administrator                                                                                             |
 | IAM-10 | Every authentication event (sign-in, failure, lockout, 2FA enrol, step-up, sign-out) and every modifying action writes an `audit_events` row: actor, role, action, target, result, source IP, timestamp |
 | IAM-11 | The account model allows corporate SSO to replace local accounts later without changing module code                                                                                                     |
-| IAM-12 | WordPress Editor, mail and SFTP credentials stay separate from Nexus credentials                                                                                                                        |
+| IAM-12 | WordPress Studio authoring supports Single Sign-On (SSO) from YTL Nexus sessions; mail and SFTP credentials stay separate from Nexus credentials                                                        |
 
 ## Security requirements
 
